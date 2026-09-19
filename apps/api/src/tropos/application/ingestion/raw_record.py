@@ -1,6 +1,15 @@
 from dataclasses import dataclass
 from datetime import datetime
+from enum import StrEnum
 from hashlib import sha256
+
+
+class AccessScope(StrEnum):
+    """Access state received from the source-system connector."""
+
+    UNRESOLVED = "UNRESOLVED"
+    TENANT = "TENANT"
+    RESTRICTED = "RESTRICTED"
 
 
 @dataclass(frozen=True, slots=True)
@@ -12,8 +21,9 @@ class RawKnowledgeRecord:
     source_version: str
     content_type: str
     payload: bytes
+    access_scope: AccessScope
     captured_at: datetime
-    access_groups: tuple[str, ...] = ()
+    allowed_groups: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.source_system.strip():
@@ -34,8 +44,17 @@ class RawKnowledgeRecord:
         if self.captured_at.tzinfo is None or self.captured_at.utcoffset() is None:
             raise ValueError("captured_at must include timezone information")
 
-        if any(not group.strip() for group in self.access_groups):
-            raise ValueError("access_groups must not contain blank values")
+        if any(not group.strip() for group in self.allowed_groups):
+            raise ValueError("allowed_groups must not contain blank values")
+
+        if len(set(self.allowed_groups)) != len(self.allowed_groups):
+            raise ValueError("allowed_groups must not contain duplicates")
+
+        if self.access_scope is AccessScope.RESTRICTED and not self.allowed_groups:
+            raise ValueError("restricted records must contain at least one allowed group")
+
+        if self.access_scope is not AccessScope.RESTRICTED and self.allowed_groups:
+            raise ValueError("allowed_groups are valid only for restricted records")
 
     @property
     def fingerprint(self) -> str:
@@ -48,7 +67,8 @@ class RawKnowledgeRecord:
             self.source_record_id,
             self.source_version,
             self.content_type,
-            *sorted(set(self.access_groups)),
+            self.access_scope.value,
+            *sorted(self.allowed_groups),
         )
 
         for value in identity_values:
