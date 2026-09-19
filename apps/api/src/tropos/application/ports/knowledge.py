@@ -1,5 +1,6 @@
 from typing import Protocol
 
+from tropos.domain.knowledge import RetrievedKnowledge
 from tropos.domain.knowledge_action import (
     ClosureEvidenceStatus,
     KnowledgeCoverage,
@@ -14,10 +15,25 @@ class ClosureEvidenceEvaluator(Protocol):
     def evaluate(self, resolved_case: ResolvedCase) -> ClosureEvidenceStatus: ...
 
 
-class KnowledgeCoverageEvaluator(Protocol):
-    """Assess how well existing knowledge covers a resolved case."""
+class KnowledgeRetriever(Protocol):
+    """Retrieve ranked knowledge candidates for a resolved case."""
 
-    def evaluate(self, resolved_case: ResolvedCase) -> KnowledgeCoverage: ...
+    def retrieve(
+        self,
+        resolved_case: ResolvedCase,
+        *,
+        limit: int,
+    ) -> tuple[RetrievedKnowledge, ...]: ...
+
+
+class KnowledgeCoverageEvaluator(Protocol):
+    """Assess how well retrieved knowledge covers a resolved case."""
+
+    def evaluate(
+        self,
+        resolved_case: ResolvedCase,
+        retrieved_knowledge: tuple[RetrievedKnowledge, ...],
+    ) -> KnowledgeCoverage: ...
 
 
 class KnowledgeDecisionStore(Protocol):

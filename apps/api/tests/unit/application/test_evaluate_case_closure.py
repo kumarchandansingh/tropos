@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from tropos.application.evaluate_case_closure import EvaluateCaseClosure
+from tropos.domain.knowledge import RetrievedKnowledge
 from tropos.domain.knowledge_action import (
     ClosureEvidenceStatus,
     KnowledgeAction,
@@ -20,11 +21,32 @@ class StubClosureEvidenceEvaluator:
 
 
 @dataclass
+class StubKnowledgeRetriever:
+    result: tuple[RetrievedKnowledge, ...] = ()
+    calls: int = 0
+    last_limit: int | None = None
+
+    def retrieve(
+        self,
+        resolved_case: ResolvedCase,
+        *,
+        limit: int,
+    ) -> tuple[RetrievedKnowledge, ...]:
+        self.calls += 1
+        self.last_limit = limit
+        return self.result
+
+
+@dataclass
 class StubKnowledgeCoverageEvaluator:
     result: KnowledgeCoverage
     calls: int = 0
 
-    def evaluate(self, resolved_case: ResolvedCase) -> KnowledgeCoverage:
+    def evaluate(
+        self,
+        resolved_case: ResolvedCase,
+        retrieved_knowledge: tuple[RetrievedKnowledge, ...],
+    ) -> KnowledgeCoverage:
         self.calls += 1
         return self.result
 
@@ -49,35 +71,43 @@ def build_resolved_case() -> ResolvedCase:
     )
 
 
-def test_insufficient_evidence_skips_knowledge_evaluation() -> None:
+def test_insufficient_evidence_skips_retrieval_and_coverage() -> None:
     evidence_evaluator = StubClosureEvidenceEvaluator(ClosureEvidenceStatus.INSUFFICIENT)
-    knowledge_evaluator = StubKnowledgeCoverageEvaluator(KnowledgeCoverage.SUFFICIENT)
+    retriever = StubKnowledgeRetriever()
+    coverage_evaluator = StubKnowledgeCoverageEvaluator(KnowledgeCoverage.SUFFICIENT)
     decision_store = InMemoryKnowledgeDecisionStore()
     use_case = EvaluateCaseClosure(
         evidence_evaluator,
-        knowledge_evaluator,
+        retriever,
+        coverage_evaluator,
         decision_store,
     )
 
     decision = use_case.execute(build_resolved_case())
 
     assert decision.action is KnowledgeAction.NO_ACTION
-    assert knowledge_evaluator.calls == 0
+    assert retriever.calls == 0
+    assert coverage_evaluator.calls == 0
     assert decision_store.saved_decisions == [decision]
 
 
-def test_sufficient_evidence_triggers_knowledge_evaluation() -> None:
+def test_sufficient_evidence_triggers_retrieval_and_coverage() -> None:
     evidence_evaluator = StubClosureEvidenceEvaluator(ClosureEvidenceStatus.SUFFICIENT)
-    knowledge_evaluator = StubKnowledgeCoverageEvaluator(KnowledgeCoverage.NONE)
+    retriever = StubKnowledgeRetriever()
+    coverage_evaluator = StubKnowledgeCoverageEvaluator(KnowledgeCoverage.NONE)
     decision_store = InMemoryKnowledgeDecisionStore()
     use_case = EvaluateCaseClosure(
         evidence_evaluator,
-        knowledge_evaluator,
+        retriever,
+        coverage_evaluator,
         decision_store,
+        retrieval_limit=3,
     )
 
     decision = use_case.execute(build_resolved_case())
 
     assert decision.action is KnowledgeAction.CREATE
-    assert knowledge_evaluator.calls == 1
+    assert retriever.calls == 1
+    assert retriever.last_limit == 3
+    assert coverage_evaluator.calls == 1
     assert decision_store.saved_decisions == [decision]
