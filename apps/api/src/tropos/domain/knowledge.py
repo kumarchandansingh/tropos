@@ -1,32 +1,69 @@
 from dataclasses import dataclass
+from datetime import datetime
+
+from tropos.domain.access import AccessPolicy
+
+_HEXADECIMAL_CHARACTERS = frozenset("0123456789abcdefABCDEF")
+
+
+def _validate_aware_datetime(value: datetime, field_name: str) -> None:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError(f"{field_name} must include timezone information")
 
 
 @dataclass(frozen=True, slots=True)
 class KnowledgeDocument:
-    """Canonical knowledge content independent of its source system."""
+    """Retrieval-ready canonical knowledge with access and provenance."""
 
     knowledge_id: str
     source_system: str
     source_record_id: str
-    version: str
+    source_version: str
+    content_type: str
     title: str
     content: str
+    access_policy: AccessPolicy
+    source_fingerprint: str
+    captured_at: datetime
+    source_uri: str | None = None
+    source_updated_at: datetime | None = None
 
     def __post_init__(self) -> None:
-        if not self.knowledge_id.strip():
-            raise ValueError("knowledge_id must not be blank")
+        required_text = {
+            "knowledge_id": self.knowledge_id,
+            "source_system": self.source_system,
+            "source_record_id": self.source_record_id,
+            "source_version": self.source_version,
+            "content_type": self.content_type,
+            "title": self.title,
+            "content": self.content,
+        }
 
-        if not self.source_system.strip():
-            raise ValueError("source_system must not be blank")
+        for field_name, value in required_text.items():
+            if not value.strip():
+                raise ValueError(f"{field_name} must not be blank")
 
-        if not self.source_record_id.strip():
-            raise ValueError("source_record_id must not be blank")
+        if not isinstance(self.access_policy, AccessPolicy):
+            raise TypeError("access_policy must be an AccessPolicy")
 
-        if not self.version.strip():
-            raise ValueError("version must not be blank")
+        if not self.access_policy.is_indexable:
+            raise ValueError("access_policy must be resolved before creating a knowledge document")
 
-        if not self.content.strip():
-            raise ValueError("content must not be blank")
+        if len(self.source_fingerprint) != 64 or any(
+            character not in _HEXADECIMAL_CHARACTERS for character in self.source_fingerprint
+        ):
+            raise ValueError("source_fingerprint must be a 64-character hexadecimal SHA-256 digest")
+
+        _validate_aware_datetime(self.captured_at, "captured_at")
+
+        if self.source_uri is not None and not self.source_uri.strip():
+            raise ValueError("source_uri must not be blank when provided")
+
+        if self.source_updated_at is not None:
+            _validate_aware_datetime(
+                self.source_updated_at,
+                "source_updated_at",
+            )
 
 
 @dataclass(frozen=True, slots=True)
