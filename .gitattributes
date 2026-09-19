@@ -1,0 +1,29 @@
+﻿# Normalize text files when Git stores them
+* text=auto
+
+# Source code and configuration use Unix line endings
+*.py       text eol=lf
+*.md       text eol=lf
+*.toml     text eol=lf
+*.yaml     text eol=lf
+*.yml      text eol=lf
+*.json     text eol=lf
+*.js       text eol=lf
+*.jsx      text eol=lf
+*.ts       text eol=lf
+*.tsx      text eol=lf
+*.sh       text eol=lf
+
+# Windows-native scripts
+*.ps1      text eol=crlf
+*.bat      text eol=crlf
+*.cmd      text eol=crlf
+
+# Binary files must never be line-ending normalized
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.pdf      binary
+*.docx     binary
+*.xlsx     binary

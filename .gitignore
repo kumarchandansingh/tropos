@@ -1,0 +1,40 @@
+﻿# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Node and Next.js
+node_modules/
+.next/
+out/
+coverage/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime-generated content
+var/
+tmp/
+uploads/
+*.log
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
