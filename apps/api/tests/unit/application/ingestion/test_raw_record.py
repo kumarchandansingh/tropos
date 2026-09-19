@@ -2,29 +2,33 @@ from datetime import UTC, datetime
 
 import pytest
 
-from tropos.application.ingestion.raw_record import (
-    AccessScope,
-    RawKnowledgeRecord,
-)
+from tropos.application.ingestion.raw_record import RawKnowledgeRecord
+from tropos.domain.access import AccessPolicy, AccessScope
 
 
 def build_record(
     *,
     source_record_id: str = "ARTICLE-001",
     payload: bytes = b'{"title":"Credential reset"}',
+    tenant_id: str = "acme",
     access_scope: AccessScope = AccessScope.TENANT,
     captured_at: datetime | None = None,
     allowed_groups: tuple[str, ...] = (),
 ) -> RawKnowledgeRecord:
+    access_policy = AccessPolicy(
+        tenant_id=tenant_id,
+        scope=access_scope,
+        allowed_groups=allowed_groups,
+    )
+
     return RawKnowledgeRecord(
         source_system="test-knowledge-base",
         source_record_id=source_record_id,
         source_version="1",
         content_type="application/json",
         payload=payload,
-        access_scope=access_scope,
+        access_policy=access_policy,
         captured_at=captured_at or datetime(2026, 9, 19, tzinfo=UTC),
-        allowed_groups=allowed_groups,
     )
 
 
@@ -55,11 +59,31 @@ def test_access_group_order_does_not_change_fingerprint() -> None:
     assert first.fingerprint == second.fingerprint
 
 
+def test_access_group_change_changes_fingerprint() -> None:
+    first = build_record(
+        access_scope=AccessScope.RESTRICTED,
+        allowed_groups=("support-agent",),
+    )
+    second = build_record(
+        access_scope=AccessScope.RESTRICTED,
+        allowed_groups=("knowledge-manager",),
+    )
+
+    assert first.fingerprint != second.fingerprint
+
+
 def test_access_scope_change_changes_fingerprint() -> None:
     tenant_record = build_record(access_scope=AccessScope.TENANT)
     unresolved_record = build_record(access_scope=AccessScope.UNRESOLVED)
 
     assert tenant_record.fingerprint != unresolved_record.fingerprint
+
+
+def test_tenant_change_changes_fingerprint() -> None:
+    first = build_record(tenant_id="acme")
+    second = build_record(tenant_id="globex")
+
+    assert first.fingerprint != second.fingerprint
 
 
 def test_blank_source_record_id_is_rejected() -> None:
@@ -83,7 +107,7 @@ def test_timestamp_without_timezone_is_rejected() -> None:
 def test_restricted_scope_requires_an_allowed_group() -> None:
     with pytest.raises(
         ValueError,
-        match="restricted records must contain at least one allowed group",
+        match="restricted access requires at least one group",
     ):
         build_record(access_scope=AccessScope.RESTRICTED)
 
@@ -91,7 +115,7 @@ def test_restricted_scope_requires_an_allowed_group() -> None:
 def test_tenant_scope_rejects_allowed_groups() -> None:
     with pytest.raises(
         ValueError,
-        match="allowed_groups are valid only for restricted records",
+        match="allowed_groups are valid only for restricted access",
     ):
         build_record(
             access_scope=AccessScope.TENANT,
