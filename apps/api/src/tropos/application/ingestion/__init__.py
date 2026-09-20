@@ -1,1 +1,0 @@
-"""Knowledge-ingestion application contracts."""
