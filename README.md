@@ -1,4 +1,4 @@
-﻿# Tropos
+# Tropos
 
 **Every resolution strengthens the next.**
 
@@ -76,6 +76,11 @@ Tropos starts as a modular monolith with clear internal boundaries:
 
 The web application will be added after the core knowledge loop works.
 
+## Architecture documentation
+
+- [Living knowledge-processing model](docs/architecture/knowledge-processing-model.md)
+- [ADR 0001: Living architecture as docs-as-code](docs/decisions/0001-living-architecture-docs-as-code.md)
+
 ## Delivery approach
 
 Development progresses through small, verifiable releases:
@@ -89,4 +94,12 @@ Development progresses through small, verifiable releases:
 
 ## Current status
 
-Repository foundation is being established. No product capability is implemented yet.
+Implemented foundations include:
+
+- deterministic knowledge-action policy and closure-evidence baseline;
+- retrieval and coverage-assessment contracts;
+- raw-ingestion, access-policy, and provenance contracts;
+- canonical knowledge documents;
+- deterministic, governed knowledge chunking with exact coverage validation.
+
+The next delivery focus is chunk persistence and lexical indexing.
