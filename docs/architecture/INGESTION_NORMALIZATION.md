@@ -69,7 +69,7 @@ StructuralBlock
 └── ORDERED_LIST_ITEM
 ```
 
-For Markdown input, heading level and ordered-versus-unordered list semantics are preserved. Equivalent marker styles within the same list type are normalized. Plain text is treated conservatively and does not infer headings.
+ATX headings are recognized only when `TextFormat.MARKDOWN` is supplied. Ordered and unordered list markers are recognized for both supported format hints. Equivalent marker styles within the same list type are normalized, while ordered and unordered lists remain distinct. Plain text does not infer headings.
 
 The normalized title and ordered block sequence are serialized as stable JSON. SHA-256 of that serialization becomes `normalized_content_fingerprint`. The same blocks render the canonical text stored in `KnowledgeDocument.content`.
 
