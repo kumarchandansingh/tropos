@@ -76,9 +76,11 @@ Tropos starts as a modular monolith with clear internal boundaries:
 
 The web application will be added after the core knowledge loop works.
 
-## Architecture documentation
+## Architecture and delivery documentation
 
 - [Living knowledge-processing model](docs/architecture/knowledge-processing-model.md)
+- [Environment and release strategy](docs/delivery/environment-and-release-strategy.md)
+- [Release-readiness checklist](docs/delivery/release-readiness-checklist.md)
 - [ADR 0001: Living architecture as docs-as-code](docs/decisions/0001-living-architecture-docs-as-code.md)
 
 ## Delivery approach
