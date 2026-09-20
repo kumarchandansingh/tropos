@@ -21,18 +21,19 @@ flowchart LR
 | [`ADR-001-modular-monolith-ports-and-adapters.md`](ADR-001-modular-monolith-ports-and-adapters.md) | Accepted | Start as a modular monolith with inward domain/application boundaries and replaceable adapters |
 | [`ADR-002-governed-evidence-and-deterministic-chunking.md`](ADR-002-governed-evidence-and-deterministic-chunking.md) | Accepted | Treat `KnowledgeChunk` as governed evidence and establish deterministic lossless chunking before semantic retrieval |
 | [`ADR-003-protected-main-and-required-ci.md`](ADR-003-protected-main-and-required-ci.md) | Accepted | Require PR-based integration into protected `main` with `api-quality` as a mandatory status check |
+| [`ADR-004-sqlite-current-corpus-persistence.md`](ADR-004-sqlite-current-corpus-persistence.md) | Accepted | Persist the current canonical document/chunk snapshot behind an application port using SQLite as the first executable baseline |
 
 ## Decisions intentionally not yet recorded as accepted ADRs
 
 Some directions are documented as **PLANNED** but have not earned an accepted architecture decision because implementation evidence does not exist yet:
 
-- persistence technology;
-- lexical/FTS engine choice;
+- lexical/FTS retrieval details beyond the current SQLite direction;
 - vector database or embedding model;
 - concrete coverage-evaluation method;
 - LLM/model/provider selection;
 - API framework and deployment platform;
-- observability stack.
+- observability stack;
+- production database / migration platform.
 
 This distinction is important. A roadmap idea should not become an “architecture decision” simply because it appeared in a diagram.
 

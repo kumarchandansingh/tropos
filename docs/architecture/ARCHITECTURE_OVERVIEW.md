@@ -1,77 +1,32 @@
 # Architecture Overview
 
-## Architecture goal
+## Purpose
 
-Tropos needs to evolve from deterministic rules into retrieval- and AI-assisted behavior without letting infrastructure choices become the business model. The architecture therefore separates **policy**, **orchestration**, **contracts**, and **replaceable implementations**.
+Tropos is a governed knowledge-management system that learns from resolved support cases. The first product capability, **Tropos Resolve**, recommends `REUSE`, `IMPROVE`, `CREATE`, or `NO_ACTION` and preserves the evidence needed for human review, evaluation, and audit.
 
-The current shape is a **modular monolith** using **Ports-and-Adapters / Hexagonal architecture** with lightweight domain-driven design.
+## Theory foundation
 
-## Dependency direction
+Tropos uses a **modular monolith** with **Hexagonal / Ports-and-Adapters architecture** and lightweight domain-driven design.
+
+The governing dependency rule is:
+
+> Business policy points inward; infrastructure points outward through interfaces.
 
 ```mermaid
 flowchart TB
-    Presentation[Future presentation<br/>API / CLI / UI]
-    Application[Application<br/>use cases + orchestration]
-    Domain[Domain<br/>business concepts + invariants]
-    Ports[Application-owned ports<br/>Protocols]
-    Adapters[Adapters<br/>concrete implementations]
-    External[(External systems / stores / models)]
+    P[Presentation<br/>HTTP / CLI / future UI]
+    A[Application<br/>use cases + orchestration]
+    D[Domain<br/>business concepts + invariants]
+    Ports[Ports<br/>interfaces owned by application]
+    Adapters[Adapters<br/>chunking / evaluation / persistence / future retrieval + AI]
+    External[(External systems)]
 
-    Presentation --> Application
-    Application --> Domain
-    Application --> Ports
-    Adapters --> Domain
+    P --> A
+    A --> D
+    A --> Ports
     Adapters --> Ports
     Adapters --> External
 ```
-
-The important rule is not the folder structure; it is the **direction of dependency**:
-
-> Business policy does not import databases, vector stores, model SDKs, web frameworks, or source-system clients.
-
-## Current executable architecture
-
-```mermaid
-flowchart LR
-    subgraph Domain[DOMAIN — IMPLEMENTED]
-      RC[ResolvedCase]
-      AP[AccessPolicy]
-      KD[KnowledgeDocument]
-      KC[KnowledgeChunk]
-      KA[Knowledge decision policy]
-    end
-
-    subgraph Application[APPLICATION — IMPLEMENTED]
-      ECC[EvaluateCaseClosure]
-      RR[RawKnowledgeRecord]
-      P1[ClosureEvidenceEvaluator]
-      P2[KnowledgeRetriever]
-      P3[KnowledgeCoverageEvaluator]
-      P4[KnowledgeDecisionStore]
-      P5[KnowledgeChunker]
-    end
-
-    subgraph Adapters[ADAPTERS — IMPLEMENTED]
-      CE[RuleBasedClosureEvidenceEvaluator]
-      DC[DeterministicKnowledgeChunker]
-    end
-
-    ECC --> RC
-    ECC --> KA
-    ECC --> P1
-    ECC --> P2
-    ECC --> P3
-    ECC --> P4
-    RR --> AP
-    DC --> KD
-    DC --> KC
-    CE --> P1
-    DC --> P5
-```
-
-### What this diagram deliberately does not imply
-
-`KnowledgeRetriever`, `KnowledgeCoverageEvaluator`, and `KnowledgeDecisionStore` are currently **contracts**, not production adapters. There is no persistent knowledge repository, lexical index, vector database, LLM adapter, API server, or UI in the codebase today.
 
 ## C4-style system context
 
@@ -80,114 +35,110 @@ flowchart LR
     Agent[Support agent]
     Reviewer[Knowledge reviewer]
     Manager[Knowledge / support manager]
-    CaseSource[(Case source)]
-    KnowledgeSource[(Knowledge source)]
-    Tropos[Tropos Resolve]
-    FutureStore[(Future governed store)]
-    FutureAI[Future AI / embedding provider]
+    Source[Case + knowledge sources]
+    Tropos[Tropos]
+    Store[(SQLite canonical corpus<br/>implemented baseline)]
+    AI[Future AI / embedding providers]
 
-    Agent --> CaseSource
-    CaseSource --> Tropos
-    KnowledgeSource --> Tropos
+    Agent --> Tropos
     Reviewer --> Tropos
     Manager --> Tropos
-    Tropos -. planned .-> FutureStore
-    Tropos -. deferred .-> FutureAI
+    Source --> Tropos
+    Tropos --> Store
+    Tropos -. planned .-> AI
 ```
 
-## Why a modular monolith now
+## Current implementation
 
-Tropos has multiple conceptual boundaries, but not multiple independent operational workloads yet. Splitting them into services today would add deployment, networking, tracing, consistency and contract-management cost without product evidence that those services need to scale or release independently.
+The repository currently implements a deterministic core plus the first persistence adapter:
 
-The modular monolith preserves internal separation while keeping execution and testing simple.
+- domain concepts for resolved cases, access policy, knowledge, knowledge chunks, and knowledge actions;
+- application use cases and ports;
+- raw-record ingestion structures;
+- deterministic chunking with exact offsets, stable fingerprints, inherited access policy, and source lineage;
+- rule-based closure-evidence evaluation;
+- `KnowledgeCorpusStore` as the application-owned persistence contract;
+- `SQLiteKnowledgeCorpusStore` as the baseline concrete corpus store;
+- atomic replacement of the current document/chunk snapshot per `knowledge_id`;
+- unit tests around implemented capabilities.
+
+Lexical retrieval, permission-filtered search, concrete coverage evaluation, LLM reasoning, HTTP APIs, UI and runtime deployment are **planned**, not yet implemented.
+
+## Component view
 
 ```mermaid
 flowchart LR
-    Need[Need independent responsibility] --> Module[Module boundary]
-    Module --> Evidence{Need independent deployment / scaling?}
-    Evidence -- no --> Mono[Remain in modular monolith]
-    Evidence -- yes, later --> Service[Consider extraction]
+    RC[ResolvedCase] --> UC[Evaluate case closure use case]
+    KD[KnowledgeDocument] --> CH[Chunking port]
+    CH --> DA[Deterministic chunking adapter]
+    DA --> KC[KnowledgeChunk]
+    KC --> PS[KnowledgeCorpusStore port]
+    PS --> SQ[SQLite persistence adapter]
+    SQ -. next .-> RT[FTS5 retrieval adapter]
+    RT -. future .-> KA[Knowledge action recommendation flow]
 ```
 
-## Responsibility model
+## Why this architecture
 
-| Layer | Owns | Must not own |
-| --- | --- | --- |
-| Domain | business vocabulary, invariants, deterministic decision policy | SDKs, database sessions, HTTP clients |
-| Application | use-case sequencing and ports | vendor-specific persistence/retrieval logic |
-| Adapters | concrete algorithms and external integration behavior | hidden business policy |
-| Presentation | translating external requests into application calls | core decisions |
-| Composition/bootstrap | wiring concrete adapters to ports | domain behavior |
-
-The last two rows are target boundaries; presentation/bootstrap modules are not yet implemented.
-
-## Architecture rule in one example
-
-`EvaluateCaseClosure` knows that knowledge must be retrieved, coverage assessed, and a decision saved. It does **not** know whether retrieval uses SQLite FTS, PostgreSQL, OpenSearch, embeddings, or a remote service.
-
-```mermaid
-flowchart LR
-    UseCase[EvaluateCaseClosure]
-    --> Port[KnowledgeRetriever]
-    Port -. future implementation .-> FTS[FTS adapter]
-    Port -. later alternative .-> Hybrid[Hybrid search adapter]
-```
-
-This is the Dependency Inversion Principle applied at the product boundary that is expected to change.
-
-## Architecture invariants
-
-The following should remain true unless an ADR explicitly changes them:
-
-1. Domain policy remains infrastructure-independent.
-2. Application orchestration depends on inward contracts, not concrete storage/search/model providers.
-3. Access policy and provenance survive transformations into retrieval evidence.
-4. Retrieval evidence remains traceable to exact source content.
-5. AI outputs, when introduced, must cross a typed/validated contract before affecting governed state.
-6. `main` represents integrated code and is protected by required CI; runtime environment promotion is separate.
-
-## Failure modes this structure is preventing
-
-```mermaid
-flowchart TD
-    Bad[Architecture drift]
-    Bad --> DB[Database rows become domain objects]
-    Bad --> SDK[Vendor SDK types leak inward]
-    Bad --> Prompt[Prompt text becomes hidden policy]
-    Bad --> ACL[Access semantics disappear in indexing]
-    Bad --> Evidence[Generated answer loses source lineage]
-    Bad --> Rewrite[Changing retriever requires rewriting use case]
-```
-
-## Current architecture evidence
-
-| Concern | Executable evidence |
+| Requirement | Architectural response |
 | --- | --- |
-| Domain invariants | `apps/api/src/tropos/domain/` + `tests/unit/domain/` |
-| Case orchestration | `application/evaluate_case_closure.py` + its unit tests |
-| Ingestion identity | `application/ingestion/raw_record.py` + ingestion tests |
-| Port boundaries | `application/ports/knowledge.py`, `application/ports/chunking.py` |
-| Deterministic closure baseline | `adapters/evaluation/rule_based_closure_evidence.py` |
-| Governed chunking | `adapters/chunking/deterministic.py` + chunk tests |
-| Integration control | `.github/workflows/ci.yml` + protected `main` |
+| Replace infrastructure without rewriting business rules | Ports + adapters |
+| Make knowledge decisions auditable | Explicit domain objects and provenance |
+| Persist evidence without making database rows the domain model | `KnowledgeCorpusStore` port + SQLite adapter |
+| Evolve from deterministic rules to AI gradually | Separate application contracts from implementations |
+| Keep an early-stage codebase simple | Modular monolith rather than distributed services |
+| Test business logic cheaply | Pure domain/application logic with adapter boundaries |
 
-## Safe extension pattern
+## Persistence boundary
+
+SQLite is currently an **adapter choice**, not a domain assumption.
 
 ```mermaid
 flowchart LR
-    Problem[New product need]
-    --> Concept{New business concept?}
-    Concept -- yes --> Domain[Update domain + invariants]
-    Concept -- no --> Contract{New replaceable boundary?}
-    Contract -- yes --> Port[Define/update port]
-    Contract -- no --> Existing[Use existing contract]
-    Domain --> Tests[Add executable tests]
-    Port --> Adapter[Implement adapter]
-    Existing --> Adapter
-    Adapter --> PR[Bounded PR]
-    Tests --> PR
-    PR --> CI[api-quality]
-    CI --> Main[Protected main]
+    Domain[KnowledgeDocument + KnowledgeChunk]
+    --> Port[KnowledgeCorpusStore]
+    --> SQLite[(SQLite adapter)]
+    Port -. later .-> Other[(Alternative store)]
 ```
 
-Material changes to boundaries, persistence, retrieval, access/governance or release topology should be captured as ADRs in `docs/decisions/`.
+The persisted corpus represents the current retrieval-ready snapshot. It is not an append-only source archive. When a newer canonical version is saved, document and chunk replacement occurs atomically while version/provenance fields remain explicit on the reloaded domain objects.
+
+## Design rules
+
+1. Domain code must not import infrastructure frameworks, database modules, or SDKs.
+2. Application use cases depend on ports, not concrete persistence, retrieval, or AI implementations.
+3. Adapters satisfy contracts defined inward of them.
+4. Source provenance and access policy travel with knowledge through processing and persistence stages.
+5. Persistence round-trips must reconstruct valid domain objects rather than expose database records as business objects.
+6. AI output must become a validated domain/application contract before it can affect governed state.
+7. Architecture changes require an ADR when they change a boundary, dependency direction, persistence strategy, retrieval strategy, or release model.
+
+## Trade-offs
+
+Ports-and-adapters adds interfaces and files compared with a small script. Tropos accepts that cost because persistence, retrieval, source connectors, and AI providers are expected to change independently over time.
+
+The SQLite baseline deliberately chooses a dependency-free, inspectable persistence mechanism for the current single-process stage. The cost is that migration management, concurrency, hosted operation and production scaling are not solved yet. Those concerns should be addressed when a deployable runtime and workload justify them rather than hidden behind premature infrastructure.
+
+## Failure modes this structure is intended to prevent
+
+- database logic leaking into business decisions;
+- SQLite row shapes becoming the canonical domain model;
+- stale chunks surviving when a newer canonical document snapshot replaces them;
+- source/access metadata disappearing during persistence;
+- replacing retrieval requiring broad rewrites;
+- prompts becoming hidden business policy;
+- AI output bypassing validation;
+- provenance being lost during transformation.
+
+## How to extend safely
+
+```mermaid
+flowchart LR
+    Need[New capability] --> Contract[Define / update inward contract]
+    Contract --> Tests[Specify deterministic behavior]
+    Tests --> Adapter[Implement adapter]
+    Adapter --> Integrate[Wire at composition boundary]
+    Integrate --> CI[Pass CI + relevant evals]
+```
+
+When adding a new external technology, first ask whether Tropos needs a new business concept, a new application port, or only a new adapter.

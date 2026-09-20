@@ -29,9 +29,11 @@ flowchart TB
       KD[KnowledgeDocument]
       CH[DeterministicKnowledgeChunker]
       KC[KnowledgeChunk + invariants]
+      PS[KnowledgeCorpusStore port]
+      SQ[(SQLite canonical corpus)]
       DI[Knowledge decision policy]
       OR[EvaluateCaseClosure orchestration]
-      R1 --> KD --> CH --> KC
+      R1 --> KD --> CH --> KC --> PS --> SQ
       AP --> KD
       OR --> DI
     end
@@ -42,14 +44,14 @@ flowchart TB
       STORE[KnowledgeDecisionStore]
     end
 
-    subgraph Planned[PLANNED]
-      PS[(Persistent knowledge/chunk store)]
-      FTS[Lexical / full-text search]
-      HIT[Retrieval hit / evidence bundle]
+    subgraph Planned[PLANNED NEXT]
+      FTS[SQLite FTS5 / BM25 lexical retrieval]
+      ACL[tenant/group filtering]
+      HIT[chunk-level RetrievalHit / evidence bundle]
       CE[Concrete coverage evaluator]
       DS[(Decision persistence)]
       EV[Retrieval + product evaluations]
-      PS --> FTS --> HIT --> CE
+      SQ --> FTS --> ACL --> HIT --> CE
       DS --> EV
     end
 
@@ -59,7 +61,6 @@ flowchart TB
       LLM[LLM-assisted reasoning / drafting]
     end
 
-    KC -. next .-> PS
     RET -. future adapter .-> FTS
     COV -. future adapter .-> CE
     STORE -. future adapter .-> DS
@@ -68,15 +69,29 @@ flowchart TB
     CE -. after measurable baseline .-> LLM
 ```
 
+## What changed with persistence
+
+The pipeline now has an executable boundary between governed chunks and future retrieval:
+
+```mermaid
+flowchart LR
+    KC[Validated KnowledgeChunk set]
+    --> Port[KnowledgeCorpusStore]
+    --> SQL[(SQLite canonical corpus)]
+    --> Next[FTS5 index / retriever<br/>next slice]
+```
+
+The persistence adapter is deliberately **not** called a retriever. It stores and reconstructs exact governed evidence. Retrieval will be a separate adapter with its own ranking, permission filtering and evaluation behavior.
+
 ## Why the stages are separate
 
-A fluent final answer can hide failures earlier in the pipeline. Tropos therefore treats retrieval, coverage, decision policy and generation as separate quality surfaces.
+A fluent final answer can hide failures earlier in the pipeline. Tropos therefore treats persistence, retrieval, coverage, decision policy and generation as separate quality surfaces.
 
 | Stage | Question | Typical failure |
 | --- | --- | --- |
 | Normalization | Did source content become a correct canonical document? | lost fields / corrupted text / lost ACL |
 | Chunking | Is the evidence unit faithful and reproducible? | fragmentation / citation drift |
-| Persistence | Can canonical evidence be retrieved by stable identity? | stale or duplicate states |
+| Persistence | Can canonical evidence be reconstructed by stable identity? | stale or partial snapshot |
 | Retrieval | Did we fetch relevant candidates? | low recall |
 | Ranking | Are the useful candidates near the top? | noisy top-k |
 | Coverage | Is existing knowledge enough to resolve the case? | wrong `CREATE/IMPROVE/REUSE` input |
@@ -86,13 +101,14 @@ A fluent final answer can hide failures earlier in the pipeline. Tropos therefor
 
 ## Retrieval baseline: lexical before vector
 
-The planned strategy is intentionally incremental.
+The next retrieval strategy remains intentionally incremental.
 
 ```mermaid
 flowchart LR
     Chunk[Governed chunks]
-    --> Persist[Persistent corpus]
-    --> FTS[Lexical / FTS baseline]
+    --> Persist[(SQLite canonical corpus)]
+    --> FTS[SQLite FTS5 / BM25 baseline]
+    --> ACL[tenant/group filter]
     --> Dataset[Build retrieval eval set]
     --> Measure[Measure recall / precision / ranking]
     --> Gap{Material semantic-recall gap?}
@@ -105,12 +121,12 @@ This is not an anti-vector position. It is an experimental-design choice: add co
 
 ## Access filtering belongs before model reasoning
 
-Tropos already makes unresolved access non-indexable. Future retrieval must preserve that principle:
+Tropos already makes unresolved access non-indexable and now persists tenant/scope/group metadata beside each chunk. Future retrieval must preserve that principle:
 
 ```mermaid
 flowchart LR
     Query[Case/query]
-    --> Candidate[Search candidates]
+    --> Search[FTS5 candidate search]
     --> Policy[Apply tenant/group access policy]
     --> Evidence[Allowed evidence only]
     --> Coverage[Coverage evaluation]
@@ -121,7 +137,7 @@ A model should never be used as the mechanism for deciding whether retrieved evi
 
 ## Planned retrieval contract
 
-The current domain has `RetrievedKnowledge(document, score)`, while the future chunk-level retrieval path will likely need a richer evidence contract carrying exact chunk IDs and provenance.
+The current domain has `RetrievedKnowledge(document, score)`, while the chunk-level retrieval path will need a richer evidence contract carrying exact chunk IDs and provenance.
 
 A target shape is conceptually:
 

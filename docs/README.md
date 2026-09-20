@@ -12,7 +12,7 @@ flowchart TB
     Arch[Architecture<br/>how responsibilities are separated]
     Code[Codebase map<br/>where each responsibility lives]
     KM[Knowledge model<br/>identity + provenance + access]
-    RAG[RAG architecture<br/>retrieval + coverage + reasoning]
+    RAG[RAG architecture<br/>persistence + retrieval + coverage + reasoning]
     Eval[Evaluation strategy<br/>software + AI quality]
     CICD[CI/CD<br/>change control]
     Env[Environment strategy<br/>promotion + runtime separation]
@@ -46,7 +46,7 @@ Tropos uses these labels consistently so future architecture is not confused wit
 | What Tropos is solving and how the four knowledge actions work | [`product/PRODUCT_MODEL.md`](product/PRODUCT_MODEL.md) |
 | The architecture and dependency direction | [`architecture/ARCHITECTURE_OVERVIEW.md`](architecture/ARCHITECTURE_OVERVIEW.md) |
 | Which file owns which responsibility | [`architecture/CODEBASE_MAP.md`](architecture/CODEBASE_MAP.md) |
-| How source identity, access, provenance and chunks work | [`architecture/KNOWLEDGE_MODEL.md`](architecture/KNOWLEDGE_MODEL.md) |
+| How source identity, access, provenance, chunks and persistence work | [`architecture/KNOWLEDGE_MODEL.md`](architecture/KNOWLEDGE_MODEL.md) |
 | What the current and target RAG pipeline actually are | [`architecture/RAG_ARCHITECTURE.md`](architecture/RAG_ARCHITECTURE.md) |
 | What is a unit test vs an AI/RAG evaluation | [`quality/EVAL_STRATEGY.md`](quality/EVAL_STRATEGY.md) |
 | How code moves safely into protected `main` | [`delivery/CI_CD.md`](delivery/CI_CD.md) |
@@ -66,8 +66,10 @@ flowchart LR
       F[Knowledge document]
       G[Deterministic chunking]
       H[Chunk invariants]
+      P[KnowledgeCorpusStore port]
+      SQL[(SQLite corpus persistence)]
       A --> B --> C
-      D --> F --> G --> H
+      D --> F --> G --> H --> P --> SQL
       E --> F
     end
 
@@ -78,8 +80,9 @@ flowchart LR
     end
 
     subgraph Planned[PLANNED]
-      P[(Persistence)]
-      FTS[Lexical / FTS retrieval]
+      FTS[SQLite FTS5 / lexical retrieval]
+      ACL[Tenant + group retrieval filtering]
+      HIT[Chunk-level RetrievalHit]
       CE[Concrete coverage evaluation]
       EV[Retrieval + product eval datasets]
       API[API / UI]
@@ -91,10 +94,9 @@ flowchart LR
       Prod[Production deployment]
     end
 
-    C --> R
+    SQL --> FTS --> ACL --> HIT --> R
     R --> CV
     C --> DS
-    H --> P --> FTS --> R
     FTS --> CE --> EV
     FTS -. if measurable need .-> V
     CE -. after deterministic baseline .-> L
@@ -112,8 +114,8 @@ Every important document should answer six questions:
 5. **What failure mode is the design preventing?**
 6. **Where is the executable evidence in the repository?**
 
-Theory is useful only when it explains a concrete Tropos decision. The main ideas currently in use are C4-style system views, modular-monolith boundaries, Hexagonal / Ports-and-Adapters architecture, lightweight domain-driven design, provenance/lineage, content-addressable integrity, shift-left quality, continuous integration, and progressive delivery.
+Theory is useful only when it explains a concrete Tropos decision. The main ideas currently in use are C4-style system views, modular-monolith boundaries, Hexagonal / Ports-and-Adapters architecture, lightweight domain-driven design, provenance/lineage, content-addressable integrity, transactional persistence, shift-left quality, continuous integration, and progressive delivery.
 
 ## Maintenance rule
 
-When a PR changes a boundary, invariant, retrieval strategy, persistence model, access semantics, evaluation gate or release model, update the relevant living document in the same PR. If the change represents a durable architecture decision, add or update an ADR as well.
+When a PR changes a boundary, invariant, persistence model, retrieval strategy, access semantics, evaluation gate or release model, update the relevant living document in the same PR. If the change represents a durable architecture decision, add or update an ADR as well.

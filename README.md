@@ -38,16 +38,20 @@ flowchart LR
 - immutable raw-ingestion records with canonical SHA-256 fingerprints;
 - governed access semantics with `UNRESOLVED`, `TENANT`, and `RESTRICTED` scopes;
 - deterministic, lossless chunking with exact offsets, stable IDs, provenance, access inheritance and strategy versioning;
-- unit tests across domain, application, ingestion, evaluation and chunking;
+- a `KnowledgeCorpusStore` application port;
+- SQLite persistence for the current canonical `KnowledgeDocument` + `KnowledgeChunk` snapshot, including provenance and access metadata;
+- atomic replacement of one knowledge item's persisted snapshot when a newer source version is stored;
+- unit tests across domain, application, ingestion, evaluation, chunking and persistence;
 - GitHub CI on every pull request and every push to `main`;
 - protected `main` with required `api-quality` status checks.
 
 ### Planned next
 
-- concrete persistence for documents, chunks and decisions;
-- lexical / full-text retrieval baseline;
+- lexical / SQLite FTS5 retrieval baseline over governed chunks;
+- tenant/group permission filtering in retrieval;
+- chunk-level retrieval-hit/evidence contracts;
 - concrete knowledge-coverage evaluation;
-- evaluation datasets and retrieval metrics;
+- retrieval evaluation datasets and ranking metrics;
 - embeddings / hybrid retrieval only if the lexical baseline shows a measurable need;
 - LLM-assisted recommendation and drafting behind validated contracts;
 - API / UI delivery surfaces;
@@ -70,10 +74,10 @@ flowchart TB
     subgraph Adapters[Implemented adapters]
       Closure[Rule-based closure evaluator]
       Chunker[Deterministic chunker]
+      SQLite[(SQLite corpus store)]
     end
 
     subgraph Future[Planned adapters]
-      Store[(Persistence)]
       Search[Lexical / hybrid retrieval]
       Coverage[Coverage evaluator]
       AI[LLM / embedding providers]
@@ -85,6 +89,21 @@ flowchart TB
 
 Tropos follows a **modular-monolith + ports-and-adapters** design. Business policy lives inward; replaceable infrastructure lives behind application-owned contracts.
 
+## Persistence boundary
+
+```mermaid
+flowchart LR
+    Raw[RawKnowledgeRecord]
+    --> Doc[KnowledgeDocument]
+    --> Chunker[Deterministic chunker]
+    --> Chunks[KnowledgeChunk set]
+    --> Store[KnowledgeCorpusStore]
+    --> SQLite[(SQLite canonical corpus)]
+    SQLite -. next .-> FTS[FTS5 index / retrieval]
+```
+
+The SQLite adapter is the first executable corpus baseline, not the final production-database decision. The application depends on `KnowledgeCorpusStore`, so later storage technology can change without moving persistence concerns into the domain.
+
 ## Repository map
 
 ```text
@@ -92,7 +111,7 @@ Tropos follows a **modular-monolith + ports-and-adapters** design. Business poli
 ├── apps/api/
 │   ├── src/tropos/domain/          # business concepts and invariants
 │   ├── src/tropos/application/     # use cases, ingestion boundary, ports
-│   ├── src/tropos/adapters/        # concrete deterministic implementations
+│   ├── src/tropos/adapters/        # deterministic + persistence implementations
 │   └── tests/unit/                 # executable evidence for current behavior
 ├── docs/                           # living product + architecture knowledge
 └── .github/                        # PR template and CI quality gate
@@ -102,7 +121,7 @@ Start with **[`docs/README.md`](docs/README.md)** for the visual documentation m
 
 ## Development
 
-The API package currently requires Python 3.14 and uses `uv`, Ruff, mypy and pytest.
+The API package currently requires Python 3.14 and uses `uv`, Ruff, mypy and pytest. SQLite persistence uses Python's standard-library `sqlite3` module, so this slice adds no runtime dependency.
 
 ```bash
 cd apps/api
@@ -121,7 +140,8 @@ flowchart LR
     W[Bounded change] --> B[Feature / fix / docs branch]
     B --> PR[Pull request]
     PR --> CI[api-quality]
-    CI -->|pass| M[Squash merge]
+    CI -->|pass| Review[Human review / approval]
+    Review --> M[Squash merge]
     M --> Main[Protected main]
 ```
 
