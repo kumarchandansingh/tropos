@@ -39,9 +39,7 @@ def build_source(
 
 
 def test_formatting_only_changes_share_canonical_fingerprint() -> None:
-    first = build_source(
-        "\ufeff# Reset\r\n\r\nUse the portal.   \r\n\r\n\r\n- Verify login\r\n"
-    )
+    first = build_source("\ufeff# Reset\r\n\r\nUse the portal.   \r\n\r\n\r\n- Verify login\r\n")
     second = build_source("# Reset\n\nUse the portal.\n\n* Verify login")
 
     normalizer = DeterministicKnowledgeNormalizer()
@@ -59,9 +57,10 @@ def test_unicode_canonical_equivalents_share_fingerprint() -> None:
 
     normalizer = DeterministicKnowledgeNormalizer()
 
-    assert normalizer.normalize(composed).content_fingerprint == normalizer.normalize(
-        decomposed
-    ).content_fingerprint
+    assert (
+        normalizer.normalize(composed).content_fingerprint
+        == normalizer.normalize(decomposed).content_fingerprint
+    )
 
 
 def test_meaningful_content_change_changes_fingerprint() -> None:
@@ -70,9 +69,10 @@ def test_meaningful_content_change_changes_fingerprint() -> None:
 
     normalizer = DeterministicKnowledgeNormalizer()
 
-    assert normalizer.normalize(old).content_fingerprint != normalizer.normalize(
-        new
-    ).content_fingerprint
+    assert (
+        normalizer.normalize(old).content_fingerprint
+        != normalizer.normalize(new).content_fingerprint
+    )
 
 
 def test_heading_level_is_preserved_as_meaningful_structure() -> None:
@@ -81,9 +81,10 @@ def test_heading_level_is_preserved_as_meaningful_structure() -> None:
 
     normalizer = DeterministicKnowledgeNormalizer()
 
-    assert normalizer.normalize(first).content_fingerprint != normalizer.normalize(
-        second
-    ).content_fingerprint
+    assert (
+        normalizer.normalize(first).content_fingerprint
+        != normalizer.normalize(second).content_fingerprint
+    )
 
 
 def test_repeated_run_is_deterministic() -> None:

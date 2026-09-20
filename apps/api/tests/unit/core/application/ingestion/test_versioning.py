@@ -43,9 +43,7 @@ def build_candidate(
         text=text,
         text_format=TextFormat.MARKDOWN,
     )
-    return DeterministicKnowledgeNormalizer(
-        strategy_version=strategy_version
-    ).normalize(source)
+    return DeterministicKnowledgeNormalizer(strategy_version=strategy_version).normalize(source)
 
 
 def test_first_seen_content_creates_version() -> None:
