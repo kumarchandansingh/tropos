@@ -1,0 +1,1 @@
+"""Replaceable Tropos Resolve adapters."""
