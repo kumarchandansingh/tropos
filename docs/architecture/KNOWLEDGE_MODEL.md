@@ -124,8 +124,11 @@ The current normalizer converts extracted text into a small ordered structural m
 ```text
 HEADING(level)
 PARAGRAPH
-LIST_ITEM
+UNORDERED_LIST_ITEM
+ORDERED_LIST_ITEM
 ```
+
+Heading levels and ordered-vs-unordered list semantics are preserved. Equivalent markers within a list type and incidental inline whitespace are canonicalized.
 
 The canonical title + ordered blocks produce a stable JSON serialization and SHA-256 normalized-content fingerprint. The same blocks render deterministic canonical text used by `KnowledgeDocument.content` and later chunking.
 
@@ -206,7 +209,7 @@ flowchart LR
 
 ## Why strategy versions matter
 
-There are now two processing strategies with different responsibilities:
+There are two processing strategies with different responsibilities:
 
 | Strategy | Governs |
 | --- | --- |

@@ -51,6 +51,18 @@ def test_formatting_only_changes_share_canonical_fingerprint() -> None:
     assert normalized_first.canonical_text == normalized_second.canonical_text
 
 
+def test_internal_whitespace_changes_share_canonical_fingerprint() -> None:
+    first = build_source("# Reset\n\nUse   the\tportal to reset access.")
+    second = build_source("# Reset\n\nUse the portal to reset access.")
+
+    normalizer = DeterministicKnowledgeNormalizer()
+
+    assert (
+        normalizer.normalize(first).content_fingerprint
+        == normalizer.normalize(second).content_fingerprint
+    )
+
+
 def test_unicode_canonical_equivalents_share_fingerprint() -> None:
     composed = build_source("# Café\n\nReset access.")
     decomposed = build_source("# Cafe\u0301\n\nReset access.")
@@ -84,6 +96,18 @@ def test_heading_level_is_preserved_as_meaningful_structure() -> None:
     assert (
         normalizer.normalize(first).content_fingerprint
         != normalizer.normalize(second).content_fingerprint
+    )
+
+
+def test_ordered_and_unordered_lists_remain_distinct_structure() -> None:
+    ordered = build_source("# Reset\n\n1. Open settings\n2. Rotate credential")
+    unordered = build_source("# Reset\n\n- Open settings\n- Rotate credential")
+
+    normalizer = DeterministicKnowledgeNormalizer()
+
+    assert (
+        normalizer.normalize(ordered).content_fingerprint
+        != normalizer.normalize(unordered).content_fingerprint
     )
 
 

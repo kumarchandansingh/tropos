@@ -93,12 +93,13 @@ The current `canonical-text-v1` normalizer performs only deterministic transform
 - CRLF/CR to LF line-ending normalization;
 - removal of trailing horizontal whitespace;
 - collapse of repeated blank lines;
+- collapse of repeated inline whitespace in canonical paragraph/title/list text;
 - leading/trailing text trim;
-- stable inline whitespace normalization for titles and extracted structural labels.
+- stable inline whitespace normalization for extracted structural labels.
 
 The invariant is:
 
-> Equivalent presentation should produce the same Level-1 representation without rewriting meaning.
+> Equivalent presentation should produce the same canonical representation without rewriting meaning.
 
 There is no LLM paraphrasing, summarization or semantic rewriting in this identity path.
 
@@ -110,14 +111,17 @@ Tropos currently preserves a deliberately small structural vocabulary:
 StructuralBlock
 ├── HEADING(level 1..6)
 ├── PARAGRAPH
-└── LIST_ITEM
+├── UNORDERED_LIST_ITEM
+└── ORDERED_LIST_ITEM
 ```
 
-For Markdown input, ATX headings and list items are recognized. Ordered and unordered list markers are canonicalized into one list-item representation. Other text is kept as paragraphs. Plain text is treated conservatively; Tropos does not invent semantic headings.
+For Markdown input, ATX headings and ordered/unordered list items are recognized. Marker differences within the same list type (`-`, `*`, `+`, or numeric marker style) are presentation noise; **ordered versus unordered lists remain distinct because ordering can carry meaning**. Other text is kept as paragraphs. Plain text is treated conservatively; Tropos does not invent semantic headings.
 
 The ordered block sequence plus normalized title is serialized as stable, sorted-key JSON. SHA-256 of that serialization becomes the normalized content fingerprint.
 
 The same blocks are also rendered into deterministic `canonical_text`. `KnowledgeDocument.content` stores this text, so a candidate considered canonically identical cannot later produce different chunk boundaries merely because its source formatting differed.
+
+Inline rich styling such as Markdown emphasis is not aggressively stripped in this baseline because doing so without a full parser can erase literal syntax. Rich format-specific parsing/canonicalization remains **PLANNED**; source extractors should emit meaning-bearing text and structure rather than visual styling.
 
 ## Version resolution
 
@@ -147,13 +151,12 @@ A normalizer-version change is also intentionally not treated as proof that the 
 
 ## Failure questions that drive the design
 
-These questions are now part of architecture review for ingestion changes.
-
 | Failure question | Required behavior |
 | --- | --- |
-| What if only spaces, line endings or list markers change? | Raw identity may change; canonical content version must not. |
+| What if only spaces, line endings or equivalent list markers change? | Raw identity may change; canonical content version must not. |
+| What if ordered steps become unordered bullets? | Treat as a structural change because order semantics may matter. |
 | What if `90 days` becomes `60 days`? | Canonical fingerprint changes; create a content version. |
-| What if the source system increments its own version but text is unchanged? | Preserve provenance; do not create a Tropos content version. |
+| What if the source system increments its version but text is unchanged? | Preserve provenance; do not create a Tropos content version. |
 | What if access changes but text does not? | Refresh governance without content-version churn. |
 | What if the normalization algorithm changes? | Require rebaseline/migration; do not call it a business-content change automatically. |
 | Can the same input produce different identity on replay? | No; normalization/version resolution must be deterministic. |
@@ -163,7 +166,7 @@ These questions are now part of architecture review for ingestion changes.
 
 ## Chunk identity after normalization
 
-Chunk identity is now based on canonical evidence, not noisy upstream state:
+Chunk identity is based on canonical evidence, not noisy upstream state:
 
 ```text
 knowledge_id
@@ -191,7 +194,7 @@ knowledge_id
 
 ## How mature teams handle a discovered architecture gap
 
-Finding this after initial chunking work is normal evolutionary architecture. The professional response is not to hide the miss; it is to convert the newly discovered failure mode into an explicit control.
+Finding this after initial chunking work is normal evolutionary architecture. The professional response is to convert the newly discovered failure mode into an explicit control.
 
 ```mermaid
 flowchart LR
@@ -207,7 +210,7 @@ flowchart LR
 
 For Tropos the triggering scenario was: **a formatting-only source edit could have caused a new source fingerprint, new chunk IDs and eventually unnecessary re-indexing/embedding work.** The correction separates source identity from canonical content identity before persistence and retrieval make the mistake expensive.
 
-This follows several established engineering ideas:
+This follows established engineering ideas:
 
 - **canonicalization** — compare stable representations rather than incidental source formatting;
 - **content-addressable integrity** — fingerprints identify exact normalized evidence;

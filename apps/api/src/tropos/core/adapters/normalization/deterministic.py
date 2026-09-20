@@ -96,8 +96,10 @@ class DeterministicKnowledgeNormalizer:
             if block.kind is StructuralBlockKind.HEADING:
                 assert block.level is not None
                 rendered.append(f"{'#' * block.level} {block.text}")
-            elif block.kind is StructuralBlockKind.LIST_ITEM:
+            elif block.kind is StructuralBlockKind.UNORDERED_LIST_ITEM:
                 rendered.append(f"- {block.text}")
+            elif block.kind is StructuralBlockKind.ORDERED_LIST_ITEM:
+                rendered.append(f"1. {block.text}")
             else:
                 rendered.append(block.text)
         return "\n\n".join(rendered)
@@ -114,7 +116,7 @@ class DeterministicKnowledgeNormalizer:
         def flush_paragraph() -> None:
             if not paragraph_lines:
                 return
-            paragraph = " ".join(line.strip() for line in paragraph_lines)
+            paragraph = self._normalize_inline(" ".join(paragraph_lines))
             blocks.append(
                 StructuralBlock(
                     kind=StructuralBlockKind.PARAGRAPH,
@@ -145,9 +147,14 @@ class DeterministicKnowledgeNormalizer:
             list_match = unordered or ordered
             if list_match is not None:
                 flush_paragraph()
+                kind = (
+                    StructuralBlockKind.UNORDERED_LIST_ITEM
+                    if unordered is not None
+                    else StructuralBlockKind.ORDERED_LIST_ITEM
+                )
                 blocks.append(
                     StructuralBlock(
-                        kind=StructuralBlockKind.LIST_ITEM,
+                        kind=kind,
                         text=self._normalize_inline(list_match.group(1)),
                     )
                 )

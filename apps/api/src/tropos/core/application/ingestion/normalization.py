@@ -25,7 +25,8 @@ class StructuralBlockKind(StrEnum):
 
     HEADING = "heading"
     PARAGRAPH = "paragraph"
-    LIST_ITEM = "list_item"
+    UNORDERED_LIST_ITEM = "unordered_list_item"
+    ORDERED_LIST_ITEM = "ordered_list_item"
 
 
 @dataclass(frozen=True, slots=True)
