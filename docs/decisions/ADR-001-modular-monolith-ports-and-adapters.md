@@ -5,74 +5,62 @@
 
 ## Context
 
-Tropos is early-stage but already contains responsibilities that will evolve at different rates: business decision policy, ingestion, retrieval, persistence, source connectors, AI/model integrations and delivery interfaces.
-
-The system needs enough separation to prevent infrastructure choices from becoming business policy, without paying the operational cost of distributed services before there is evidence that independent deployment or scaling is required.
+Tropos contains business policy, ingestion, retrieval contracts, evidence models, and infrastructure concerns that will evolve at different rates. The code needs clear dependency boundaries without introducing distributed-system overhead before independent deployment or scaling is required.
 
 ## Options considered
 
-### 1. Script/application with direct infrastructure dependencies
+### Direct application with infrastructure dependencies
 
-Fastest initially, but database/search/model SDK types would likely leak into business logic and make later replacement expensive.
+Lowest initial ceremony, but persistence, search, or model SDK types can leak into business logic and make replacement expensive.
 
-### 2. Microservices from the start
+### Microservices from the start
 
-Strong deployment boundaries, but premature for the current product maturity. It would introduce networking, deployment, tracing, failure handling and distributed-data concerns before Tropos has an end-to-end hosted workload.
+Provides deployment isolation, but adds networking, deployment, tracing, failure handling, and distributed-data concerns before Tropos has an end-to-end hosted workload.
 
-### 3. Modular monolith with Ports-and-Adapters
+### Modular monolith with Ports-and-Adapters
 
-Keep one deployable codebase while separating domain policy, application orchestration, contracts and replaceable implementations.
+Keep one deployable codebase while separating domain policy, application orchestration, contracts, and replaceable implementations.
 
 ## Decision
 
-Tropos will start as a **modular monolith** using **Ports-and-Adapters / Hexagonal architecture**.
+Tropos uses a **modular monolith** with **Ports-and-Adapters / Hexagonal architecture**.
 
-- domain owns business concepts and invariants;
-- application owns use-case orchestration and replaceable boundary contracts;
-- adapters implement algorithms or infrastructure integrations;
-- presentation and bootstrap/composition remain outward layers when introduced;
-- infrastructure must not define the domain model.
+- Domain modules own business concepts and invariants.
+- Application modules own use-case orchestration and boundary contracts.
+- Adapters implement deterministic algorithms and external integrations.
+- Presentation and composition remain outer layers when introduced.
+- Infrastructure types do not define the domain model.
 
-## Rationale
-
-This provides an explicit dependency rule without forcing operational distribution. Retrieval, persistence and model technologies can change behind ports while the product decision vocabulary remains stable.
+Reusable governed-knowledge behavior lives under `tropos.core`. Capability-specific behavior lives under `tropos.capabilities`.
 
 ## Consequences
 
 ### Positive
 
-- domain/application behavior can be unit-tested without infrastructure;
-- retrieval and persistence technologies remain replaceable;
-- future AI providers can be integrated without making SDK output the domain contract;
-- service extraction remains possible later if independent deployment becomes justified;
-- early development remains operationally simple.
+- Domain and application behavior can be tested without infrastructure.
+- Persistence, retrieval, and model providers remain replaceable.
+- Capability policy stays separate from reusable evidence mechanics.
+- Service extraction remains possible if operational requirements justify it later.
 
 ### Negative / trade-offs
 
-- more interfaces/files than a direct script;
-- developers must understand responsibility boundaries;
-- incorrect “port for everything” design could add needless abstraction;
-- deployment isolation between modules does not exist today.
+- The codebase contains more explicit contracts than a direct script.
+- Module boundaries require discipline to avoid unnecessary abstractions or dependency leakage.
+- Modules share one deployment boundary today.
 
 ## Evidence
 
-Current code follows the decision through:
+Current module boundaries are visible in:
 
-- `apps/api/src/tropos/domain/`
-- `apps/api/src/tropos/application/evaluate_case_closure.py`
-- `apps/api/src/tropos/application/ports/`
-- `apps/api/src/tropos/adapters/`
+- `apps/api/src/tropos/core/domain/`
+- `apps/api/src/tropos/core/application/`
+- `apps/api/src/tropos/core/adapters/`
+- `apps/api/src/tropos/capabilities/resolve/domain/`
+- `apps/api/src/tropos/capabilities/resolve/application/`
+- `apps/api/src/tropos/capabilities/resolve/adapters/`
 
-`EvaluateCaseClosure` depends on Protocol-based ports for retrieval, coverage evaluation and decision storage rather than concrete infrastructure implementations.
+`EvaluateCaseClosure` depends on retrieval, coverage, and decision-store contracts rather than concrete infrastructure implementations.
 
 ## Revisit when
 
-Reconsider the modular-monolith deployment boundary when one or more modules have demonstrated a real need for:
-
-- independent scaling;
-- independent release cadence;
-- isolation for security/reliability reasons;
-- a distinct ownership boundary;
-- runtime characteristics that materially conflict with the rest of the application.
-
-Until then, preserve modular boundaries inside one deployable system.
+Reconsider the deployment boundary when a module demonstrates a need for independent scaling, release cadence, ownership, security/reliability isolation, or runtime characteristics that conflict materially with the rest of the application.

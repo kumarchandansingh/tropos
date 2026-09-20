@@ -4,135 +4,65 @@
 
 [![CI](https://github.com/kumarchandansingh/tropos/actions/workflows/ci.yml/badge.svg)](https://github.com/kumarchandansingh/tropos/actions/workflows/ci.yml)
 
-Tropos is a governed knowledge-management system for turning resolved support cases into auditable knowledge decisions. It is being built as a reusable governed-knowledge **Core** plus domain capabilities such as **Tropos Resolve**.
+Tropos is a governed knowledge-management system for turning resolved support cases into auditable knowledge decisions. The repository is organized as a reusable governed-knowledge core plus domain capabilities such as **Tropos Resolve**.
 
-Tropos Resolve evaluates closure evidence, retrieves related knowledge through application contracts, assesses coverage, and produces one governed action:
+Tropos Resolve produces one of four actions:
 
-- `REUSE` — existing knowledge is sufficient;
-- `IMPROVE` — related knowledge exists but is incomplete;
-- `CREATE` — no adequate knowledge exists;
-- `NO_ACTION` — the case lacks enough closure evidence to justify a knowledge change.
+| Action | Meaning |
+| --- | --- |
+| `REUSE` | Existing knowledge is sufficient. |
+| `IMPROVE` | Related knowledge exists but is incomplete. |
+| `CREATE` | No adequate knowledge exists. |
+| `NO_ACTION` | Closure evidence is insufficient to justify a knowledge change. |
 
-## Current build state
+## Status
 
-Tropos is deliberately being built from a deterministic governed core outward.
+The deterministic knowledge foundation is implemented. Persistence, retrieval, coverage evaluation, delivery surfaces, and model-assisted behavior remain staged.
+
+| Area | Status |
+| --- | --- |
+| Raw capture, access policy, normalization, canonical versioning | Implemented |
+| Deterministic chunking and evidence lineage | Implemented |
+| Resolve decision policy and orchestration contracts | Implemented |
+| Persistence and lexical retrieval | Planned |
+| Concrete coverage evaluation and retrieval evals | Planned |
+| Embeddings, hybrid retrieval, and LLM assistance | Deferred until the deterministic baseline is measurable |
+
+## Architecture
 
 ```mermaid
 flowchart LR
-    S[(Source knowledge)]
+    S[(Source)]
     --> R[Raw capture]
-    --> N[Deterministic normalization]
-    --> V[Canonical version resolution]
+    --> N[Normalize]
+    --> V[Resolve canonical version]
     --> D[KnowledgeDocument]
-    --> C[Deterministic chunks]
+    --> C[KnowledgeChunk]
     --> P[(Persistence<br/>planned)]
-    --> F[FTS retrieval<br/>planned]
-    --> CV[Coverage<br/>contract/planned adapter]
-    --> A[REUSE / IMPROVE / CREATE]
+    --> Q[Retrieval<br/>planned]
+    --> G[Coverage<br/>planned]
+    --> A[Knowledge action]
 ```
 
-### Implemented now
+The codebase follows a modular-monolith and Ports-and-Adapters design. Reusable evidence, access, normalization, versioning, and chunking live in `tropos.core`; support-case-specific policy lives in `tropos.capabilities.resolve`.
 
-- modular boundary between reusable `tropos.core` and `tropos.capabilities.resolve`;
-- canonical `ResolvedCase`, `AccessPolicy`, `KnowledgeDocument` and `KnowledgeChunk` models;
-- explicit `REUSE / IMPROVE / CREATE / NO_ACTION` decision policy;
-- rule-based closure-evidence evaluation and application orchestration;
-- immutable raw ingestion with separate exact-payload and source-envelope fingerprints;
-- **Level 1 deterministic normalization** for Unicode, line endings, whitespace and presentation noise;
-- **Level 2 structural extraction** for headings, paragraphs and lists;
-- stable canonical serialization/text plus normalized content fingerprint;
-- canonical version resolver distinguishing content changes, no-op source churn, access-only changes and normalizer rebaselines;
-- governed access semantics with `UNRESOLVED`, `TENANT` and `RESTRICTED` scopes;
-- deterministic lossless chunking with exact offsets, stable canonical-content-based IDs, provenance, access inheritance and processing-strategy versions;
-- unit tests across core identity/normalization/versioning/chunking and Resolve policy/orchestration;
-- GitHub CI on every pull request and every push to `main`;
-- protected `main` with required `api-quality` status checks.
+See [Architecture overview](docs/architecture/ARCHITECTURE_OVERVIEW.md) for module boundaries and dependency rules.
 
-### Contract only / planned next
-
-- production persistence for canonical documents, versions, chunks and decisions;
-- lexical/full-text retrieval baseline;
-- concrete knowledge-coverage evaluation;
-- richer source connectors/parsers for formats such as HTML/DOCX/PDF;
-- evaluation datasets and retrieval metrics;
-- embeddings/hybrid retrieval only if the lexical baseline shows a measurable need;
-- LLM-assisted recommendation/drafting behind validated contracts;
-- API/UI delivery surfaces and deployment environments.
-
-> Planned components are intentionally not described as implemented. The repository documents both the executable boundary and target architecture.
-
-## Why normalization/versioning exists before retrieval
-
-Raw source change is not the same as knowledge change.
-
-```mermaid
-flowchart TD
-    Change[Source changed]
-    --> Raw[Preserve exact raw identity]
-    --> Norm[Normalize deterministically]
-    --> Same{Canonical content changed?}
-    Same -- no --> NoVersion[No new content version]
-    Same -- yes --> NewVersion[Create canonical version]
-    NoVersion --> ACL{Access changed?}
-    ACL -- yes --> Refresh[Refresh governance]
-    ACL -- no --> Done[No downstream churn]
-```
-
-A Word/Markdown formatting change should not eventually force duplicate chunks, index rows or embeddings. A real policy change such as `90 days` to `60 days` must. The normalization algorithm itself is versioned so an implementation change cannot silently masquerade as a business-content change.
-
-Read [`docs/architecture/INGESTION_NORMALIZATION.md`](docs/architecture/INGESTION_NORMALIZATION.md) and [`docs/decisions/ADR-004-deterministic-normalization-and-content-versioning.md`](docs/decisions/ADR-004-deterministic-normalization-and-content-versioning.md) for the detailed reasoning.
-
-## Architecture in one view
-
-```mermaid
-flowchart TB
-    subgraph Core[Tropos Core]
-      Evidence[Raw + canonical evidence]
-      Norm[Normalization/versioning]
-      Chunk[Governed chunks]
-      Evidence --> Norm --> Chunk
-    end
-
-    subgraph Resolve[Tropos Resolve]
-      Case[Resolved case]
-      Closure[Closure evidence]
-      Retrieve[Retrieval/coverage ports]
-      Decision[Knowledge action]
-      Case --> Closure --> Retrieve --> Decision
-    end
-
-    subgraph Planned[Planned infrastructure]
-      Store[(Persistence)]
-      Search[Lexical / hybrid retrieval]
-      AI[Optional LLM/embedding providers]
-    end
-
-    Chunk -.-> Store -.-> Search -.-> Retrieve
-    Search -. later/evaluated .-> AI
-```
-
-Tropos follows a **modular-monolith + Ports-and-Adapters** design. Reusable governed knowledge mechanics live in Core; capability policy remains isolated; replaceable infrastructure stays behind contracts.
-
-## Repository map
+## Repository
 
 ```text
 .
 ├── apps/api/
-│   ├── src/tropos/core/                     # reusable governed-knowledge foundation
-│   │   ├── domain/                           # access, documents, chunks
-│   │   ├── application/ingestion/            # raw capture, normalization, versioning
-│   │   └── adapters/                         # deterministic normalizer/chunker
-│   ├── src/tropos/capabilities/resolve/      # support knowledge-improvement capability
-│   └── tests/unit/                           # executable architecture evidence
-├── docs/                                     # living product/architecture/quality knowledge
-└── .github/                                  # PR template and CI gate
+│   ├── src/tropos/core/
+│   ├── src/tropos/capabilities/resolve/
+│   └── tests/unit/
+├── docs/
+└── .github/
 ```
-
-Start with **[`docs/README.md`](docs/README.md)** for the visual documentation map.
 
 ## Development
 
-The API package requires Python 3.14 and uses `uv`, Ruff, mypy and pytest.
+The API package requires Python 3.14 and uses `uv`, Ruff, mypy, and pytest.
 
 ```bash
 cd apps/api
@@ -144,17 +74,22 @@ uv run pytest
 uv build
 ```
 
-The same quality sequence runs in GitHub Actions. Normal delivery is:
+The same quality checks run in GitHub Actions for every pull request and every push to `main`.
 
-```mermaid
-flowchart LR
-    W[Bounded change] --> B[Feature / fix / docs branch]
-    B --> PR[Pull request]
-    PR --> CI[api-quality]
-    CI -->|pass| M[Squash merge]
-    M --> Main[Protected main]
-```
+## Documentation
 
-## Public-repository boundary
+Start with [docs/README.md](docs/README.md).
 
-This public repository contains product code, architecture, tests and **synthetic** examples. Secrets, real customer/support records, employer/client confidential material, production configuration and private evaluation datasets do not belong here.
+Key documents:
+
+- [Product model](docs/product/PRODUCT_MODEL.md)
+- [Architecture overview](docs/architecture/ARCHITECTURE_OVERVIEW.md)
+- [Ingestion and normalization](docs/architecture/INGESTION_NORMALIZATION.md)
+- [Knowledge model](docs/architecture/KNOWLEDGE_MODEL.md)
+- [RAG architecture](docs/architecture/RAG_ARCHITECTURE.md)
+- [Evaluation strategy](docs/quality/EVAL_STRATEGY.md)
+- [Architecture decisions](docs/decisions/README.md)
+
+## Repository data boundary
+
+Examples and fixtures in this repository are synthetic. Secrets, real customer or support records, confidential employer/client material, and production configuration do not belong in the repository.

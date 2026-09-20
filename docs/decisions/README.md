@@ -1,113 +1,74 @@
 # Architecture Decision Records
 
-ADRs capture **why** Tropos is built a certain way. Living architecture docs explain the current system; ADRs preserve the durable choices and trade-offs that shaped it.
+Architecture Decision Records (ADRs) preserve the context, alternatives, and consequences behind durable technical decisions. Living architecture documents describe the system as it exists; ADRs explain why significant choices were made.
 
-## Decision map
-
-```mermaid
-flowchart LR
-    C[Context / forces]
-    --> F[Failure scenario]
-    --> O[Options considered]
-    --> D[Decision]
-    --> I[Invariant / control]
-    --> E[Executable evidence]
-    --> R[Revisit trigger]
-```
-
-## Current ADR index
+## Index
 
 | ADR | Status | Decision |
 | --- | --- | --- |
-| [`ADR-001-modular-monolith-ports-and-adapters.md`](ADR-001-modular-monolith-ports-and-adapters.md) | Accepted | Start as a modular monolith with inward domain/application boundaries and replaceable adapters |
-| [`ADR-002-governed-evidence-and-deterministic-chunking.md`](ADR-002-governed-evidence-and-deterministic-chunking.md) | Accepted | Treat `KnowledgeChunk` as governed evidence and establish deterministic lossless chunking before semantic retrieval |
-| [`ADR-003-protected-main-and-required-ci.md`](ADR-003-protected-main-and-required-ci.md) | Accepted | Require PR-based integration into protected `main` with `api-quality` as a mandatory status check |
-| [`ADR-004-deterministic-normalization-and-content-versioning.md`](ADR-004-deterministic-normalization-and-content-versioning.md) | Accepted | Separate raw/source identity from deterministic canonical content identity, access refresh and normalizer rebaselining |
-| [`ADR-005-independent-governance-refresh-signal.md`](ADR-005-independent-governance-refresh-signal.md) | Accepted | Keep access/governance refresh independently observable when content or normalization changes at the same time |
+| [ADR-001](ADR-001-modular-monolith-ports-and-adapters.md) | Accepted | Use a modular monolith with Ports-and-Adapters boundaries |
+| [ADR-002](ADR-002-governed-evidence-and-deterministic-chunking.md) | Accepted | Treat `KnowledgeChunk` as governed evidence and establish deterministic lossless chunking before semantic retrieval |
+| [ADR-003](ADR-003-protected-main-and-required-ci.md) | Accepted | Protect `main` and require PR-based integration with `api-quality` |
+| [ADR-004](ADR-004-deterministic-normalization-and-content-versioning.md) | Accepted | Separate raw/source identity from deterministic canonical content identity |
+| [ADR-005](ADR-005-independent-governance-refresh-signal.md) | Accepted | Keep governance refresh independently observable from content/version work |
 
-## Decisions intentionally not yet recorded as accepted ADRs
+## Scope
 
-Some directions are **PLANNED** but have not earned an accepted architecture decision because implementation/evaluation evidence does not exist yet:
+An ADR is appropriate when a choice materially constrains one or more of these areas:
 
-- persistence technology;
-- lexical/FTS engine choice;
-- vector database or embedding model;
-- concrete coverage-evaluation method;
-- LLM/model/provider selection;
-- API framework and deployment platform;
-- observability stack;
-- rich parser choices for PDF/DOCX/HTML.
-
-A roadmap idea should not become an architecture decision simply because it appeared in a diagram.
-
-## When to add an ADR
-
-Create or update an ADR when a change materially affects:
-
-- module or service boundaries;
+- module or deployment boundaries;
 - dependency direction;
-- canonical data/evidence identity;
-- normalization/version semantics;
+- canonical data or evidence identity;
+- normalization and version semantics;
 - access/security semantics;
 - persistence or retrieval strategy;
-- external provider/model strategy;
-- evaluation/release gates;
+- external model/provider strategy;
+- evaluation and release gates;
 - deployment topology or environment promotion.
 
-Do **not** create an ADR for routine refactoring, variable naming, ordinary tests, or an implementation detail that does not constrain future architecture.
+Routine refactoring, naming changes, and local implementation details do not require ADRs.
 
-## Architecture-review questions before accepting a durable decision
+Planned technologies are not accepted decisions until the project has enough requirements or implementation evidence to choose them. Persistence engine, search engine, vector store, model provider, deployment platform, and observability stack remain undecided.
 
-1. What happens when the source changes but the business meaning does not?
-2. What counts as the same logical knowledge and what counts as a new version?
-3. What must be deterministic or replayable?
-4. Which provenance must survive every transformation?
-5. Can access/security change independently from content?
-6. Can multiple change dimensions happen at the same time, and can one safely mask another?
-7. What happens when the algorithm itself changes?
-8. Which invariant will detect an incorrect implementation?
-9. Which regression test proves that invariant?
-10. What future evidence should make us revisit the choice?
-
-These questions are intentionally failure-oriented. Architecture quality comes from making important failure behavior explicit, not from maximizing the number of components in a diagram.
-
-## ADR template
+## Template
 
 ```markdown
 # ADR-NNN: Decision title
 
-Status: Proposed | Accepted | Superseded
-Date: YYYY-MM-DD
+**Status:** Proposed | Accepted | Superseded
+**Date:** YYYY-MM-DD
 
 ## Context
-What problem, constraint or force requires a durable decision?
-What concrete failure would occur if the choice remained implicit?
+
+Describe the problem, constraints, and decision scope.
 
 ## Options considered
+
 1. Option A
 2. Option B
 3. Option C
 
 ## Decision
-What was chosen?
 
-## Rationale
-Why is this the right trade-off for Tropos now?
+State the selected option and the reason it was selected.
 
 ## Consequences
+
 ### Positive
+
 - ...
 
 ### Negative / trade-offs
+
 - ...
 
 ## Evidence
-Which code/tests/operational controls demonstrate the decision?
+
+Link to the implementation, tests, operational controls, or measurements that demonstrate the decision.
 
 ## Revisit when
-What new evidence or system condition should cause reconsideration?
+
+State the conditions that should trigger reconsideration.
 ```
 
-## ADR discipline
-
-An ADR is not a claim that a choice is permanent. It is a record of the best decision under the constraints that existed at the time. When constraints change, supersede the ADR rather than silently rewriting architectural history.
+Accepted ADRs remain part of the decision history. When a decision changes materially, add a superseding ADR or explicitly mark the existing record as superseded rather than removing the historical context.

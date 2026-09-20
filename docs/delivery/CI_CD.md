@@ -1,49 +1,46 @@
-# CI/CD and Change-Control Model
+# CI/CD and change control
 
-Tropos uses GitHub as the engineering control plane. The current delivery system is intentionally stronger than the runtime system: code changes already have an enforced integration workflow even though the product is not yet deployed.
+Tropos uses pull requests and GitHub Actions as the current integration control. No production deployment pipeline exists yet.
 
-## Current enforced path to `main`
+## Integration path
 
 ```mermaid
 flowchart LR
-    Dev[Local change]
-    --> Branch[Feature / fix / docs branch]
+    Branch[Feature / fix / docs branch]
     --> PR[Pull request]
     --> CI[api-quality]
     --> Gate{Pass?}
-    Gate -- no --> Fix[Fix on branch]
+    Gate -- no --> Fix[Update branch]
     Fix --> CI
     Gate -- yes --> Merge[Squash merge]
-    Merge --> Main[Protected main]
+    --> Main[Protected main]
 ```
 
-`main` is protected. The `api-quality` status check is required and protection applies to everyone, including the repository owner/admin under the configured rule.
+`main` is protected and requires the `api-quality` status check. Conversation resolution is required; force pushes and branch deletion are disabled by the branch policy. Mandatory approving reviewers are not configured while the repository has one maintainer.
 
-## What CI runs today
+## CI job
 
-The GitHub workflow runs on **every pull request** and every push to `main`.
+The workflow runs on every pull request and every push to `main`.
 
-```mermaid
-flowchart LR
-    C[Checkout]
-    --> UV[Install uv]
-    --> PY[Install Python 3.14]
-    --> S[uv sync --dev --locked]
-    --> F[Ruff format --check]
-    --> L[Ruff check]
-    --> M[mypy src tests]
-    --> T[pytest]
-    --> B[uv build]
+```text
+checkout
+→ install uv
+→ install Python 3.14
+→ uv sync --dev --locked
+→ ruff format --check
+→ ruff check
+→ mypy src tests
+→ pytest
+→ uv build
 ```
 
-This is the current deterministic release gate for integrated code.
+The workflow definition is `.github/workflows/ci.yml`.
 
-## Local-to-CI parity
+## Local validation
 
-Run the same logical checks before opening or updating a PR:
+Run the same checks from `apps/api`:
 
 ```bash
-cd apps/api
 uv sync --dev --locked
 uv run ruff format --check .
 uv run ruff check .
@@ -52,115 +49,44 @@ uv run pytest
 uv build
 ```
 
-Local validation is fast feedback; GitHub CI is the shared source of integration evidence.
-
-## Why every PR runs the API quality job
-
-Earlier, CI used path filters and could skip documentation-only PRs. That becomes dangerous once a status check is required by branch protection, because a skipped workflow can leave the expected check absent.
-
-Tropos now runs the workflow for every PR so the required check is predictable.
-
-```mermaid
-flowchart TD
-    PR[Any PR]
-    --> Check[api-quality always created]
-    --> Result{Result}
-    Result -- success --> Merge[Merge eligible]
-    Result -- failure --> Block[Merge blocked]
-```
-
-The job may later be split into faster path-aware jobs, but there should remain an always-present required gate if branch protection depends on it.
-
-## Pull request as the unit of integration
-
-The PR template requires the author to make the reasoning visible:
-
-- problem;
-- architecture impact;
-- decision;
-- scope / out of scope;
-- expected behavior;
-- validation;
-- evidence;
-- risks / follow-ups;
-- documentation / ADR impact.
-
-This matters especially for AI-assisted development: generated code is not accepted because it looks plausible; the PR must expose the intended behavior and the evidence that validates it.
+Local checks provide fast feedback; GitHub Actions is the shared integration record.
 
 ## Merge convention
 
-For bounded feature, fix and documentation work, prefer **Squash and merge**.
+Bounded feature, fix, and documentation changes use **Squash and merge**. The feature branch can be deleted after merge.
+
+This keeps `main` focused on integrated changes rather than intermediate working commits.
+
+## Deployment boundary
+
+CI validates repository state; it does not deploy Tropos.
 
 ```mermaid
 flowchart LR
-    Work[Several working commits on branch]
-    --> PR[One coherent PR]
-    --> Squash[Squash merge]
-    --> Main[One meaningful main commit]
-```
-
-The feature branch is disposable after merge. The product history should optimize for understandable integrated changes, not preserve every local correction.
-
-## Current branch-protection intent
-
-The configured policy is designed to enforce:
-
-- changes reach `main` through pull requests;
-- `api-quality` must pass;
-- unresolved review conversations block merge;
-- owner/admin bypass is disabled;
-- force push is not allowed;
-- branch deletion is not allowed.
-
-Approving reviewers are not currently required because Tropos is a solo repository; self-review ceremony would add little control. That policy can change when another maintainer joins.
-
-## CI is not deployment
-
-```mermaid
-flowchart LR
-    PR[PR]
-    --> CI[CI validation]
+    PR[Pull request]
+    --> CI[CI]
     --> Main[Integrated main]
-    -. future .-> Build[Release artifact]
-    -. future .-> UAT[UAT / staging]
-    -. future .-> Prod[Production]
+    -. planned .-> Artifact[Release artifact]
+    -. planned .-> Preview[Preview]
+    -. planned .-> UAT[UAT / staging]
+    -. planned .-> Prod[Production]
 ```
 
-Today, there is no Tropos production deployment pipeline. `main` means **integrated and releasable by current standards**, not “automatically running in production.”
+Deployment controls will be added with the first hosted runtime rather than inferred from branch names.
 
-## Future CI/CD gates — only when the capability exists
+## Future gates
 
-| Future capability | Gate to add |
+| Capability | Additional gate |
 | --- | --- |
-| Persistent store | migration + persistence integration tests |
-| Retrieval | retrieval integration tests + eval suite |
-| External adapters | schema/contract tests |
-| LLM prompts/models | prompt/schema validation + applicable AI evals |
-| API | request/response + smoke tests |
-| Preview environment | deployment health + smoke checks |
-| UAT/staging | release-candidate validation |
-| Production | approval, traceability, observability and rollback checks |
+| Persistence | Migration and persistence integration tests |
+| Retrieval | Retrieval integration tests and evaluation suite |
+| External adapters | Contract/schema tests |
+| LLM prompts/models | Schema validation and applicable AI evaluations |
+| API | Request/response and smoke tests |
+| Hosted environment | Deployment health, traceability, rollback checks |
 
-## Public-repository hygiene
+## Repository hygiene
 
-This repository is public. CI and review therefore also protect the repository boundary:
+The repository uses synthetic fixtures and examples. Secrets, real support/customer records, confidential employer/client material, and production configuration must remain outside source control.
 
-- use synthetic fixtures/examples;
-- never commit secrets or `.env` files;
-- never commit real customer/support records or employer/client confidential material;
-- keep production configuration outside source control;
-- re-run secret scanning before major public-boundary changes or when sensitive integration work begins.
-
-## Evidence chain
-
-```mermaid
-flowchart LR
-    Requirement[Expected behavior]
-    --> Test[Test / eval]
-    --> PR[PR evidence]
-    --> CI[CI result]
-    --> Commit[Integrated commit]
-    -. future .-> Deploy[Deployment record]
-```
-
-The long-term goal is traceability from product decision to deployed behavior without turning the repository into paperwork.
+See [Environment strategy](ENVIRONMENT_STRATEGY.md) for the planned runtime promotion model.

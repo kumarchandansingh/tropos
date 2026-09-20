@@ -1,111 +1,65 @@
-# Ingestion, Normalization and Canonical Versioning
+# Ingestion and normalization
 
-**Status:** IMPLEMENTED foundation  
-**Last architecture change:** 2026-09-21
+Tropos separates exact source capture from canonical knowledge identity. A source artifact can change because of formatting or metadata without changing the knowledge it represents, while a small business-content change must create a new canonical version.
 
-Tropos must distinguish an exact source change from a meaningful knowledge change. A file can change because of line endings, whitespace, list markers or source-system metadata while the knowledge remains the same. Conversely, a one-character business change such as `90 days` to `60 days` must create a new canonical content version.
-
-The ingestion design therefore keeps raw evidence, deterministic normalization, structural extraction, content-version resolution and chunking as separate responsibilities.
-
-## End-to-end architecture
-
-```mermaid
-flowchart TB
-    S[(Source system record)]
-    --> CAP[Capture source envelope]
-    --> RAW[RawKnowledgeRecord]
-
-    RAW --> RF[raw_payload_fingerprint<br/>exact bytes]
-    RAW --> IF[ingestion_fingerprint<br/>source envelope + bytes]
-    RAW --> EX[Source-format extraction]
-
-    EX --> ET[ExtractedKnowledgeText]
-    ET --> L1[Level 1<br/>deterministic text normalization]
-    L1 --> L2[Level 2<br/>structural extraction]
-    L2 --> CS[Canonical serialization]
-    L2 --> CT[Canonical text]
-    CS --> NF[normalized_content_fingerprint]
-
-    NF --> VR{Version resolver}
-    VR -->|first seen / content changed| NEW[CREATE_VERSION]
-    VR -->|same content| SAME[NO_CONTENT_VERSION]
-    VR -->|same content, ACL changed| ACL[REFRESH_GOVERNANCE]
-    VR -->|normalizer changed| REB[REBASELINE_REQUIRED]
-
-    NEW --> KD[KnowledgeDocument]
-    SAME --> DONE[No canonical-content churn]
-    ACL --> GOV[Update retrieval governance]
-    REB --> MIG[Controlled migration / comparison]
-
-    KD --> CH[Deterministic chunker]
-    CH --> KC[KnowledgeChunk]
-    KC -. planned .-> P[(Persistence)]
-    P -. planned .-> IDX[Lexical / vector indexes]
-```
-
-`Source-format extraction` is a boundary, not permission to use an LLM. Today Tropos accepts already extracted text plus a basic format hint (`PLAIN` or `MARKDOWN`). Rich parsers for DOCX/PDF/HTML and source connectors remain **PLANNED**.
-
-## Why there are multiple fingerprints
+## Pipeline
 
 ```mermaid
 flowchart LR
-    Bytes[Exact payload bytes]
-    --> RawFP[raw payload fingerprint]
-
-    Envelope[Source ID/version/type/access + bytes]
-    --> IngestFP[ingestion fingerprint]
-
-    Canon[Canonical title + structural blocks]
-    --> NormFP[normalized content fingerprint]
-
-    ChunkText[Exact chunk text]
-    --> ChunkFP[chunk text fingerprint]
+    S[(Source record)]
+    --> R[RawKnowledgeRecord]
+    --> E[ExtractedKnowledgeText]
+    --> N[DeterministicKnowledgeNormalizer]
+    --> C[NormalizedKnowledge]
+    --> V[Version resolver]
+    --> D[KnowledgeDocument]
+    --> H[DeterministicKnowledgeChunker]
+    --> K[KnowledgeChunk]
 ```
 
-| Identity | Question answered | Used for canonical content versioning? |
-| --- | --- | --- |
-| `raw_payload_fingerprint` | Did the exact captured bytes change? | No |
-| `ingestion_fingerprint` | Did the captured source envelope change? | No |
-| `normalized_content_fingerprint` | Did canonical knowledge content/structure change under this normalizer? | **Yes** |
-| chunk `content_fingerprint` | Is this exact evidence span intact? | No; it protects chunk integrity |
+Source-format parsing sits before `ExtractedKnowledgeText`. Tropos currently accepts extracted plain text or Markdown; rich PDF, DOCX, HTML, and connector-specific parsers are planned.
 
-Upstream `source_version` remains provenance. It is deliberately **not** trusted as the Tropos content-version decision by itself.
+## Identity layers
 
-## Level 0 — raw evidence
+| Identity | Input | Purpose | Drives canonical content version? |
+| --- | --- | --- | --- |
+| `raw_payload_fingerprint` | Exact payload bytes | Artifact integrity and replay | No |
+| `ingestion_fingerprint` | Source envelope + exact bytes | Captured-state identity and provenance | No |
+| `normalized_content_fingerprint` | Canonical title + ordered structural blocks | Logical knowledge identity | Yes |
+| Chunk `content_fingerprint` | Exact canonical chunk text | Evidence-span integrity | No |
 
-`RawKnowledgeRecord` preserves:
+The upstream `source_version` remains provenance. It does not create a Tropos content version by itself.
 
-- source system, source record and source version;
+## Raw capture
+
+`RawKnowledgeRecord` stores the inbound source envelope:
+
+- source system, record ID, and source version;
 - content type;
 - exact payload bytes;
-- captured access policy;
-- capture time;
-- exact-payload and ingestion-envelope fingerprints.
+- access policy;
+- capture timestamp;
+- raw-payload and ingestion fingerprints.
 
-This is the audit/replay boundary. Normalization never destroys the fact that a different raw artifact was captured.
+The raw record remains immutable so later canonicalization does not erase what Tropos received.
 
-## Level 1 — deterministic normalization
+## Deterministic normalization
 
-The current `canonical-text-v1` normalizer performs only deterministic transformations:
+`canonical-text-v1` applies deterministic transformations only:
 
 - Unicode NFC normalization;
-- byte-order-mark removal from extracted text;
+- UTF byte-order-mark removal from extracted text;
 - CRLF/CR to LF line-ending normalization;
-- removal of trailing horizontal whitespace;
-- collapse of repeated blank lines;
-- collapse of repeated inline whitespace in canonical paragraph/title/list text;
-- leading/trailing text trim;
-- stable inline whitespace normalization for extracted structural labels.
+- trailing horizontal-whitespace removal;
+- repeated blank-line collapse;
+- stable inline whitespace for titles, paragraphs, and list items;
+- leading/trailing trim.
 
-The invariant is:
+No model call, paraphrasing, summarization, or semantic rewriting participates in canonical identity.
 
-> Equivalent presentation should produce the same canonical representation without rewriting meaning.
+## Structural extraction
 
-There is no LLM paraphrasing, summarization or semantic rewriting in this identity path.
-
-## Level 2 — deterministic structural extraction
-
-Tropos currently preserves a deliberately small structural vocabulary:
+The current structural vocabulary is intentionally small:
 
 ```text
 StructuralBlock
@@ -115,28 +69,15 @@ StructuralBlock
 └── ORDERED_LIST_ITEM
 ```
 
-For Markdown input, ATX headings and ordered/unordered list items are recognized. Marker differences within the same list type (`-`, `*`, `+`, or numeric marker style) are presentation noise; **ordered versus unordered lists remain distinct because ordering can carry meaning**. Other text is kept as paragraphs. Plain text is treated conservatively; Tropos does not invent semantic headings.
+ATX headings are recognized only when `TextFormat.MARKDOWN` is supplied. Ordered and unordered list markers are recognized for both supported format hints. Equivalent marker styles within the same list type are normalized, while ordered and unordered lists remain distinct. Plain text does not infer headings.
 
-The ordered block sequence plus normalized title is serialized as stable, sorted-key JSON. SHA-256 of that serialization becomes the normalized content fingerprint.
+The normalized title and ordered block sequence are serialized as stable JSON. SHA-256 of that serialization becomes `normalized_content_fingerprint`. The same blocks render the canonical text stored in `KnowledgeDocument.content`.
 
-The same blocks are also rendered into deterministic `canonical_text`. `KnowledgeDocument.content` stores this text, so a candidate considered canonically identical cannot later produce different chunk boundaries merely because its source formatting differed.
-
-Inline rich styling such as Markdown emphasis is not aggressively stripped in this baseline because doing so without a full parser can erase literal syntax. Rich format-specific parsing/canonicalization remains **PLANNED**; source extractors should emit meaning-bearing text and structure rather than visual styling.
+This coupling is important: equal canonical fingerprints under the same strategy also produce equal canonical text for downstream chunking.
 
 ## Version resolution
 
-```mermaid
-stateDiagram-v2
-    [*] --> FirstSeen
-    FirstSeen --> CREATE_VERSION
-
-    Existing --> REBASELINE_REQUIRED: normalization strategy changed
-    Existing --> CREATE_VERSION: canonical fingerprint changed
-    Existing --> REFRESH_GOVERNANCE: content same, access changed
-    Existing --> NO_CONTENT_VERSION: content + access same
-```
-
-The comparison state contains three values:
+The persisted comparison state is:
 
 ```text
 CanonicalKnowledgeState
@@ -145,28 +86,29 @@ CanonicalKnowledgeState
 └── access_fingerprint
 ```
 
-Access is intentionally independent of content. If an article becomes restricted without changing its words, Tropos must update retrieval governance immediately but should not fabricate a new content version.
+The resolver returns a primary content action and an independent governance-refresh signal.
 
-A normalizer-version change is also intentionally not treated as proof that the knowledge changed. The result is `REBASELINE_REQUIRED`, forcing a controlled comparison/migration instead of silently churning the corpus.
+| Candidate state | Primary action | Governance refresh |
+| --- | --- | --- |
+| First observed content | `CREATE_VERSION` | No separate refresh |
+| Same canonical content and same access | `NO_CONTENT_VERSION` | No |
+| Same canonical content, access changed | `REFRESH_GOVERNANCE` | Yes |
+| Canonical content changed | `CREATE_VERSION` | Yes if access also changed |
+| Normalization strategy changed | `REBASELINE_REQUIRED` | Yes if access also changed |
 
-## Failure questions that drive the design
+A normalization-strategy change is not treated as proof that business content changed. It requires an explicit rebaseline because a new algorithm can change canonical identity across the corpus.
 
-| Failure question | Required behavior |
-| --- | --- |
-| What if only spaces, line endings or equivalent list markers change? | Raw identity may change; canonical content version must not. |
-| What if ordered steps become unordered bullets? | Treat as a structural change because order semantics may matter. |
-| What if `90 days` becomes `60 days`? | Canonical fingerprint changes; create a content version. |
-| What if the source system increments its version but text is unchanged? | Preserve provenance; do not create a Tropos content version. |
-| What if access changes but text does not? | Refresh governance without content-version churn. |
-| What if the normalization algorithm changes? | Require rebaseline/migration; do not call it a business-content change automatically. |
-| Can the same input produce different identity on replay? | No; normalization/version resolution must be deterministic. |
-| What if normalization removes everything? | Reject the candidate. |
-| What if access is unresolved? | It must not become an indexable `KnowledgeDocument`. |
-| Can a chunk be traced to canonical and raw state? | Yes; it carries normalized and ingestion lineage plus source metadata. |
+## Governance changes
 
-## Chunk identity after normalization
+Content and authorization have separate lifecycles. A document can change content and access policy in the same source update.
 
-Chunk identity is based on canonical evidence, not noisy upstream state:
+`VersionDecision.requires_governance_refresh` preserves that second obligation even when the primary action is `CREATE_VERSION` or `REBASELINE_REQUIRED`. Downstream persistence and indexing must apply new retrieval authorization without waiting for unrelated content processing.
+
+The atomic persistence/indexing behavior for that future workflow is not implemented yet.
+
+## Chunk identity
+
+Chunk identity derives from canonical evidence rather than noisy upstream state:
 
 ```text
 knowledge_id
@@ -178,50 +120,28 @@ knowledge_id
 + exact_chunk_text_fingerprint
 ```
 
-`source_version` and `ingestion_fingerprint` are still retained as lineage, but do not randomize chunk IDs when canonical content is unchanged.
+`source_version` and `ingestion_fingerprint` remain lineage fields. Formatting-only source churn therefore does not create unrelated chunk IDs when canonical content is unchanged.
 
-## Architectural invariants
+## Guarantees
 
-1. Raw evidence is preserved before normalization.
-2. Canonical content identity is deterministic and separate from source-envelope identity.
-3. Presentation-only changes do not create canonical content versions.
-4. Meaning-bearing text or structural changes do create a canonical content version.
-5. Access changes are independently observable and enforceable.
-6. Normalization behavior is explicitly versioned.
-7. Canonical text and canonical fingerprint derive from the same normalized structure.
-8. Chunk identity derives from canonical content identity, while raw/source metadata remains provenance.
-9. No LLM output participates in identity/versioning unless a future ADR explicitly changes this rule.
+The implemented ingestion foundation guarantees that:
 
-## How mature teams handle a discovered architecture gap
+1. Exact source evidence remains separately identifiable.
+2. Canonical identity is deterministic for a given normalization strategy.
+3. Presentation-only changes covered by the normalizer do not create content versions.
+4. Meaning-bearing text or structural changes change canonical identity.
+5. Access changes remain independently observable from content changes.
+6. Normalizer changes require explicit rebaselining.
+7. Canonical text and canonical fingerprint derive from the same structural representation.
+8. Chunk identity derives from canonical content identity while raw/source state remains provenance.
 
-Finding this after initial chunking work is normal evolutionary architecture. The professional response is to convert the newly discovered failure mode into an explicit control.
+## Known limits
 
-```mermaid
-flowchart LR
-    A[Assumption challenged]
-    --> F[Write concrete failure scenario]
-    --> I[Define invariant]
-    --> D[Record durable decision / ADR]
-    --> C[Change contract + implementation]
-    --> T[Add regression tests]
-    --> L[Update living architecture]
-    --> G[CI gate]
-```
+`canonical-text-v1` does not yet provide format-specific semantics for tables, code blocks, embedded objects, or rich document structures. It also does not attempt semantic equivalence between genuinely different wording.
 
-For Tropos the triggering scenario was: **a formatting-only source edit could have caused a new source fingerprint, new chunk IDs and eventually unnecessary re-indexing/embedding work.** The correction separates source identity from canonical content identity before persistence and retrieval make the mistake expensive.
+Those cases require additional parser/canonicalization work and evaluation before they can participate safely in identity decisions.
 
-This follows established engineering ideas:
-
-- **canonicalization** — compare stable representations rather than incidental source formatting;
-- **content-addressable integrity** — fingerprints identify exact normalized evidence;
-- **idempotent processing** — replaying the same logical input produces the same result;
-- **evolutionary architecture** — refine boundaries when concrete failure modes appear;
-- **architecture fitness functions** — unit tests encode invariants such as formatting equivalence and deterministic replay;
-- **ADRs** — preserve the reason and trade-off behind a durable design choice.
-
-## Executable evidence
-
-Implementation:
+## Implementation
 
 - `apps/api/src/tropos/core/application/ingestion/raw_record.py`
 - `apps/api/src/tropos/core/application/ingestion/normalization.py`
@@ -232,10 +152,7 @@ Implementation:
 - `apps/api/src/tropos/core/domain/knowledge_chunk.py`
 - `apps/api/src/tropos/core/adapters/chunking/deterministic.py`
 
-Regression evidence:
+Related decisions:
 
-- `tests/unit/core/adapters/normalization/test_normalization.py`
-- `tests/unit/core/application/ingestion/test_versioning.py`
-- updated raw-record, knowledge-document and chunking unit tests.
-
-Decision record: [`../decisions/ADR-004-deterministic-normalization-and-content-versioning.md`](../decisions/ADR-004-deterministic-normalization-and-content-versioning.md).
+- [ADR-004: Deterministic normalization and content versioning](../decisions/ADR-004-deterministic-normalization-and-content-versioning.md)
+- [ADR-005: Independent governance refresh signal](../decisions/ADR-005-independent-governance-refresh-signal.md)
