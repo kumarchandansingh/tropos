@@ -44,11 +44,7 @@ class DeterministicKnowledgeChunker:
 
         while start < len(text):
             hard_end = min(start + self._max_characters, len(text))
-            end = (
-                hard_end
-                if hard_end == len(text)
-                else self._preferred_end(text, start, hard_end)
-            )
+            end = hard_end if hard_end == len(text) else self._preferred_end(text, start, hard_end)
             spans.append((start, end))
             start = end
 

@@ -14,9 +14,7 @@ def text_fingerprint(text: str) -> str:
 
 
 def _is_sha256(value: str) -> bool:
-    return len(value) == 64 and all(
-        character in _HEXADECIMAL_CHARACTERS for character in value
-    )
+    return len(value) == 64 and all(character in _HEXADECIMAL_CHARACTERS for character in value)
 
 
 @dataclass(frozen=True, slots=True)

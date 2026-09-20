@@ -49,9 +49,7 @@ def test_long_document_prefers_paragraph_boundary() -> None:
 
 def test_unbroken_text_uses_lossless_hard_boundaries() -> None:
     content = "X" * 95
-    chunks = DeterministicKnowledgeChunker(max_characters=32).chunk(
-        build_document(content)
-    )
+    chunks = DeterministicKnowledgeChunker(max_characters=32).chunk(build_document(content))
 
     assert [len(chunk.text) for chunk in chunks] == [32, 32, 31]
     assert "".join(chunk.text for chunk in chunks) == content
@@ -64,9 +62,7 @@ def test_repeated_run_produces_same_chunk_ids() -> None:
     first = chunker.chunk(document)
     second = chunker.chunk(document)
 
-    assert tuple(chunk.chunk_id for chunk in first) == tuple(
-        chunk.chunk_id for chunk in second
-    )
+    assert tuple(chunk.chunk_id for chunk in first) == tuple(chunk.chunk_id for chunk in second)
 
 
 def test_chunks_inherit_document_access_and_provenance() -> None:
