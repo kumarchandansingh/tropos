@@ -9,7 +9,7 @@ from tropos.core.domain.knowledge_chunk import (
 
 
 class DeterministicKnowledgeChunker:
-    """Split exact source text while preferring human-readable boundaries."""
+    """Split canonical text while preferring human-readable boundaries."""
 
     def __init__(
         self,
@@ -73,8 +73,8 @@ class DeterministicKnowledgeChunker:
         identity = "\0".join(
             (
                 document.knowledge_id,
-                document.source_version,
-                document.source_fingerprint,
+                document.normalized_content_fingerprint,
+                document.normalization_strategy_version,
                 self._strategy_version,
                 str(start),
                 str(end),
@@ -95,7 +95,9 @@ class DeterministicKnowledgeChunker:
             start_offset=start,
             end_offset=end,
             content_fingerprint=fingerprint,
-            source_fingerprint=document.source_fingerprint,
+            ingestion_fingerprint=document.ingestion_fingerprint,
+            normalized_content_fingerprint=document.normalized_content_fingerprint,
+            normalization_strategy_version=document.normalization_strategy_version,
             access_policy=document.access_policy,
             strategy_version=self._strategy_version,
         )

@@ -19,7 +19,7 @@ def _is_sha256(value: str) -> bool:
 
 @dataclass(frozen=True, slots=True)
 class KnowledgeChunk:
-    """An exact, access-controlled occurrence within one source version."""
+    """An exact, access-controlled occurrence within one canonical content version."""
 
     chunk_id: str
     knowledge_id: str
@@ -32,7 +32,9 @@ class KnowledgeChunk:
     start_offset: int
     end_offset: int
     content_fingerprint: str
-    source_fingerprint: str
+    ingestion_fingerprint: str
+    normalized_content_fingerprint: str
+    normalization_strategy_version: str
     access_policy: AccessPolicy
     strategy_version: str
 
@@ -44,6 +46,7 @@ class KnowledgeChunk:
             "source_record_id": self.source_record_id,
             "source_version": self.source_version,
             "document_title": self.document_title,
+            "normalization_strategy_version": self.normalization_strategy_version,
             "strategy_version": self.strategy_version,
         }
         for field_name, value in required_text.items():
@@ -58,8 +61,10 @@ class KnowledgeChunk:
             raise ValueError("chunk text length must match its source range")
         if self.content_fingerprint != text_fingerprint(self.text):
             raise ValueError("content_fingerprint must match chunk text")
-        if not _is_sha256(self.source_fingerprint):
-            raise ValueError("source_fingerprint must be a SHA-256 digest")
+        if not _is_sha256(self.ingestion_fingerprint):
+            raise ValueError("ingestion_fingerprint must be a SHA-256 digest")
+        if not _is_sha256(self.normalized_content_fingerprint):
+            raise ValueError("normalized_content_fingerprint must be a SHA-256 digest")
         if not self.access_policy.is_indexable:
             raise ValueError("a chunk cannot have unresolved access")
 
@@ -69,7 +74,7 @@ def validate_chunk_set(
     document: KnowledgeDocument,
     chunks: tuple[KnowledgeChunk, ...],
 ) -> None:
-    """Prove that chunks exactly and contiguously cover a document."""
+    """Prove that chunks exactly and contiguously cover a canonical document."""
 
     if not chunks:
         raise ValueError("chunks must not be empty")
@@ -81,7 +86,9 @@ def validate_chunk_set(
         document.source_record_id,
         document.source_version,
         document.title,
-        document.source_fingerprint,
+        document.ingestion_fingerprint,
+        document.normalized_content_fingerprint,
+        document.normalization_strategy_version,
         document.access_policy,
     )
     strategy_version = chunks[0].strategy_version
@@ -104,7 +111,9 @@ def validate_chunk_set(
             chunk.source_record_id,
             chunk.source_version,
             chunk.document_title,
-            chunk.source_fingerprint,
+            chunk.ingestion_fingerprint,
+            chunk.normalized_content_fingerprint,
+            chunk.normalization_strategy_version,
             chunk.access_policy,
         )
         if actual_metadata != expected_metadata:

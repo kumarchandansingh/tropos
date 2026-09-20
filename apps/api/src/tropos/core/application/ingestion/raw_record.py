@@ -44,8 +44,14 @@ class RawKnowledgeRecord:
             raise ValueError("captured_at must include timezone information")
 
     @property
-    def fingerprint(self) -> str:
-        """Return a stable identity for idempotent processing."""
+    def raw_payload_fingerprint(self) -> str:
+        """Return SHA-256 of the exact captured payload bytes."""
+
+        return sha256(self.payload).hexdigest()
+
+    @property
+    def ingestion_fingerprint(self) -> str:
+        """Return a stable identity for the captured source envelope."""
 
         metadata = {
             "access_policy": {
@@ -73,3 +79,9 @@ class RawKnowledgeRecord:
         digest.update(self.payload)
 
         return digest.hexdigest()
+
+    @property
+    def fingerprint(self) -> str:
+        """Backward-compatible alias for the ingestion fingerprint."""
+
+        return self.ingestion_fingerprint
