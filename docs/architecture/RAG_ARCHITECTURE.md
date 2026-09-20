@@ -1,13 +1,16 @@
 # RAG Architecture
 
-Tropos is being designed toward retrieval-augmented decision support, but the repository is **not yet a full RAG system**. The correct way to understand the current state is to separate the implemented evidence foundation from the planned retrieval and reasoning layers.
+Tropos is being designed toward retrieval-augmented decision support, but the repository is **not yet a full production RAG platform**. The implemented foundation now includes governed raw capture, deterministic normalization/version resolution and deterministic canonical chunking. Persistence, retrieval, coverage and model reasoning remain staged deliberately.
 
-## Target RAG pipeline
+## Target pipeline
 
 ```mermaid
 flowchart LR
     S[Source knowledge]
-    --> N[Normalize]
+    --> CAP[Capture raw state]
+    --> EX[Extract source text/structure]
+    --> N[Normalize + canonicalize]
+    --> V[Resolve canonical version]
     --> C[Chunk]
     --> P[Persist]
     --> I[Index]
@@ -15,7 +18,7 @@ flowchart LR
     --> K[Rank / select]
     --> A[Assess coverage]
     --> D[Decide knowledge action]
-    --> G[Optional AI-assisted explanation / drafting]
+    --> G[Optional grounded AI assistance]
     --> E[Evaluate]
 ```
 
@@ -24,14 +27,19 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph Implemented[IMPLEMENTED]
-      R1[RawKnowledgeRecord + fingerprint]
+      R1[RawKnowledgeRecord<br/>raw + ingestion fingerprints]
       AP[AccessPolicy]
+      N1[Deterministic normalization]
+      N2[Structural extraction + canonical text]
+      VR[Canonical version resolver]
       KD[KnowledgeDocument]
       CH[DeterministicKnowledgeChunker]
       KC[KnowledgeChunk + invariants]
-      DI[Knowledge decision policy]
-      OR[EvaluateCaseClosure orchestration]
-      R1 --> KD --> CH --> KC
+      DI[Resolve decision policy]
+      OR[EvaluateCaseClosure]
+
+      R1 --> N1 --> N2 --> VR --> KD --> CH --> KC
+      AP --> R1
       AP --> KD
       OR --> DI
     end
@@ -43,154 +51,163 @@ flowchart TB
     end
 
     subgraph Planned[PLANNED]
+      Parser[Rich parsers/connectors]
       PS[(Persistent knowledge/chunk store)]
       FTS[Lexical / full-text search]
       HIT[Retrieval hit / evidence bundle]
       CE[Concrete coverage evaluator]
       DS[(Decision persistence)]
-      EV[Retrieval + product evaluations]
+      EV[Retrieval + product eval datasets]
       PS --> FTS --> HIT --> CE
       DS --> EV
     end
 
-    subgraph Deferred[DEFERRED UNTIL BASELINE EXISTS]
+    subgraph Deferred[DEFERRED UNTIL BASELINE]
       EMB[Embeddings / vector retrieval]
       HYB[Hybrid retrieval / reranking]
       LLM[LLM-assisted reasoning / drafting]
+      GATE[AI gateway / model routing / semantic cache]
     end
 
     KC -. next .-> PS
-    RET -. future adapter .-> FTS
-    COV -. future adapter .-> CE
-    STORE -. future adapter .-> DS
-    FTS -. evidence of semantic-recall gap .-> EMB
+    RET -. adapter .-> FTS
+    COV -. adapter .-> CE
+    STORE -. adapter .-> DS
+    FTS -. measured semantic-recall gap .-> EMB
     EMB --> HYB
     CE -. after measurable baseline .-> LLM
+    LLM -. scale requirement .-> GATE
 ```
 
-## Why the stages are separate
+## Normalization is a RAG quality stage
 
-A fluent final answer can hide failures earlier in the pipeline. Tropos therefore treats retrieval, coverage, decision policy and generation as separate quality surfaces.
+A production RAG diagram often compresses parsing, normalization, deduplication and versioning into one ingestion box. Tropos keeps them conceptually separate because they fail differently.
 
 | Stage | Question | Typical failure |
 | --- | --- | --- |
-| Normalization | Did source content become a correct canonical document? | lost fields / corrupted text / lost ACL |
-| Chunking | Is the evidence unit faithful and reproducible? | fragmentation / citation drift |
-| Persistence | Can canonical evidence be retrieved by stable identity? | stale or duplicate states |
+| Raw capture | Did we preserve exact source state and access? | cannot audit/replay the input |
+| Extraction | Did we correctly obtain text/meaning-bearing structure? | lost table/list/heading content |
+| Normalization | Did incidental presentation disappear without rewriting meaning? | duplicate logical content or corrupted evidence |
+| Version resolution | Is this actually new knowledge? | re-index churn or stale content |
+| Chunking | Is the evidence unit faithful/reproducible? | fragmentation/citation drift |
+| Persistence | Can canonical evidence be retrieved by stable identity? | stale/duplicate states |
 | Retrieval | Did we fetch relevant candidates? | low recall |
-| Ranking | Are the useful candidates near the top? | noisy top-k |
-| Coverage | Is existing knowledge enough to resolve the case? | wrong `CREATE/IMPROVE/REUSE` input |
-| Decision policy | Given validated facts, is the action deterministic? | hidden policy drift |
-| Generation | Is any explanation/draft grounded in evidence? | hallucination |
-| Evaluation | Did a change improve behavior without serious regressions? | aggregate score hides failures |
+| Ranking | Are useful candidates near the top? | noisy top-k |
+| Coverage | Is existing knowledge enough? | wrong `CREATE/IMPROVE/REUSE` input |
+| Decision policy | Given validated facts, is action deterministic? | hidden policy drift |
+| Generation | Is optional output grounded in allowed evidence? | hallucination/data leakage |
+| Evaluation | Did the change improve behavior without regressions? | aggregate score hides failures |
+
+The important correction is that **source freshness is not equivalent to canonical-content freshness**. A source may update while canonical knowledge is unchanged; ACLs may update while text is unchanged; a normalizer may change while source content does not.
+
+## Freshness lifecycle
+
+```mermaid
+flowchart TD
+    Poll[Connector observes source state]
+    --> Capture[Capture raw state]
+    --> RawChanged{Raw/ingestion state changed?}
+    RawChanged -- no --> Stop[No work]
+    RawChanged -- yes --> Normalize[Normalize deterministically]
+    Normalize --> Resolve{Version decision}
+    Resolve -->|NO_CONTENT_VERSION| NoIndex[No content re-index]
+    Resolve -->|REFRESH_GOVERNANCE| ACL[Refresh access/index policy]
+    Resolve -->|CREATE_VERSION| Rebuild[Materialize + chunk + persist/index]
+    Resolve -->|REBASELINE_REQUIRED| Migration[Controlled corpus rebaseline]
+```
+
+This is the foundation for later freshness SLOs and incremental indexing.
 
 ## Retrieval baseline: lexical before vector
 
-The planned strategy is intentionally incremental.
+The planned strategy remains incremental:
 
 ```mermaid
 flowchart LR
-    Chunk[Governed chunks]
+    Chunk[Governed canonical chunks]
     --> Persist[Persistent corpus]
     --> FTS[Lexical / FTS baseline]
     --> Dataset[Build retrieval eval set]
-    --> Measure[Measure recall / precision / ranking]
+    --> Measure[Recall / precision / ranking]
     --> Gap{Material semantic-recall gap?}
     Gap -- no --> Keep[Keep simpler retrieval]
     Gap -- yes --> Embed[Add embeddings]
     Embed --> Hybrid[Compare hybrid vs baseline]
 ```
 
-This is not an anti-vector position. It is an experimental-design choice: add complexity only after a baseline can show what problem the complexity solves.
+This is experimental discipline, not an anti-vector position: establish what problem added complexity solves before adding it.
 
 ## Access filtering belongs before model reasoning
-
-Tropos already makes unresolved access non-indexable. Future retrieval must preserve that principle:
 
 ```mermaid
 flowchart LR
     Query[Case/query]
     --> Candidate[Search candidates]
-    --> Policy[Apply tenant/group access policy]
+    --> Policy[Enforce tenant/group access]
     --> Evidence[Allowed evidence only]
     --> Coverage[Coverage evaluation]
     --> Model[Optional model reasoning]
 ```
 
-A model should never be used as the mechanism for deciding whether retrieved evidence was authorized in the first place.
+A model must never be the mechanism that decides whether unauthorized evidence was acceptable after retrieval.
 
-## Planned retrieval contract
+## Coverage remains separate from retrieval
 
-The current domain has `RetrievedKnowledge(document, score)`, while the future chunk-level retrieval path will likely need a richer evidence contract carrying exact chunk IDs and provenance.
-
-A target shape is conceptually:
-
-```text
-RetrievalHit
-├── chunk_id
-├── knowledge_id
-├── score
-├── rank
-├── source identity / version
-├── exact text offsets
-├── access policy reference
-└── retrieval strategy/version
-```
-
-This is **PLANNED**, not implemented. The purpose is to keep the retrieval representation explicitly tied to the governed `KnowledgeChunk`.
-
-## Coverage is its own decision stage
-
-Retrieval answers *what might be relevant*. Coverage answers *whether the evidence is sufficient*.
+Retrieval asks *what might be relevant?* Coverage asks *is the retrieved evidence sufficient?*
 
 ```mermaid
 flowchart TD
     R[Retrieved evidence]
-    --> C{Coverage assessment}
+    --> C{Coverage}
     C -->|NONE| Create[CREATE]
     C -->|PARTIAL| Improve[IMPROVE]
     C -->|SUFFICIENT| Reuse[REUSE]
 ```
 
-Conflating retrieval score with coverage would be a design error. A highly similar article can still be incomplete; several moderately ranked chunks can collectively provide sufficient coverage.
+A highly similar document may still be incomplete, while several moderately ranked chunks may collectively provide sufficient coverage.
 
-## LLM role — deliberately downstream
+## LLM role — downstream and bounded
 
-When an LLM is introduced, Tropos should use it for bounded tasks behind validated contracts, for example:
-
-- semantic coverage assessment after evidence retrieval;
-- evidence-backed rationale;
-- suggested article improvement/draft;
-- reviewer assistance.
-
-The LLM should not own the stable action vocabulary or bypass access/provenance controls.
+**DEFERRED:** when introduced, an LLM should operate on already authorized, provenance-rich evidence and return typed/validated output.
 
 ```mermaid
 flowchart LR
-    Evidence[Validated evidence]
-    --> Prompt[Versioned prompt + contract]
+    Evidence[Allowed governed evidence]
+    --> Prompt[Versioned prompt + schema]
     --> LLM[Model]
-    --> Parse[Structured output validation]
-    --> Policy[Governed application/domain decision]
+    --> Validate[Structured validation]
+    --> Policy[Governed application/domain behavior]
+```
+
+Likely bounded uses include semantic coverage assistance, evidence-backed rationale, article-improvement suggestions and reviewer assistance. Stable identity/versioning, access control and core action vocabulary remain deterministic unless explicitly changed by a future ADR.
+
+## Scale components are requirement-driven
+
+AI gateway, model routing, semantic caching, reranking and distributed indexes are legitimate production patterns, but they are **DEFERRED** until requirements/evidence justify them. Tropos should not install production-scale boxes merely to resemble a reference diagram.
+
+At scale, architecture decisions should map to explicit requirements:
+
+```text
+accuracy  -> retrieval/ranking/coverage evals
+security  -> identity + ACL propagation/filtering
+freshness -> incremental version resolver + index lifecycle
+latency   -> index/rerank/model/cache choices measured at p95/p99
+cost      -> avoid false reprocessing + model/embedding routing
 ```
 
 ## RAG change isolation
 
-To diagnose regressions, avoid changing chunking, retrieval, embedding model, reranker and prompt in one experiment.
+Avoid changing normalization, chunking, retrieval, embedding model, reranker and prompt in one experiment.
 
 ```mermaid
 flowchart LR
-    Baseline[Known baseline]
+    Base[Known baseline]
     --> One[Change one material variable]
-    --> Eval[Run applicable eval suite]
-    --> Compare[Compare aggregate + case regressions]
-    --> Decision{Accept?}
-    Decision -- yes --> New[New baseline]
-    Decision -- no --> Revert[Reject / revise]
+    --> Eval[Run relevant tests/evals]
+    --> Compare[Aggregate + case regressions]
+    --> D{Accept?}
+    D -- yes --> New[New baseline]
+    D -- no --> Reject[Reject / revise]
 ```
 
-## Release consequence
-
-Once retrieval or model reasoning becomes executable product behavior, a green software CI run will be necessary but not sufficient. Relevant retrieval/AI eval gates must also pass before release eligibility.
-
-See `../quality/EVAL_STRATEGY.md` for the evaluation model.
+Once retrieval/model behavior becomes executable, software CI alone will be necessary but not sufficient; retrieval/AI eval gates must also pass.
