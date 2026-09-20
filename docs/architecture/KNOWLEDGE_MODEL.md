@@ -13,7 +13,7 @@ flowchart LR
     --> Version[Canonical version decision]
     --> Document[KnowledgeDocument]
     --> Chunk[KnowledgeChunk]
-    --> Index[(Search index\nplanned)]
+    --> Index[(Search index<br/>planned)]
 ```
 
 ## Core entities
