@@ -1,65 +1,119 @@
-# Tropos Knowledge Map
+# Tropos Documentation
 
-Tropos documentation is part of the product, not a separate afterthought. These documents explain what the system is, how it is structured, why key decisions were made, how changes move safely toward production, and how quality is measured.
+This is the living knowledge system for Tropos. The goal is not to duplicate the code in prose; it is to make the product, architecture, evidence model, quality model and delivery controls understandable enough that a new engineer can reason about the system before changing it.
+
+**Documentation rule:** diagram first, explanation second, code evidence third.
+
+## System map
 
 ```mermaid
-flowchart TD
-    A[Product intent] --> B[Architecture]
-    B --> C[Knowledge model]
-    B --> D[RAG architecture]
-    D --> E[Evaluation strategy]
-    B --> F[Delivery model]
-    F --> G[CI/CD]
-    F --> H[Environment strategy]
-    B --> I[Architecture decisions]
+flowchart TB
+    Product[Product model<br/>why Tropos exists]
+    Arch[Architecture<br/>how responsibilities are separated]
+    Code[Codebase map<br/>where each responsibility lives]
+    KM[Knowledge model<br/>identity + provenance + access]
+    RAG[RAG architecture<br/>retrieval + coverage + reasoning]
+    Eval[Evaluation strategy<br/>software + AI quality]
+    CICD[CI/CD<br/>change control]
+    Env[Environment strategy<br/>promotion + runtime separation]
+    ADR[Architecture decisions<br/>why key choices were made]
+
+    Product --> Arch
+    Arch --> Code
+    Arch --> KM
+    KM --> RAG
+    RAG --> Eval
+    Arch --> CICD
+    CICD --> Env
+    Arch --> ADR
 ```
 
-## How to read the docs
+## Status legend
 
-| Need | Start here |
+Tropos uses these labels consistently so future architecture is not confused with current capability.
+
+| Label | Meaning |
 | --- | --- |
-| Understand the system | `architecture/ARCHITECTURE_OVERVIEW.md` |
-| Understand source, evidence, chunks, and lineage | `architecture/KNOWLEDGE_MODEL.md` |
-| Understand retrieval and future RAG evolution | `architecture/RAG_ARCHITECTURE.md` |
-| Understand deterministic tests vs AI evaluations | `quality/EVAL_STRATEGY.md` |
-| Understand GitHub quality gates | `delivery/CI_CD.md` |
-| Understand Development → UAT/Staging → Production | `delivery/ENVIRONMENT_STRATEGY.md` |
-| Understand why an architecture choice exists | `decisions/` |
+| **IMPLEMENTED** | Executable code exists in the repository and is covered by current tests/CI where applicable. |
+| **CONTRACT ONLY** | A domain/application contract exists, but no production adapter is implemented yet. |
+| **PLANNED** | Agreed direction or next-stage design; not executable today. |
+| **DEFERRED** | Deliberately postponed until evidence justifies the complexity. |
 
-## Documentation design principles
+## Read by question
 
-1. **Diagram first, prose second.** Important flows should be visible before they are explained.
-2. **Theory → practice → Tropos.** Each architecture document connects established engineering ideas to the concrete repository implementation.
-3. **Living, not historical.** Update the relevant document in the same change that changes the architecture.
-4. **Evidence over assertion.** Link architectural claims to code, tests, evaluations, ADRs, or release evidence.
-5. **Progressive depth.** Start with the overview, then move to component-level and playbook-level detail.
-
-## Theory stack used by Tropos
-
-| Theory / practice | Tropos use |
+| If you want to understand... | Read |
 | --- | --- |
-| C4 model | Context, container, and component views |
-| Hexagonal / Ports-and-Adapters architecture | Keeps domain and use cases independent of infrastructure |
-| Domain-driven design, lightweight | Gives business concepts explicit names and boundaries |
-| Architecture Decision Records | Preserves context, options, decisions, and consequences |
-| Shift-left quality | Runs deterministic checks before integration |
-| Continuous Integration | Re-validates every proposed change in GitHub |
-| RAG evaluation | Measures retrieval and grounded answer quality separately from code correctness |
-| Progressive delivery | Development → UAT/Staging → Production with controlled promotion and rollback |
+| What Tropos is solving and how the four knowledge actions work | [`product/PRODUCT_MODEL.md`](product/PRODUCT_MODEL.md) |
+| The architecture and dependency direction | [`architecture/ARCHITECTURE_OVERVIEW.md`](architecture/ARCHITECTURE_OVERVIEW.md) |
+| Which file owns which responsibility | [`architecture/CODEBASE_MAP.md`](architecture/CODEBASE_MAP.md) |
+| How source identity, access, provenance and chunks work | [`architecture/KNOWLEDGE_MODEL.md`](architecture/KNOWLEDGE_MODEL.md) |
+| What the current and target RAG pipeline actually are | [`architecture/RAG_ARCHITECTURE.md`](architecture/RAG_ARCHITECTURE.md) |
+| What is a unit test vs an AI/RAG evaluation | [`quality/EVAL_STRATEGY.md`](quality/EVAL_STRATEGY.md) |
+| How code moves safely into protected `main` | [`delivery/CI_CD.md`](delivery/CI_CD.md) |
+| How branches differ from runtime environments | [`delivery/ENVIRONMENT_STRATEGY.md`](delivery/ENVIRONMENT_STRATEGY.md) |
+| Why a material architecture choice exists | [`decisions/README.md`](decisions/README.md) |
 
-## Current reality versus target state
-
-Tropos is intentionally documenting **implemented**, **planned**, and **deferred** capabilities separately.
+## Current capability boundary
 
 ```mermaid
 flowchart LR
-    I[Implemented now] --> D[Deterministic domain + ingestion + chunking]
-    P[Planned next] --> R[Persistence + FTS retrieval]
-    R --> V[Embeddings / vector retrieval]
-    V --> L[LLM reasoning]
-    L --> E[AI evaluations]
-    E --> API[Delivery APIs / UI]
-    API --> PROD[Controlled production pilot]
+    subgraph Implemented[IMPLEMENTED]
+      A[Resolved-case model]
+      B[Closure-evidence rules]
+      C[Decision policy]
+      D[Raw record fingerprint]
+      E[Access policy]
+      F[Knowledge document]
+      G[Deterministic chunking]
+      H[Chunk invariants]
+      A --> B --> C
+      D --> F --> G --> H
+      E --> F
+    end
+
+    subgraph Contract[CONTRACT ONLY]
+      R[KnowledgeRetriever]
+      CV[KnowledgeCoverageEvaluator]
+      DS[KnowledgeDecisionStore]
+    end
+
+    subgraph Planned[PLANNED]
+      P[(Persistence)]
+      FTS[Lexical / FTS retrieval]
+      CE[Concrete coverage evaluation]
+      EV[Retrieval + product eval datasets]
+      API[API / UI]
+    end
+
+    subgraph Deferred[DEFERRED]
+      V[Embeddings / vector retrieval]
+      L[LLM recommendation / drafting]
+      Prod[Production deployment]
+    end
+
+    C --> R
+    R --> CV
+    C --> DS
+    H --> P --> FTS --> R
+    FTS --> CE --> EV
+    FTS -. if measurable need .-> V
+    CE -. after deterministic baseline .-> L
+    API -. after core loop .-> Prod
 ```
 
-The docs must not describe planned components as if they already exist.
+## Documentation quality standard
+
+Every important document should answer six questions:
+
+1. **What problem does this part of the system solve?**
+2. **What exists today?**
+3. **What is only planned?**
+4. **What invariant must remain true?**
+5. **What failure mode is the design preventing?**
+6. **Where is the executable evidence in the repository?**
+
+Theory is useful only when it explains a concrete Tropos decision. The main ideas currently in use are C4-style system views, modular-monolith boundaries, Hexagonal / Ports-and-Adapters architecture, lightweight domain-driven design, provenance/lineage, content-addressable integrity, shift-left quality, continuous integration, and progressive delivery.
+
+## Maintenance rule
+
+When a PR changes a boundary, invariant, retrieval strategy, persistence model, access semantics, evaluation gate or release model, update the relevant living document in the same PR. If the change represents a durable architecture decision, add or update an ADR as well.

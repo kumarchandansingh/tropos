@@ -1,47 +1,75 @@
 # Evaluation Strategy
 
-## Purpose
+Tropos separates **software correctness** from **AI-system quality**. A unit test can prove that a decision table behaves as specified; it cannot prove that a future retriever finds the right evidence or that a model recommendation is well grounded.
 
-Tropos separates **software correctness** from **AI-system quality**. Deterministic tests answer whether code behaves as specified. Evaluations answer whether retrieval and reasoning are good enough for the product.
-
-## Theory foundation
-
-This distinction follows software quality engineering and modern AI evaluation practice:
+## Quality stack
 
 ```mermaid
 flowchart TB
-    Q[Quality assurance]
-    Q --> T[Deterministic tests]
-    Q --> E[AI evaluations]
+    Q[Release confidence]
+    --> SW[Software correctness]
+    --> SYS[System integration]
+    --> RET[Retrieval quality]
+    --> AI[Reasoning / generation quality]
+    --> PROD[Product outcome quality]
 
-    T --> U[Unit tests]
-    T --> I[Integration tests]
-    T --> C[Contract / schema tests]
-
-    E --> R[Retrieval quality]
-    E --> G[Groundedness / faithfulness]
-    E --> A[Recommendation relevance]
-    E --> S[Safety / policy adherence]
+    SW --> U[Unit tests]
+    SYS --> I[Integration + contract tests]
+    RET --> IR[Recall / precision / ranking metrics]
+    AI --> RAG[RAG triad + task-specific judges]
+    PROD --> H[Human review + operational outcomes]
 ```
 
-## What exists today
+Only the first layer is substantially implemented today. The later layers should be introduced when their corresponding capabilities exist.
 
-The current repository contains deterministic tests for implemented domain/application/chunking behavior. Full RAG evaluation is planned for the stage where retrieval and model reasoning exist.
+## Current executable quality evidence
 
-## Quality model
+### Domain tests
 
-| Layer | Example question | Mechanism |
-| --- | --- | --- |
-| Domain | Can an invalid chunk exist? | Unit test / invariant |
-| Application | Does a use case orchestrate the correct ports? | Unit/integration test |
-| Adapter | Does chunking cover the source exactly? | Unit/property-style checks |
-| Retrieval | Did we retrieve the expected evidence? | Retrieval eval |
-| Generation | Is the recommendation supported by evidence? | Groundedness eval |
-| Product | Did the system choose an appropriate knowledge action? | Golden dataset / reviewer outcome |
+Current unit tests cover:
 
-## RAG evaluation model
+- access-policy normalization and invalid states;
+- knowledge-document validation and retrieval-score bounds;
+- deterministic knowledge-action policy;
+- resolved-case identity and timezone requirements.
 
-Tropos will use the RAG triad as one organizing model, but not as the only metric set.
+### Application tests
+
+Current application tests cover the `EvaluateCaseClosure` orchestration boundary and raw-ingestion identity behavior.
+
+### Adapter tests
+
+Current adapter tests cover deterministic closure-evidence evaluation and deterministic chunking behavior.
+
+```mermaid
+flowchart LR
+    Code[Implemented behavior]
+    --> Tests[tests/unit]
+    --> CI[api-quality]
+    --> Main[Protected main]
+```
+
+The repository currently has no persistence/retrieval integration tests because those production adapters do not yet exist.
+
+## Current CI gate
+
+Every pull request and every push to `main` runs:
+
+```mermaid
+flowchart LR
+    Checkout --> Sync[uv sync --dev --locked]
+    Sync --> Format[Ruff format]
+    Format --> Lint[Ruff lint]
+    Lint --> Types[mypy src tests]
+    Types --> Unit[pytest]
+    Unit --> Build[uv build]
+```
+
+`api-quality` is a required status check on protected `main`.
+
+## Future RAG evaluation model
+
+The RAG triad is useful as a conceptual map, but Tropos should not reduce system quality to three opaque judge scores.
 
 ```mermaid
 flowchart TD
@@ -54,46 +82,114 @@ flowchart TD
     Q -->|Answer relevance| A
 ```
 
-In addition, retrieval should be measured with information-retrieval metrics such as recall, precision, and ranking-sensitive measures where the evaluation dataset supports them.
+These relationships answer different questions:
 
-## Release-gate philosophy
+- **Context relevance** — was the retrieved evidence useful for the case?
+- **Faithfulness / groundedness** — is the recommendation supported by that evidence?
+- **Answer relevance** — does the output actually address the requested task?
+
+## Retrieval metrics should remain explicit
+
+For retrieval, conventional information-retrieval measures are often more diagnostic than a single LLM judge.
+
+| Metric | Question |
+| --- | --- |
+| Recall@k | Did the expected relevant evidence appear in the retrieved set? |
+| Precision@k | How much of the returned set was actually relevant? |
+| MRR | How early did the first relevant result appear? |
+| nDCG | Were more relevant results ranked appropriately when graded relevance exists? |
+
+The exact metric set depends on what labels the evaluation dataset can support.
+
+## Product-decision evaluation
+
+Tropos ultimately makes a four-way knowledge action. A future golden dataset should therefore include more than text relevance.
+
+```text
+EvalCase
+├── resolved-case input
+├── expected relevant evidence IDs
+├── expected / acceptable coverage state
+├── expected / acceptable knowledge action
+├── reviewer notes
+└── risk / criticality tag
+```
+
+This allows the team to ask whether a retrieval or model change altered the actual product decision, not merely whether a judge preferred the wording.
+
+## Evaluation dataset lifecycle
 
 ```mermaid
 flowchart LR
-    Change[Code / prompt / retrieval change] --> DT[Deterministic tests]
-    DT --> AE[Applicable AI evals]
-    AE --> RC[Regression comparison]
-    RC --> Gate{Meets release threshold?}
-    Gate -- yes --> Promote[Eligible for promotion]
-    Gate -- no --> Fix[Investigate / revise]
+    Fail[Observed failure / known case]
+    --> Curate[Curate + label]
+    --> Dev[Development/tuning set]
+    --> Holdout[Held-out release set]
+    --> Gate[Regression gate]
+    --> Observe[Production/reviewer outcomes]
+    --> Fail
 ```
 
-Not every change requires every eval. The changed behavior determines the applicable suite.
+Initially, the dataset can be small and manually inspectable. Scale should follow observed failure diversity, not vanity sample counts.
 
-## Dataset principles
+## Release-gate model
 
-Evaluation datasets should be:
+```mermaid
+flowchart LR
+    Change[Code / retrieval / prompt / model change]
+    --> D[Deterministic tests]
+    --> A{AI/RAG behavior affected?}
+    A -- no --> Eligible[Eligible after software gates]
+    A -- yes --> E[Applicable eval suite]
+    E --> Compare[Baseline + regression comparison]
+    Compare --> G{Threshold + critical cases pass?}
+    G -- yes --> Eligible
+    G -- no --> Fix[Revise / reject]
+```
 
-- version controlled;
-- representative of actual product decisions;
-- small enough initially to inspect manually;
-- expanded when new failure modes are discovered;
-- separated into development/tuning examples and held-out release-gate examples when dataset size permits;
-- linked to expected evidence and/or expected action where that can be established reliably.
+Not every PR should run every future eval. Gates should be behavior-aware so the system remains fast enough to develop while still protecting affected capabilities.
 
-## Regression discipline
+## LLM-as-judge policy
 
-A new prompt, chunking strategy, retriever, embedding model, or ranking algorithm should not be accepted merely because aggregate quality improved. Inspect regressions on individual examples, especially high-risk cases.
+LLM judges can be useful, but they must be treated as measurement instruments with known uncertainty.
 
-## Human review
+Use them with:
 
-Human review remains part of the product loop. Automated scores support release decisions; they do not replace governed reviewer judgment about publication or knowledge correctness.
+- explicit rubrics;
+- structured outputs;
+- versioned judge prompts/models;
+- manually reviewed calibration examples;
+- disagreement analysis;
+- deterministic checks where possible;
+- case-level regression inspection, not averages alone.
 
-## Failure modes to avoid
+Do not treat one judge score as ground truth.
 
-- using one LLM judge as unquestioned truth;
-- optimizing against the same examples used to design prompts;
-- reporting only an average score and hiding severe regressions;
-- mixing retrieval and generation changes in one experiment without attribution;
-- treating passing unit tests as evidence that an AI workflow is good;
-- treating high answer quality as proof that retrieval is correct.
+## High-risk regression discipline
+
+A model/retrieval variant should not pass merely because the average score improves. Critical examples can be release blockers even when aggregate quality is higher.
+
+Examples of high-risk failures include:
+
+- inaccessible evidence retrieved across policy boundaries;
+- `CREATE` recommended when sufficient approved knowledge exists;
+- `REUSE` recommended from incomplete evidence;
+- generated rationale cites evidence that was not retrieved;
+- closure evidence is inadequate but the system continues into expensive reasoning.
+
+## Human review remains part of evaluation
+
+Reviewer acceptance, edits, rejection reasons and overrides can become product feedback signals. They should complement automated evaluation, not be replaced by it.
+
+## Current versus future
+
+| Capability | Status |
+| --- | --- |
+| Unit tests | IMPLEMENTED |
+| Ruff / mypy / build quality gates | IMPLEMENTED |
+| Required CI on protected main | IMPLEMENTED |
+| Persistence integration tests | PLANNED |
+| Retrieval evaluation dataset | PLANNED |
+| Recall/precision/ranking metrics | PLANNED |
+| LLM groundedness/relevance evals | DEFERRED until LLM behavior exists |
+| Production outcome monitoring | DEFERRED until deployed |

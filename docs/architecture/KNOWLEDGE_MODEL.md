@@ -1,31 +1,59 @@
 # Knowledge Model
 
-## Purpose
+Tropos treats knowledge as **governed evidence**, not just text. Every transformation must preserve enough identity, provenance and access information to answer: *what source did this come from, what exact content was used, who may access it, and how was this evidence produced?*
 
-Tropos treats knowledge as governed evidence, not just text. A knowledge unit must retain identity, exact source lineage, access policy, and processing lineage so later retrieval and recommendations can be traced back to source material.
+## End-to-end evidence lineage
 
-## Theory foundation
+```mermaid
+flowchart LR
+    Source[(Source system record)]
+    --> Raw[RawKnowledgeRecord]
+    --> Normalize[Normalization<br/>PLANNED]
+    --> Doc[KnowledgeDocument]
+    --> Chunker[Deterministic chunker]
+    --> Chunk[KnowledgeChunk]
+    --> Index[(Search index<br/>PLANNED)]
+    --> Result[Retrieved evidence<br/>future]
+    --> Decision[Knowledge decision]
+```
 
-This design combines four ideas:
+Today, the implemented evidence model covers the raw record, canonical document, access policy and deterministic chunk.
 
-- **Information architecture** — knowledge objects have explicit identities and relationships.
-- **Data provenance / lineage** — transformations retain where data came from and how it changed.
-- **Content-addressable verification** — fingerprints make exact content changes detectable.
-- **Policy inheritance** — access constraints follow the knowledge they govern.
-
-## Core model
+## Core object relationships
 
 ```mermaid
 classDiagram
+    class AccessPolicy {
+      tenant_id
+      scope
+      allowed_groups
+      is_indexable
+    }
+
+    class RawKnowledgeRecord {
+      source_system
+      source_record_id
+      source_version
+      content_type
+      payload
+      access_policy
+      captured_at
+      fingerprint
+    }
+
     class KnowledgeDocument {
       knowledge_id
       source_system
       source_record_id
       source_version
+      content_type
       title
       content
-      source_fingerprint
       access_policy
+      source_fingerprint
+      captured_at
+      source_uri
+      source_updated_at
     }
 
     class KnowledgeChunk {
@@ -37,102 +65,156 @@ classDiagram
       end_offset
       content_fingerprint
       source_fingerprint
-      strategy_version
       access_policy
+      strategy_version
     }
 
-    class AccessPolicy {
-      indexability
-      visibility / policy semantics
-    }
-
-    KnowledgeDocument "1" --> "many" KnowledgeChunk : deterministically chunked into
+    RawKnowledgeRecord --> AccessPolicy
     KnowledgeDocument --> AccessPolicy
-    KnowledgeChunk --> AccessPolicy : inherits
+    KnowledgeDocument "1" --> "many" KnowledgeChunk
+    KnowledgeChunk --> AccessPolicy
 ```
 
-## Why a chunk is more than text
+## Access policy is data, not an afterthought
+
+`AccessPolicy` currently models three states:
+
+```mermaid
+stateDiagram-v2
+    [*] --> UNRESOLVED
+    UNRESOLVED --> TENANT: source access resolved as tenant-wide
+    UNRESOLVED --> RESTRICTED: source access resolved to groups
+    TENANT --> [*]
+    RESTRICTED --> [*]
+```
+
+| Scope | Meaning | Indexable? |
+| --- | --- | --- |
+| `UNRESOLVED` | Tropos does not yet know the allowed audience | No |
+| `TENANT` | Available within the tenant | Yes |
+| `RESTRICTED` | Available only to named groups | Yes, with groups |
+
+A `KnowledgeDocument` cannot be created with unresolved access, and a `KnowledgeChunk` cannot carry unresolved access. This pushes access resolution **before indexing**, reducing the risk of retrieving evidence that should never have entered a searchable corpus.
+
+## Raw-record identity and idempotency
+
+`RawKnowledgeRecord.fingerprint` hashes canonical metadata plus raw payload bytes.
+
+```mermaid
+flowchart TB
+    Metadata[source system + record + version + content type + access policy + schema version]
+    Payload[exact payload bytes]
+    Metadata --> Canon[canonical JSON]
+    Canon --> Hash[SHA-256]
+    Payload --> Hash
+    Hash --> FP[stable source fingerprint]
+```
+
+The fingerprint schema is explicitly versioned. This matters because changing what participates in identity is itself a compatibility decision.
+
+## Canonical knowledge document
+
+`KnowledgeDocument` is the retrieval-ready canonical source representation. It separates the upstream source identity from future search/index representations.
+
+Important fields include:
+
+- `knowledge_id` — Tropos identity;
+- source system / record / source version — upstream lineage;
+- `source_fingerprint` — exact source-state integrity;
+- `captured_at` and optional `source_updated_at` — temporal provenance;
+- `access_policy` — retrieval governance;
+- canonical `title` and `content` — evidence text that later chunking must preserve.
+
+## A chunk is an evidence occurrence, not a text fragment
 
 ```mermaid
 flowchart TB
     KC[KnowledgeChunk]
-    KC --> I[Identity<br/>chunk ID / knowledge ID / sequence]
-    KC --> SL[Source lineage<br/>system / record / version / source fingerprint]
-    KC --> E[Exact evidence<br/>text / offsets / content fingerprint]
+    KC --> I[Identity<br/>chunk_id / knowledge_id / sequence]
+    KC --> L[Lineage<br/>source system / record / version]
+    KC --> X[Exact evidence<br/>text + start/end offsets]
+    KC --> F[Integrity<br/>content + source fingerprints]
     KC --> G[Governance<br/>access policy]
-    KC --> PL[Processing lineage<br/>chunking strategy version]
+    KC --> P[Processing lineage<br/>strategy_version]
 ```
 
-This structure supports a key Tropos invariant: **retrieved evidence must remain explainable as an exact occurrence within a governed source version**.
+The design deliberately avoids treating a vector-store row as the canonical evidence object. An embedding may later represent a chunk for search, but the chunk remains the governed source of retrieval evidence.
 
-## Deterministic chunking invariants
+## Deterministic chunk identity
 
-Tropos currently validates that a generated chunk set:
+The current chunker derives `chunk_id` from:
 
-- is non-empty;
-- has contiguous sequence numbers;
-- contains unique chunk IDs;
-- has no gaps or overlaps;
-- exactly matches the corresponding source ranges;
-- inherits source metadata and access policy;
-- uses one chunking strategy version across the set;
-- covers the complete document.
+```text
+knowledge_id
++ source_version
++ source_fingerprint
++ chunking strategy version
++ start offset
++ end offset
++ exact text fingerprint
+```
+
+This means rerunning the same strategy over the same source state produces the same chunk IDs; changing source content, offsets or strategy changes identity.
+
+## Lossless chunking invariant
+
+The current chunker prefers human-readable boundaries in this order:
+
+```text
+paragraph break → line break → sentence-space → space → hard boundary
+```
+
+But readability never overrides source fidelity.
 
 ```mermaid
 flowchart LR
-    S[Source document] --> C1[Chunk 0]
-    C1 --> C2[Chunk 1]
-    C2 --> C3[Chunk n]
-    S -. exact contiguous coverage .-> C1
-    S -. exact contiguous coverage .-> C2
-    S -. exact contiguous coverage .-> C3
+    Source[Canonical document text]
+    --> C0[Chunk 0]
+    --> C1[Chunk 1]
+    --> CN[Chunk n]
+    CN --> Rebuild[Concatenate all chunk text]
+    Rebuild --> Check{equals source exactly?}
+    Check -- yes --> Valid[valid chunk set]
+    Check -- no --> Reject[reject]
 ```
 
-## Why offsets + fingerprints both exist
+`validate_chunk_set` proves that the set is non-empty, sequenced contiguously, gap/overlap free, metadata-consistent, strategy-consistent, and covers the complete document exactly.
 
-| Mechanism | What it proves |
+## Why offsets and fingerprints both exist
+
+| Mechanism | What it answers |
 | --- | --- |
-| `start_offset` / `end_offset` | Where the evidence occurs in the source text |
-| `content_fingerprint` | The exact chunk text has not silently changed |
-| `source_fingerprint` | The chunk is tied to a specific source content state |
-| `source_version` | The upstream system's version identity |
-| `strategy_version` | Which chunking behavior produced the chunk |
+| `start_offset` / `end_offset` | Where exactly did this evidence occur? |
+| `content_fingerprint` | Has the chunk text changed? |
+| `source_fingerprint` | Which exact source state produced it? |
+| `source_version` | Which upstream version did the source system report? |
+| `strategy_version` | Which processing behavior produced this chunk boundary? |
 
-No one field is sufficient by itself. Together they provide stronger traceability.
+These mechanisms overlap intentionally. Version IDs alone may be unreliable; fingerprints alone do not tell you where text occurred; offsets alone do not prove content integrity.
 
-## Best-practice mapping
+## Failure modes prevented
 
-| Best practice | Tropos implementation |
-| --- | --- |
-| Preserve provenance | Source system, record, version, fingerprint |
-| Make transformations reproducible | Deterministic chunker + strategy version |
-| Keep evidence locatable | Character offsets |
-| Prevent accidental evidence drift | Content fingerprint validation |
-| Respect information governance | Access policy inherited by chunks |
-| Separate domain semantics from retrieval technology | Chunk is a domain object, not a vector-database row |
+- silent evidence mutation;
+- re-indexing that produces unrelated random chunk identities;
+- source version drift without detection;
+- loss of access policy between source and index;
+- citations that cannot be traced back to exact source text;
+- embedding/vector metadata becoming the only copy of provenance;
+- changing chunking behavior without being able to identify which strategy produced a result.
 
-## Future extension
+## Next model additions
 
-Persistence and retrieval should enrich this model rather than replace it.
+The next persistence/retrieval slice should add explicit storage/index representations **around** these domain objects, not replace them. A useful target is:
 
 ```mermaid
 flowchart LR
-    Doc[KnowledgeDocument] --> Chunk[KnowledgeChunk]
-    Chunk --> Persist[(Persistent store)]
-    Chunk --> Lexical[FTS index]
-    Chunk -. later .-> Embed[Embedding]
-    Lexical --> Result[RetrievalResult]
-    Embed -. later .-> Result
-    Result --> Evidence[Evidence-backed recommendation]
+    Chunk[KnowledgeChunk]
+    --> Store[(Canonical chunk store)]
+    Chunk --> Lex[Lexical index]
+    Chunk -. later .-> Emb[Embedding index]
+    Lex --> Hit[RetrievalHit]
+    Emb -. later .-> Hit
+    Hit --> Evidence[Evidence bundle]
 ```
 
-A future embedding is therefore an **indexing representation of a chunk**, not the source of truth for the chunk itself.
-
-## Failure modes to avoid
-
-- storing only vectors and losing exact source evidence;
-- generating chunk IDs randomly so re-indexing produces unrelated identities;
-- allowing ACLs to disappear between source and index;
-- using chunk text without source version/fingerprint;
-- changing chunking behavior without versioning the strategy;
-- conflating source documents, chunks, retrieval results, and generated answers into one model.
+The canonical chunk remains the object that carries the evidence and access semantics.

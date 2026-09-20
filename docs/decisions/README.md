@@ -1,23 +1,57 @@
 # Architecture Decision Records
 
-Architecture Decision Records preserve **why** Tropos is designed a certain way.
+ADRs capture **why** Tropos is built a certain way. Living architecture docs explain the current system; ADRs preserve the durable choices and trade-offs that shaped it.
 
-## Decision flow
+## Decision map
 
 ```mermaid
 flowchart LR
-    C[Context / problem] --> O[Options considered]
-    O --> D[Decision]
-    D --> T[Trade-offs]
-    T --> K[Consequences]
-    K --> R[Revisit trigger]
+    C[Context / forces]
+    --> O[Options considered]
+    --> D[Decision]
+    --> T[Trade-offs]
+    --> K[Consequences]
+    --> R[Revisit trigger]
 ```
 
-Use an ADR when a change materially affects architecture boundaries, dependency direction, persistence, retrieval, model/provider strategy, security/governance, or release topology.
+## Current ADR index
 
-Do not create an ADR for routine implementation detail.
+| ADR | Status | Decision |
+| --- | --- | --- |
+| [`ADR-001-modular-monolith-ports-and-adapters.md`](ADR-001-modular-monolith-ports-and-adapters.md) | Accepted | Start as a modular monolith with inward domain/application boundaries and replaceable adapters |
+| [`ADR-002-governed-evidence-and-deterministic-chunking.md`](ADR-002-governed-evidence-and-deterministic-chunking.md) | Accepted | Treat `KnowledgeChunk` as governed evidence and establish deterministic lossless chunking before semantic retrieval |
+| [`ADR-003-protected-main-and-required-ci.md`](ADR-003-protected-main-and-required-ci.md) | Accepted | Require PR-based integration into protected `main` with `api-quality` as a mandatory status check |
 
-## Template
+## Decisions intentionally not yet recorded as accepted ADRs
+
+Some directions are documented as **PLANNED** but have not earned an accepted architecture decision because implementation evidence does not exist yet:
+
+- persistence technology;
+- lexical/FTS engine choice;
+- vector database or embedding model;
+- concrete coverage-evaluation method;
+- LLM/model/provider selection;
+- API framework and deployment platform;
+- observability stack.
+
+This distinction is important. A roadmap idea should not become an “architecture decision” simply because it appeared in a diagram.
+
+## When to add an ADR
+
+Create or update an ADR when a change materially affects:
+
+- module or service boundaries;
+- dependency direction;
+- canonical data/evidence identity;
+- access/security semantics;
+- persistence or retrieval strategy;
+- external provider/model strategy;
+- evaluation/release gates;
+- deployment topology or environment promotion.
+
+Do **not** create an ADR for routine refactoring, variable naming, test additions, or an implementation detail that does not constrain future architecture.
+
+## ADR template
 
 ```markdown
 # ADR-NNN: Decision title
@@ -26,7 +60,7 @@ Status: Proposed | Accepted | Superseded
 Date: YYYY-MM-DD
 
 ## Context
-What forces or problem require a decision?
+What problem, constraint or force requires a durable decision?
 
 ## Options considered
 1. Option A
@@ -37,7 +71,7 @@ What forces or problem require a decision?
 What was chosen?
 
 ## Rationale
-Why does this option fit Tropos now?
+Why is this the right trade-off for Tropos now?
 
 ## Consequences
 ### Positive
@@ -46,15 +80,13 @@ Why does this option fit Tropos now?
 ### Negative / trade-offs
 - ...
 
+## Evidence
+Which code/tests/operational controls demonstrate the decision?
+
 ## Revisit when
-What evidence or system change should cause this decision to be reconsidered?
+What new evidence or system condition should cause reconsideration?
 ```
 
-## Initial decision set to capture as implementation matures
+## ADR discipline
 
-- modular monolith with ports-and-adapters boundaries;
-- governed `KnowledgeChunk` as the canonical retrieval evidence unit;
-- deterministic chunking before semantic retrieval;
-- lexical/FTS baseline before vector retrieval;
-- environment promotion model;
-- prompt/version/evaluation strategy when LLM reasoning is introduced.
+An ADR is not a claim that a choice is permanent. It is a record of the best decision under the constraints that existed at the time. When the constraints change, supersede the ADR rather than silently rewriting history.
