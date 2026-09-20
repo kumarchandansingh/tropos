@@ -46,11 +46,20 @@ def build_candidate(
     return DeterministicKnowledgeNormalizer(strategy_version=strategy_version).normalize(source)
 
 
+def restricted_access() -> AccessPolicy:
+    return AccessPolicy(
+        tenant_id="acme",
+        scope=AccessScope.RESTRICTED,
+        allowed_groups=("knowledge-manager",),
+    )
+
+
 def test_first_seen_content_creates_version() -> None:
     decision = resolve_canonical_version(previous=None, candidate=build_candidate())
 
     assert decision.action is VersionAction.CREATE_VERSION
     assert decision.reason is VersionReason.FIRST_SEEN
+    assert decision.requires_governance_refresh is False
 
 
 def test_formatting_only_change_does_not_create_content_version() -> None:
@@ -67,6 +76,7 @@ def test_formatting_only_change_does_not_create_content_version() -> None:
 
     assert decision.action is VersionAction.NO_CONTENT_VERSION
     assert decision.reason is VersionReason.CONTENT_UNCHANGED
+    assert decision.requires_governance_refresh is False
 
 
 def test_meaningful_change_creates_new_content_version() -> None:
@@ -81,17 +91,13 @@ def test_meaningful_change_creates_new_content_version() -> None:
 
     assert decision.action is VersionAction.CREATE_VERSION
     assert decision.reason is VersionReason.CONTENT_CHANGED
+    assert decision.requires_governance_refresh is False
 
 
 def test_access_change_refreshes_governance_without_content_version() -> None:
     first = build_candidate()
     previous = state_from_candidate(first)
-
-    restricted = AccessPolicy(
-        tenant_id="acme",
-        scope=AccessScope.RESTRICTED,
-        allowed_groups=("knowledge-manager",),
-    )
+    restricted = restricted_access()
     candidate = build_candidate(access_policy=restricted)
 
     decision = resolve_canonical_version(previous=previous, candidate=candidate)
@@ -99,6 +105,23 @@ def test_access_change_refreshes_governance_without_content_version() -> None:
     assert previous.access_fingerprint != access_policy_fingerprint(restricted)
     assert decision.action is VersionAction.REFRESH_GOVERNANCE
     assert decision.reason is VersionReason.ACCESS_CHANGED
+    assert decision.requires_governance_refresh is True
+
+
+def test_content_and_access_change_signal_both_workstreams() -> None:
+    previous = state_from_candidate(
+        build_candidate("# Password policy\n\nPasswords expire after 90 days.")
+    )
+    candidate = build_candidate(
+        "# Password policy\n\nPasswords expire after 60 days.",
+        access_policy=restricted_access(),
+    )
+
+    decision = resolve_canonical_version(previous=previous, candidate=candidate)
+
+    assert decision.action is VersionAction.CREATE_VERSION
+    assert decision.reason is VersionReason.CONTENT_CHANGED
+    assert decision.requires_governance_refresh is True
 
 
 def test_normalization_strategy_change_requires_rebaseline() -> None:
@@ -110,6 +133,21 @@ def test_normalization_strategy_change_requires_rebaseline() -> None:
 
     assert decision.action is VersionAction.REBASELINE_REQUIRED
     assert decision.reason is VersionReason.NORMALIZATION_STRATEGY_CHANGED
+    assert decision.requires_governance_refresh is False
+
+
+def test_strategy_and_access_change_do_not_hide_governance_refresh() -> None:
+    previous = state_from_candidate(build_candidate(strategy_version="canonical-text-v1"))
+    candidate = build_candidate(
+        strategy_version="canonical-text-v2",
+        access_policy=restricted_access(),
+    )
+
+    decision = resolve_canonical_version(previous=previous, candidate=candidate)
+
+    assert decision.action is VersionAction.REBASELINE_REQUIRED
+    assert decision.reason is VersionReason.NORMALIZATION_STRATEGY_CHANGED
+    assert decision.requires_governance_refresh is True
 
 
 def test_source_version_churn_does_not_participate_in_content_decision() -> None:
@@ -130,3 +168,4 @@ def test_source_version_churn_does_not_participate_in_content_decision() -> None
     )
 
     assert decision.action is VersionAction.NO_CONTENT_VERSION
+    assert decision.requires_governance_refresh is False

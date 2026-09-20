@@ -23,6 +23,7 @@ flowchart LR
 | [`ADR-002-governed-evidence-and-deterministic-chunking.md`](ADR-002-governed-evidence-and-deterministic-chunking.md) | Accepted | Treat `KnowledgeChunk` as governed evidence and establish deterministic lossless chunking before semantic retrieval |
 | [`ADR-003-protected-main-and-required-ci.md`](ADR-003-protected-main-and-required-ci.md) | Accepted | Require PR-based integration into protected `main` with `api-quality` as a mandatory status check |
 | [`ADR-004-deterministic-normalization-and-content-versioning.md`](ADR-004-deterministic-normalization-and-content-versioning.md) | Accepted | Separate raw/source identity from deterministic canonical content identity, access refresh and normalizer rebaselining |
+| [`ADR-005-independent-governance-refresh-signal.md`](ADR-005-independent-governance-refresh-signal.md) | Accepted | Keep access/governance refresh independently observable when content or normalization changes at the same time |
 
 ## Decisions intentionally not yet recorded as accepted ADRs
 
@@ -62,10 +63,11 @@ Do **not** create an ADR for routine refactoring, variable naming, ordinary test
 3. What must be deterministic or replayable?
 4. Which provenance must survive every transformation?
 5. Can access/security change independently from content?
-6. What happens when the algorithm itself changes?
-7. Which invariant will detect an incorrect implementation?
-8. Which regression test proves that invariant?
-9. What future evidence should make us revisit the choice?
+6. Can multiple change dimensions happen at the same time, and can one safely mask another?
+7. What happens when the algorithm itself changes?
+8. Which invariant will detect an incorrect implementation?
+9. Which regression test proves that invariant?
+10. What future evidence should make us revisit the choice?
 
 These questions are intentionally failure-oriented. Architecture quality comes from making important failure behavior explicit, not from maximizing the number of components in a diagram.
 
