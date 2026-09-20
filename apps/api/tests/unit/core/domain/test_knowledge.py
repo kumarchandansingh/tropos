@@ -61,17 +61,19 @@ def test_rejects_unresolved_access() -> None:
         build_document(access_policy=unresolved_policy)
 
 
-@pytest.mark.parametrize(
-    ("field_name", "message"),
-    (
-        ("raw_payload_fingerprint", "raw_payload_fingerprint"),
-        ("ingestion_fingerprint", "ingestion_fingerprint"),
-        ("normalized_content_fingerprint", "normalized_content_fingerprint"),
-    ),
-)
-def test_rejects_invalid_fingerprints(field_name: str, message: str) -> None:
-    with pytest.raises(ValueError, match=message):
-        replace(build_document(), **{field_name: "not-a-sha256-digest"})
+def test_rejects_invalid_raw_payload_fingerprint() -> None:
+    with pytest.raises(ValueError, match="raw_payload_fingerprint"):
+        replace(build_document(), raw_payload_fingerprint="not-a-sha256-digest")
+
+
+def test_rejects_invalid_ingestion_fingerprint() -> None:
+    with pytest.raises(ValueError, match="ingestion_fingerprint"):
+        replace(build_document(), ingestion_fingerprint="not-a-sha256-digest")
+
+
+def test_rejects_invalid_normalized_content_fingerprint() -> None:
+    with pytest.raises(ValueError, match="normalized_content_fingerprint"):
+        replace(build_document(), normalized_content_fingerprint="not-a-sha256-digest")
 
 
 def test_rejects_a_capture_timestamp_without_timezone() -> None:
