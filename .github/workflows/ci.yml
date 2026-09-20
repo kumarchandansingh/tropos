@@ -2,15 +2,9 @@ name: CI
 
 on:
   pull_request:
-    paths:
-      - "apps/api/**"
-      - ".github/workflows/ci.yml"
   push:
     branches:
       - main
-    paths:
-      - "apps/api/**"
-      - ".github/workflows/ci.yml"
 
 permissions:
   contents: read
