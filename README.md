@@ -1,92 +1,132 @@
-﻿# Tropos
+# Tropos
 
 **Every resolution strengthens the next.**
 
-Tropos is a governed knowledge-management system that learns from resolved support cases.
+[![CI](https://github.com/kumarchandansingh/tropos/actions/workflows/ci.yml/badge.svg)](https://github.com/kumarchandansingh/tropos/actions/workflows/ci.yml)
 
-Its first product capability, **Tropos Resolve**, evaluates a resolved case and recommends one knowledge action:
+Tropos is a governed knowledge-management system for turning resolved support cases into auditable knowledge decisions.
 
-- `REUSE` — existing knowledge adequately resolves the case
-- `IMPROVE` — relevant knowledge exists but needs correction or clarification
-- `CREATE` — no adequate knowledge exists
-- `NO_ACTION` — the case should not change the knowledge base
+Its first capability, **Tropos Resolve**, evaluates whether a resolved case has enough closure evidence, retrieves related knowledge through an application port, assesses coverage, and produces one governed action:
 
-## Business problem
+- `REUSE` — existing knowledge is sufficient;
+- `IMPROVE` — related knowledge exists but is incomplete;
+- `CREATE` — no adequate knowledge exists;
+- `NO_ACTION` — the case does not contain enough closure evidence to justify a knowledge change.
 
-Support teams resolve valuable problems every day, but the knowledge created during resolution is often lost, duplicated, outdated, or difficult to retrieve.
+## Current build state
 
-Tropos converts case resolution into a measurable knowledge-improvement process.
+Tropos is deliberately being built from a deterministic governed core outward.
 
-## MVP workflow
+```mermaid
+flowchart LR
+    RC[ResolvedCase] --> CE[Closure evidence]
+    CE -->|insufficient| NA[NO_ACTION]
+    CE -->|sufficient| KR[Knowledge retrieval port]
+    KR --> KC[Coverage evaluation port]
+    KC --> D{Coverage}
+    D -->|none| C[CREATE]
+    D -->|partial| I[IMPROVE]
+    D -->|sufficient| R[REUSE]
+```
 
-1. A support case changes to `Resolved`.
-2. Tropos validates that sufficient closure evidence exists.
-3. Tropos retrieves related knowledge.
-4. Tropos recommends a knowledge action.
-5. Tropos records its evidence and reasoning.
-6. A human reviewer approves, edits, or rejects the recommendation.
-7. Approved knowledge is indexed for future retrieval.
-8. Evaluation checks whether the knowledge loop improved.
+### Implemented now
 
-## MVP users
+- canonical `ResolvedCase`, `KnowledgeDocument`, `KnowledgeChunk`, access-policy and decision domain models;
+- explicit `REUSE / IMPROVE / CREATE / NO_ACTION` decision policy;
+- rule-based closure-evidence evaluation;
+- application orchestration through ports for retrieval, coverage evaluation and decision storage;
+- immutable raw-ingestion records with canonical SHA-256 fingerprints;
+- governed access semantics with `UNRESOLVED`, `TENANT`, and `RESTRICTED` scopes;
+- deterministic, lossless chunking with exact offsets, stable IDs, provenance, access inheritance and strategy versioning;
+- unit tests across domain, application, ingestion, evaluation and chunking;
+- GitHub CI on every pull request and every push to `main`;
+- protected `main` with required `api-quality` status checks.
 
-- Support agent
-- Knowledge reviewer
-- Knowledge-management or support manager
+### Planned next
 
-## MVP boundaries
+- concrete persistence for documents, chunks and decisions;
+- lexical / full-text retrieval baseline;
+- concrete knowledge-coverage evaluation;
+- evaluation datasets and retrieval metrics;
+- embeddings / hybrid retrieval only if the lexical baseline shows a measurable need;
+- LLM-assisted recommendation and drafting behind validated contracts;
+- API / UI delivery surfaces;
+- preview, UAT/staging and production deployment.
 
-Tropos will initially:
+> Planned components are intentionally not described as implemented. The repository documents both the current executable boundary and the target architecture.
 
-- Process one canonical resolved-case format
-- Search a controlled knowledge collection
-- Produce evidence-backed recommendations
-- Keep humans responsible for publication
-- Record decisions for evaluation and audit
+## Architecture in one view
 
-Tropos will not initially:
+```mermaid
+flowchart TB
+    subgraph Core[Core policy]
+      Domain[Domain models + invariants]
+      App[Application use cases]
+      Ports[Application-owned ports]
+      App --> Domain
+      App --> Ports
+    end
 
-- Send customer communications
-- Publish knowledge automatically
-- Modify source systems automatically
-- Replace support-agent judgment
-- Support every connector or content format
+    subgraph Adapters[Implemented adapters]
+      Closure[Rule-based closure evaluator]
+      Chunker[Deterministic chunker]
+    end
 
-## Engineering principles
+    subgraph Future[Planned adapters]
+      Store[(Persistence)]
+      Search[Lexical / hybrid retrieval]
+      Coverage[Coverage evaluator]
+      AI[LLM / embedding providers]
+    end
 
-- Business rules live in the domain layer.
-- Use cases depend on interfaces, not infrastructure implementations.
-- External systems connect through adapters.
-- Prompts are versioned separately from application logic.
-- AI outputs are structured, validated, and traceable.
-- New data sources should not require changes to core business logic.
-- Tests and evaluations are product capabilities, not release afterthoughts.
-- Production changes must support controlled rollout and rollback.
+    Adapters --> Ports
+    Future -. implements .-> Ports
+```
 
-## Planned architecture
+Tropos follows a **modular-monolith + ports-and-adapters** design. Business policy lives inward; replaceable infrastructure lives behind application-owned contracts.
 
-Tropos starts as a modular monolith with clear internal boundaries:
+## Repository map
 
-- `domain` — business concepts and rules
-- `application` — use cases and ports
-- `adapters` — source, persistence, retrieval, and AI implementations
-- `presentation` — HTTP and other delivery mechanisms
-- `evaluation` — deterministic and AI-quality measurement
-- `bootstrap` — dependency wiring
+```text
+.
+├── apps/api/
+│   ├── src/tropos/domain/          # business concepts and invariants
+│   ├── src/tropos/application/     # use cases, ingestion boundary, ports
+│   ├── src/tropos/adapters/        # concrete deterministic implementations
+│   └── tests/unit/                 # executable evidence for current behavior
+├── docs/                           # living product + architecture knowledge
+└── .github/                        # PR template and CI quality gate
+```
 
-The web application will be added after the core knowledge loop works.
+Start with **[`docs/README.md`](docs/README.md)** for the visual documentation map.
 
-## Delivery approach
+## Development
 
-Development progresses through small, verifiable releases:
+The API package currently requires Python 3.14 and uses `uv`, Ruff, mypy and pytest.
 
-1. Foundation and deterministic decision baseline
-2. Ingestion, indexing, retrieval, and citations
-3. Knowledge-action recommendations
-4. Governed drafting and human review
-5. UAT, cutover, observability, and rollback readiness
-6. Assisted production pilot
+```bash
+cd apps/api
+uv sync --dev --locked
+uv run ruff format --check .
+uv run ruff check .
+uv run mypy src tests
+uv run pytest
+uv build
+```
 
-## Current status
+The same quality sequence runs in GitHub Actions. `main` is protected, so normal delivery is:
 
-Repository foundation is being established. No product capability is implemented yet.
+```mermaid
+flowchart LR
+    W[Bounded change] --> B[Feature / fix / docs branch]
+    B --> PR[Pull request]
+    PR --> CI[api-quality]
+    CI -->|pass| M[Squash merge]
+    M --> Main[Protected main]
+```
+
+## Public-repository boundary
+
+This repository is intended to contain product code, architecture, tests and **synthetic** examples. Secrets, real customer/support records, employer/client confidential material, production configuration and private evaluation datasets do not belong here.
+
+See the living documentation for the detailed product model, evidence model, RAG plan, evaluation strategy and release controls.

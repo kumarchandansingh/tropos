@@ -1,79 +1,163 @@
 # Environment Strategy
 
-## Purpose
+Tropos separates **code versioning** from **runtime environments**. A Git branch answers “which code changes are being integrated?” An environment answers “which approved version is running with which configuration and data?”
 
-Tropos separates **code versioning** from **runtime environments**. Git branches describe proposed/integrated code. Environments describe where a selected version is running with environment-specific configuration and data.
+## Current reality
 
-## Theory foundation
+Tropos does **not** yet have hosted Preview, UAT/staging, or Production environments.
 
-This follows standard SDLC environment separation and progressive delivery.
+What exists today:
 
 ```mermaid
 flowchart LR
-    Local[Local development] --> CI[CI verification]
-    CI --> Preview[Preview / ephemeral]
-    Preview --> UAT[UAT / staging]
-    UAT --> Prod[Production]
+    Local[Local development]
+    --> PR[Pull request]
+    --> CI[GitHub Actions CI]
+    --> Main[Protected main]
+```
+
+Everything after `main` in the diagrams below is target release architecture, not current runtime capability.
+
+## Target environment flow
+
+```mermaid
+flowchart LR
+    Local[Local]
+    --> CI[CI]
+    --> Preview[Preview / ephemeral]
+    --> UAT[UAT / staging]
+    --> Prod[Production]
 ```
 
 ## Branches are not environments
 
 ```mermaid
 flowchart TB
-    FB[feature/fix branch] --> PR[Pull request]
-    PR --> Preview[Optional preview deployment]
-    PR --> Main[Merge to main]
-    Main --> UAT[Deploy selected commit to UAT]
-    UAT --> Gate{Release approved?}
-    Gate -- yes --> Prod[Promote same artifact / version]
-    Gate -- no --> Fix[Fix on a new bounded change]
+    FB[feature/fix/docs branch]
+    --> PR[Pull request]
+    --> Main[Protected main]
+    Main --> Artifact[Build immutable release artifact]
+    Artifact -. future .-> Preview[Preview]
+    Artifact -. future .-> UAT[UAT / staging]
+    UAT -. approved promotion .-> Prod[Production]
 ```
 
-Tropos should not create permanent `dev`, `uat`, and `prod` branches merely to represent environments unless a concrete deployment constraint requires that model.
+Tropos should not create permanent `dev`, `uat`, and `prod` branches merely to represent runtime environments. Environment state belongs in deployment/configuration systems, while source control tracks code history.
 
 ## Environment responsibilities
 
-| Environment | Purpose | Data/config expectation |
-| --- | --- | --- |
-| Local | Fast development and deterministic tests | Local/dev-only values |
-| CI | Reproducible validation from a clean runner | Ephemeral test configuration |
-| Preview | Validate a PR as a running system | Isolated / non-production resources |
-| UAT / staging | Release candidate validation | Production-like configuration, controlled test data |
-| Production | Real governed workload | Production secrets, policies, monitoring, rollback readiness |
+| Environment | Primary purpose | Data/config expectation | Current status |
+| --- | --- | --- | --- |
+| Local | Fast engineering feedback | local/dev-only values and synthetic data | IMPLEMENTED workflow |
+| CI | Reproducible clean validation | ephemeral test context | IMPLEMENTED |
+| Preview | Validate one PR as a running system | isolated non-production resources | PLANNED |
+| UAT / staging | Validate a release candidate | production-like config + controlled test data | PLANNED |
+| Production | Governed real workload | production secrets, policy, monitoring, rollback | DEFERRED |
 
-## Promotion principle
+## Promote the same version
 
-Prefer promoting the **same built version** through environments instead of rebuilding materially different artifacts at every stage.
+A release candidate should be built once and promoted, rather than being materially rebuilt for each environment.
 
 ```mermaid
 flowchart LR
-    Commit[Commit SHA] --> Build[Build artifact]
-    Build --> UAT[UAT deployment]
-    UAT --> Validate[Validation]
-    Validate --> Prod[Production promotion]
+    SHA[Git commit SHA]
+    --> Build[Build artifact]
+    --> Digest[Artifact identity / digest]
+    --> Preview[Preview]
+    --> UAT[UAT]
+    --> Prod[Production]
 ```
 
-## Configuration principle
+This reduces “works in UAT, different bits in production” risk.
 
-Configuration and secrets vary by environment; source code should not contain production secrets or environment-specific hard-coding.
+## Configuration model
 
-## Future release controls
+Source code should be environment-agnostic. Runtime-specific values belong outside committed code.
 
-When Tropos is deployable, add:
+```mermaid
+flowchart TB
+    Code[Same application code]
+    Code --> LocalCfg[Local config]
+    Code --> PreviewCfg[Preview config]
+    Code --> UATCfg[UAT config]
+    Code --> ProdCfg[Production config]
 
-- explicit environment variables/secrets per environment;
-- deployment traceability back to commit SHA;
-- smoke tests after deployment;
-- migration checks for persistent stores;
-- UAT approval before production;
-- observability and rollback runbooks;
-- production change evidence.
+    Secrets[Secret manager / environment secrets]
+    Secrets -. inject .-> PreviewCfg
+    Secrets -. inject .-> UATCfg
+    Secrets -. inject .-> ProdCfg
+```
+
+The public repository must never become a storage location for production secrets or real customer data.
+
+## Future deployment contract
+
+Every deployed version should eventually answer:
+
+```text
+DeploymentRecord
+├── environment
+├── commit SHA
+├── artifact version / digest
+├── deployment timestamp
+├── configuration version/reference
+├── migration version
+├── smoke-test result
+└── rollback target
+```
+
+This structure is conceptual for now; no `DeploymentRecord` model is implemented.
+
+## Release progression
+
+```mermaid
+flowchart TD
+    Main[Protected main]
+    --> Build[Build release artifact]
+    --> Preview[Deploy preview]
+    --> Smoke[Smoke tests]
+    --> UAT[Promote to UAT]
+    --> Validate[UAT / release validation]
+    --> Gate{Approved?}
+    Gate -- yes --> Prod[Promote same artifact to production]
+    Gate -- no --> Fix[New bounded code change]
+    Fix --> Main
+```
+
+## Data separation principle
+
+Environment promotion should not imply copying uncontrolled production data downward.
+
+| Environment | Preferred data |
+| --- | --- |
+| Local | synthetic fixtures |
+| CI | synthetic/ephemeral test data |
+| Preview | isolated synthetic scenarios |
+| UAT | controlled representative test data |
+| Production | real governed workload |
+
+If production-derived data is ever used outside production, it requires an explicit privacy/security design rather than being treated as a normal development convenience.
 
 ## Failure modes to avoid
 
-- testing for the first time in production;
-- treating `main` as an environment rather than a code line;
-- manually changing production code outside version control;
-- rebuilding different dependencies between UAT and production;
-- allowing production configuration to leak into local development;
-- deploying without knowing which commit is running.
+- creating `dev`, `uat`, `prod` branches and confusing code lines with deployments;
+- manually modifying production code outside Git;
+- rebuilding different dependency sets between UAT and production;
+- deploying without knowing the exact commit/artifact;
+- storing environment secrets in source control;
+- using real customer data in public test fixtures;
+- testing deployment behavior for the first time in production;
+- lacking a known rollback target.
+
+## When deployment work starts
+
+The first deployment slice should add only the controls needed for the first runnable environment:
+
+1. immutable build artifact;
+2. environment-specific configuration/secrets;
+3. deployment traceability to commit SHA;
+4. post-deploy smoke check;
+5. rollback procedure;
+6. basic observability.
+
+Add UAT/production ceremony only when Tropos has a real hosted workload to promote.
