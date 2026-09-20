@@ -16,7 +16,7 @@ def build_document(
         source_system="knowledge-base",
         source_record_id="ARTICLE-001",
         source_version="1",
-        content_type="application/json",
+        content_type="text/markdown",
         title="Reset an expired credential",
         content="Steps for regenerating and validating an expired credential.",
         access_policy=access_policy
@@ -24,20 +24,23 @@ def build_document(
             tenant_id="acme",
             scope=AccessScope.TENANT,
         ),
-        source_fingerprint="a" * 64,
+        raw_payload_fingerprint="a" * 64,
+        ingestion_fingerprint="b" * 64,
+        normalized_content_fingerprint="c" * 64,
+        normalization_strategy_version="canonical-text-v1",
         captured_at=datetime(2026, 9, 19, 10, 0, tzinfo=UTC),
         source_uri="https://knowledge.example/articles/ARTICLE-001",
         source_updated_at=datetime(2026, 9, 18, 9, 0, tzinfo=UTC),
     )
 
 
-def test_accepts_a_document_with_access_and_source_provenance() -> None:
+def test_accepts_document_with_three_identity_layers() -> None:
     document = build_document()
 
-    assert document.source_record_id == "ARTICLE-001"
-    assert document.source_version == "1"
-    assert document.access_policy.tenant_id == "acme"
-    assert document.source_fingerprint == "a" * 64
+    assert document.raw_payload_fingerprint == "a" * 64
+    assert document.ingestion_fingerprint == "b" * 64
+    assert document.normalized_content_fingerprint == "c" * 64
+    assert document.normalization_strategy_version == "canonical-text-v1"
 
 
 def test_rejects_content_without_a_source_version() -> None:
@@ -58,12 +61,17 @@ def test_rejects_unresolved_access() -> None:
         build_document(access_policy=unresolved_policy)
 
 
-def test_rejects_an_invalid_source_fingerprint() -> None:
-    with pytest.raises(
-        ValueError,
-        match="source_fingerprint must be a 64-character",
-    ):
-        replace(build_document(), source_fingerprint="not-a-sha256-digest")
+@pytest.mark.parametrize(
+    ("field_name", "message"),
+    (
+        ("raw_payload_fingerprint", "raw_payload_fingerprint"),
+        ("ingestion_fingerprint", "ingestion_fingerprint"),
+        ("normalized_content_fingerprint", "normalized_content_fingerprint"),
+    ),
+)
+def test_rejects_invalid_fingerprints(field_name: str, message: str) -> None:
+    with pytest.raises(ValueError, match=message):
+        replace(build_document(), **{field_name: "not-a-sha256-digest"})
 
 
 def test_rejects_a_capture_timestamp_without_timezone() -> None:

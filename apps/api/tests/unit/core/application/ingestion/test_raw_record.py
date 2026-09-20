@@ -32,21 +32,32 @@ def build_record(
     )
 
 
-def test_same_logical_record_has_same_fingerprint() -> None:
+def test_same_logical_record_has_same_ingestion_fingerprint() -> None:
     first = build_record(captured_at=datetime(2026, 9, 19, 10, 0, tzinfo=UTC))
     second = build_record(captured_at=datetime(2026, 9, 19, 11, 0, tzinfo=UTC))
 
-    assert first.fingerprint == second.fingerprint
+    assert first.ingestion_fingerprint == second.ingestion_fingerprint
+    assert first.fingerprint == first.ingestion_fingerprint
 
 
-def test_changed_payload_has_different_fingerprint() -> None:
+def test_raw_payload_fingerprint_tracks_exact_bytes_only() -> None:
+    first = build_record(payload=b"same bytes", tenant_id="acme")
+    second = build_record(payload=b"same bytes", tenant_id="globex")
+    changed = build_record(payload=b"different bytes", tenant_id="acme")
+
+    assert first.raw_payload_fingerprint == second.raw_payload_fingerprint
+    assert first.raw_payload_fingerprint != changed.raw_payload_fingerprint
+    assert first.ingestion_fingerprint != second.ingestion_fingerprint
+
+
+def test_changed_payload_has_different_ingestion_fingerprint() -> None:
     first = build_record(payload=b'{"title":"Credential reset"}')
     second = build_record(payload=b'{"title":"Updated credential reset"}')
 
-    assert first.fingerprint != second.fingerprint
+    assert first.ingestion_fingerprint != second.ingestion_fingerprint
 
 
-def test_access_group_order_does_not_change_fingerprint() -> None:
+def test_access_group_order_does_not_change_ingestion_fingerprint() -> None:
     first = build_record(
         access_scope=AccessScope.RESTRICTED,
         allowed_groups=("support-agent", "knowledge-manager"),
@@ -56,10 +67,10 @@ def test_access_group_order_does_not_change_fingerprint() -> None:
         allowed_groups=("knowledge-manager", "support-agent"),
     )
 
-    assert first.fingerprint == second.fingerprint
+    assert first.ingestion_fingerprint == second.ingestion_fingerprint
 
 
-def test_access_group_change_changes_fingerprint() -> None:
+def test_access_group_change_changes_ingestion_fingerprint() -> None:
     first = build_record(
         access_scope=AccessScope.RESTRICTED,
         allowed_groups=("support-agent",),
@@ -69,21 +80,14 @@ def test_access_group_change_changes_fingerprint() -> None:
         allowed_groups=("knowledge-manager",),
     )
 
-    assert first.fingerprint != second.fingerprint
+    assert first.ingestion_fingerprint != second.ingestion_fingerprint
 
 
-def test_access_scope_change_changes_fingerprint() -> None:
+def test_access_scope_change_changes_ingestion_fingerprint() -> None:
     tenant_record = build_record(access_scope=AccessScope.TENANT)
     unresolved_record = build_record(access_scope=AccessScope.UNRESOLVED)
 
-    assert tenant_record.fingerprint != unresolved_record.fingerprint
-
-
-def test_tenant_change_changes_fingerprint() -> None:
-    first = build_record(tenant_id="acme")
-    second = build_record(tenant_id="globex")
-
-    assert first.fingerprint != second.fingerprint
+    assert tenant_record.ingestion_fingerprint != unresolved_record.ingestion_fingerprint
 
 
 def test_blank_source_record_id_is_rejected() -> None:

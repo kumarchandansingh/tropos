@@ -11,9 +11,16 @@ def _validate_aware_datetime(value: datetime, field_name: str) -> None:
         raise ValueError(f"{field_name} must include timezone information")
 
 
+def _validate_sha256(value: str, field_name: str) -> None:
+    if len(value) != 64 or any(
+        character not in _HEXADECIMAL_CHARACTERS for character in value
+    ):
+        raise ValueError(f"{field_name} must be a 64-character hexadecimal SHA-256 digest")
+
+
 @dataclass(frozen=True, slots=True)
 class KnowledgeDocument:
-    """Retrieval-ready canonical knowledge with access and provenance."""
+    """Retrieval-ready canonical knowledge with access and processing provenance."""
 
     knowledge_id: str
     source_system: str
@@ -23,7 +30,10 @@ class KnowledgeDocument:
     title: str
     content: str
     access_policy: AccessPolicy
-    source_fingerprint: str
+    raw_payload_fingerprint: str
+    ingestion_fingerprint: str
+    normalized_content_fingerprint: str
+    normalization_strategy_version: str
     captured_at: datetime
     source_uri: str | None = None
     source_updated_at: datetime | None = None
@@ -37,6 +47,7 @@ class KnowledgeDocument:
             "content_type": self.content_type,
             "title": self.title,
             "content": self.content,
+            "normalization_strategy_version": self.normalization_strategy_version,
         }
 
         for field_name, value in required_text.items():
@@ -49,10 +60,12 @@ class KnowledgeDocument:
         if not self.access_policy.is_indexable:
             raise ValueError("access_policy must be resolved before creating a knowledge document")
 
-        if len(self.source_fingerprint) != 64 or any(
-            character not in _HEXADECIMAL_CHARACTERS for character in self.source_fingerprint
-        ):
-            raise ValueError("source_fingerprint must be a 64-character hexadecimal SHA-256 digest")
+        _validate_sha256(self.raw_payload_fingerprint, "raw_payload_fingerprint")
+        _validate_sha256(self.ingestion_fingerprint, "ingestion_fingerprint")
+        _validate_sha256(
+            self.normalized_content_fingerprint,
+            "normalized_content_fingerprint",
+        )
 
         _validate_aware_datetime(self.captured_at, "captured_at")
 

@@ -9,12 +9,18 @@ from tropos.core.domain.knowledge import KnowledgeDocument
 from tropos.core.domain.knowledge_chunk import validate_chunk_set
 
 
-def build_document(content: str) -> KnowledgeDocument:
+def build_document(
+    content: str,
+    *,
+    source_version: str = "4",
+    ingestion_fingerprint: str = "b" * 64,
+    normalized_content_fingerprint: str = "c" * 64,
+) -> KnowledgeDocument:
     return KnowledgeDocument(
         knowledge_id="KNOW-001",
         source_system="knowledge-base",
         source_record_id="ARTICLE-001",
-        source_version="4",
+        source_version=source_version,
         content_type="text/plain",
         title="Reset an expired credential",
         content=content,
@@ -22,7 +28,10 @@ def build_document(content: str) -> KnowledgeDocument:
             tenant_id="acme",
             scope=AccessScope.TENANT,
         ),
-        source_fingerprint="a" * 64,
+        raw_payload_fingerprint="a" * 64,
+        ingestion_fingerprint=ingestion_fingerprint,
+        normalized_content_fingerprint=normalized_content_fingerprint,
+        normalization_strategy_version="canonical-text-v1",
         captured_at=datetime(2026, 9, 20, tzinfo=UTC),
     )
 
@@ -65,14 +74,38 @@ def test_repeated_run_produces_same_chunk_ids() -> None:
     assert tuple(chunk.chunk_id for chunk in first) == tuple(chunk.chunk_id for chunk in second)
 
 
-def test_chunks_inherit_document_access_and_provenance() -> None:
+def test_chunks_inherit_document_access_and_processing_provenance() -> None:
     document = build_document("A sufficiently useful piece of source knowledge.")
     chunk = DeterministicKnowledgeChunker(max_characters=80).chunk(document)[0]
 
     assert chunk.access_policy == document.access_policy
-    assert chunk.source_fingerprint == document.source_fingerprint
-    assert chunk.source_record_id == document.source_record_id
-    assert chunk.document_title == document.title
+    assert chunk.ingestion_fingerprint == document.ingestion_fingerprint
+    assert chunk.normalized_content_fingerprint == document.normalized_content_fingerprint
+    assert chunk.normalization_strategy_version == document.normalization_strategy_version
+
+
+def test_source_version_churn_does_not_change_chunk_identity() -> None:
+    content = "One stable piece of canonical source content."
+    first = DeterministicKnowledgeChunker(max_characters=80).chunk(
+        build_document(content, source_version="4", ingestion_fingerprint="b" * 64)
+    )[0]
+    second = DeterministicKnowledgeChunker(max_characters=80).chunk(
+        build_document(content, source_version="5", ingestion_fingerprint="d" * 64)
+    )[0]
+
+    assert first.chunk_id == second.chunk_id
+
+
+def test_canonical_content_change_changes_chunk_identity() -> None:
+    content = "One stable piece of canonical source content."
+    first = DeterministicKnowledgeChunker(max_characters=80).chunk(
+        build_document(content, normalized_content_fingerprint="c" * 64)
+    )[0]
+    second = DeterministicKnowledgeChunker(max_characters=80).chunk(
+        build_document(content, normalized_content_fingerprint="d" * 64)
+    )[0]
+
+    assert first.chunk_id != second.chunk_id
 
 
 def test_collection_validation_detects_an_omitted_chunk() -> None:
