@@ -5,79 +5,61 @@
 
 ## Context
 
-Tropos is a public repository and is being built with AI-assisted development as well as manual changes. The project needs an integration path that does not depend on remembering local checks or on the repository owner manually following a convention.
-
-The repository already had deterministic quality checks, but a process is not a control until GitHub enforces it.
+Tropos needs a repeatable integration path that does not depend on local checks or maintainer convention. The repository already has deterministic quality checks; branch protection makes those checks enforceable before code reaches `main`.
 
 ## Options considered
 
-### 1. Direct pushes to `main` with optional local testing
+### Direct pushes to `main`
 
-Lowest friction, but easy to bypass accidentally and weak as public engineering evidence.
+Lowest friction, but quality checks can be bypassed accidentally.
 
-### 2. PR workflow by convention only
+### Pull requests by convention
 
-Better reviewability, but the owner can still bypass it and CI can be skipped.
+Improves reviewability, but does not enforce CI or prevent direct integration.
 
-### 3. Protected `main` with required PR and required `api-quality`
+### Protected `main` with required pull request and CI
 
-Make the delivery policy enforceable in the repository itself.
+Use repository rules to require the integration workflow.
 
 ## Decision
 
-Tropos will use a protected `main` branch and a PR-based integration workflow.
+Tropos uses a protected `main` branch and pull-request-based integration.
 
-The current required quality check is `api-quality`. The CI workflow runs on every pull request so the required check is always created, including for documentation-only changes.
+The required status check is `api-quality`. The workflow runs on every pull request so the check exists consistently, including for documentation-only changes.
 
-The configured branch policy also requires conversation resolution and disables the normal owner/admin bypass; force pushes and branch deletion are not enabled.
-
-Approving reviewers are not required while the repository has a single maintainer.
-
-## Rationale
-
-The strongest low-cost control for the current project is a repeatable automated integration gate. It provides executable evidence that every integrated change passes the agreed formatter, linter, type checker, unit tests and package build.
-
-Running the workflow for every PR avoids the failure mode where path filters prevent a required check from appearing.
+Conversation resolution is required. Force pushes and branch deletion are disabled by the branch policy. Approving reviewers are not required while the repository has a single maintainer.
 
 ## Consequences
 
 ### Positive
 
-- direct integration into `main` is blocked by policy;
-- every PR receives the same shared quality check;
-- the project demonstrates a real CI discipline rather than documentation-only intent;
-- failures are visible before integration;
-- protected `main` becomes a reliable base for future deployment automation.
+- Changes cannot bypass the shared quality gate under normal repository operation.
+- Every pull request receives the same integration check.
+- `main` is a reliable base for future release automation.
+- Formatting, lint, type, test, and package-build failures are visible before integration.
 
 ### Negative / trade-offs
 
-- even docs-only PRs currently run the Python quality job;
-- the owner cannot intentionally bypass the rule without changing repository settings;
-- no mandatory second-person review exists while the project is solo-maintained.
+- Documentation-only changes still run the Python quality job.
+- Changing an emergency policy requires changing repository rules rather than bypassing them.
+- No second-person approval exists while the repository has one maintainer.
 
 ## Evidence
 
 - `.github/workflows/ci.yml`
 - `.github/pull_request_template.md`
-- GitHub branch metadata reports `main` as protected;
-- `api-quality` is configured as a required status check with enforcement level `everyone`;
-- PR #5 removed the earlier path filters so the gate runs on every PR.
+- protected `main`
+- required `api-quality` check
 
-The `api-quality` job currently executes:
+The job runs:
 
-1. dependency sync with `uv sync --dev --locked`;
-2. Ruff format check;
-3. Ruff lint;
-4. strict mypy over `src` and `tests`;
-5. pytest;
-6. package build.
+1. `uv sync --dev --locked`;
+2. `ruff format --check`;
+3. `ruff check`;
+4. `mypy src tests`;
+5. `pytest`;
+6. `uv build`.
 
 ## Revisit when
 
-Revisit the rule when:
-
-- additional maintainers join and reviewer approval becomes meaningful;
-- CI is decomposed into multiple required jobs;
-- AI/RAG evals become executable release gates;
-- deployment environments introduce additional promotion checks;
-- docs-only CI cost becomes material enough to justify an always-present lightweight gate plus path-aware specialist jobs.
+Revisit the rule when additional maintainers make reviewer approval meaningful, CI is split into multiple required jobs, AI/RAG evaluations become executable release gates, or deployment environments introduce promotion checks.

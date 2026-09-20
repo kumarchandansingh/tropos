@@ -1,50 +1,22 @@
-# Knowledge Model
+# Knowledge model
 
-Tropos treats knowledge as **governed evidence**, not just text. Every transformation must preserve enough identity, provenance, access and processing lineage to answer: *what exact artifact arrived, what logical knowledge did Tropos derive, who may retrieve it, which processing strategies produced it, and what evidence was ultimately used?*
+Tropos treats knowledge as governed evidence. The model preserves identity, provenance, access, and processing lineage from source capture through canonical chunks.
 
-## End-to-end evidence lineage
+## Entity flow
 
 ```mermaid
 flowchart LR
     Source[(Source record)]
     --> Raw[RawKnowledgeRecord]
-    --> Extract[ExtractedKnowledgeText]
-    --> Normalize[Deterministic normalization]
-    --> Candidate[NormalizedKnowledge]
-    --> Version[Canonical version resolver]
-    --> Doc[KnowledgeDocument]
-    --> Chunker[Deterministic chunker]
+    --> Extracted[ExtractedKnowledgeText]
+    --> Normalized[NormalizedKnowledge]
+    --> Version[Canonical version decision]
+    --> Document[KnowledgeDocument]
     --> Chunk[KnowledgeChunk]
-    --> Index[(Search index<br/>PLANNED)]
-    --> Evidence[Retrieved evidence<br/>PLANNED]
-    --> Decision[Resolve decision]
+    --> Index[(Search index\nplanned)]
 ```
 
-## Identity layers
-
-```mermaid
-flowchart TB
-    R[Raw source state]
-    --> R1[raw_payload_fingerprint<br/>exact bytes]
-    --> R2[ingestion_fingerprint<br/>source envelope]
-
-    N[Canonical normalized state]
-    --> N1[normalized_content_fingerprint<br/>title + ordered structural blocks]
-
-    C[Chunk occurrence]
-    --> C1[content_fingerprint<br/>exact chunk text]
-```
-
-These are intentionally not synonyms.
-
-| Identity | Stable across formatting-only source change? | Purpose |
-| --- | --- | --- |
-| raw payload | No | Exact artifact integrity |
-| ingestion envelope | No | Idempotent captured-state identity + provenance |
-| normalized content | **Yes, when normalization says equivalent** | Canonical knowledge versioning |
-| chunk content | Depends on canonical chunk text | Exact evidence integrity |
-
-## Core relationships
+## Core entities
 
 ```mermaid
 classDiagram
@@ -65,7 +37,6 @@ classDiagram
     }
 
     class NormalizedKnowledge {
-      normalized_source_text
       canonical_text
       blocks
       content_fingerprint
@@ -74,10 +45,8 @@ classDiagram
 
     class KnowledgeDocument {
       knowledge_id
-      source identity
       canonical content
-      raw_payload_fingerprint
-      ingestion_fingerprint
+      source lineage
       normalized_content_fingerprint
       normalization_strategy_version
       access_policy
@@ -86,13 +55,12 @@ classDiagram
     class KnowledgeChunk {
       chunk_id
       sequence_number
-      exact text + offsets
+      text
+      offsets
       content_fingerprint
-      ingestion_fingerprint
-      normalized_content_fingerprint
-      normalization_strategy_version
-      strategy_version
+      provenance
       access_policy
+      processing strategy versions
     }
 
     RawKnowledgeRecord --> AccessPolicy
@@ -103,75 +71,80 @@ classDiagram
     KnowledgeChunk --> AccessPolicy
 ```
 
-## Access is an independent lifecycle dimension
+## Identity
 
-`AccessPolicy` models `UNRESOLVED`, `TENANT` and `RESTRICTED`. Unresolved knowledge cannot become an indexable document or chunk.
+Tropos uses separate fingerprints because each answers a different lifecycle question.
 
-```mermaid
-flowchart TD
-    Candidate[Same canonical content]
-    --> ACL{Access fingerprint changed?}
-    ACL -- no --> Same[NO_CONTENT_VERSION]
-    ACL -- yes --> Refresh[REFRESH_GOVERNANCE]
-```
+| Identity | Meaning |
+| --- | --- |
+| `raw_payload_fingerprint` | SHA-256 of the exact captured bytes |
+| `ingestion_fingerprint` | Stable fingerprint of the captured source envelope plus bytes |
+| `normalized_content_fingerprint` | Stable fingerprint of canonical title and ordered structural blocks |
+| Chunk `content_fingerprint` | SHA-256 of exact canonical chunk text |
 
-This matters because confidentiality can change without the words changing. Security cannot wait for a fake content version.
+Only the normalized-content fingerprint drives canonical content-version decisions. Raw and ingestion identities remain audit and provenance signals.
 
-## Canonical content representation
-
-The current normalizer converts extracted text into a small ordered structural model:
-
-```text
-HEADING(level)
-PARAGRAPH
-UNORDERED_LIST_ITEM
-ORDERED_LIST_ITEM
-```
-
-Heading levels and ordered-vs-unordered list semantics are preserved. Equivalent markers within a list type and incidental inline whitespace are canonicalized.
-
-The canonical title + ordered blocks produce a stable JSON serialization and SHA-256 normalized-content fingerprint. The same blocks render deterministic canonical text used by `KnowledgeDocument.content` and later chunking.
-
-That creates a strong invariant:
-
-> If two candidates have the same normalized content fingerprint under the same normalization strategy, Tropos also gives downstream chunking the same canonical text.
-
-## Canonical content version state
+## Canonical version state
 
 ```text
 CanonicalKnowledgeState
-├── normalized content fingerprint
-├── normalization strategy version
-└── access fingerprint
+├── content_fingerprint
+├── normalization_strategy_version
+└── access_fingerprint
 ```
 
-The resolver produces four explicit outcomes:
+The version resolver returns:
 
-| Outcome | Meaning |
+| Action | Meaning |
 | --- | --- |
-| `CREATE_VERSION` | First content or materially changed canonical content |
-| `NO_CONTENT_VERSION` | Canonical content and access unchanged |
-| `REFRESH_GOVERNANCE` | Content unchanged but access changed |
-| `REBASELINE_REQUIRED` | Normalization algorithm/version changed |
+| `CREATE_VERSION` | First content or changed canonical content |
+| `NO_CONTENT_VERSION` | Canonical content and access are unchanged |
+| `REFRESH_GOVERNANCE` | Content is unchanged but access changed |
+| `REBASELINE_REQUIRED` | Normalization strategy changed |
 
-Source-system versions and ingestion fingerprints remain provenance but do not independently create canonical content versions.
+Access refresh can also be required alongside `CREATE_VERSION` or `REBASELINE_REQUIRED`; this is carried by `VersionDecision.requires_governance_refresh`.
 
-## A chunk is canonical evidence, not a vector row
+## Access policy
 
-```mermaid
-flowchart TB
-    KC[KnowledgeChunk]
-    KC --> I[Identity<br/>chunk_id / knowledge_id / sequence]
-    KC --> L[Source lineage<br/>source system / record / source version]
-    KC --> X[Exact canonical evidence<br/>text + offsets]
-    KC --> F[Integrity<br/>chunk + normalized + ingestion fingerprints]
-    KC --> G[Governance<br/>access policy]
-    KC --> P[Processing lineage<br/>normalization + chunking strategy versions]
-```
+`AccessPolicy` supports three scopes:
 
-An embedding or search-index row may later represent a chunk for retrieval; it does not replace the governed evidence object.
+- `UNRESOLVED` — not safe to index;
+- `TENANT` — available within a tenant;
+- `RESTRICTED` — available only to specified groups.
 
-## Deterministic chunk identity
+Unresolved content cannot become an indexable `KnowledgeDocument` or `KnowledgeChunk`.
+
+Search indexes are secondary representations. Future retrieval adapters must enforce access using the governed policy carried by canonical evidence; model reasoning must not be used as a post-hoc authorization filter.
+
+## KnowledgeDocument
+
+`KnowledgeDocument` is the canonical document representation after normalization and version resolution. It carries:
+
+- stable knowledge identity;
+- source system, record, and source version;
+- canonical text;
+- raw, ingestion, and normalized-content fingerprints;
+- normalization strategy version;
+- access policy;
+- capture/source timestamps and source URI when available.
+
+Its content is the canonical text rendered from the same structural blocks used to compute normalized identity.
+
+## KnowledgeChunk
+
+`KnowledgeChunk` is the canonical retrieval evidence unit. It carries:
+
+- `chunk_id`, `knowledge_id`, and sequence number;
+- exact canonical text and offsets;
+- exact chunk-content fingerprint;
+- source and ingestion lineage;
+- normalized-content identity;
+- normalization and chunking strategy versions;
+- inherited access policy.
+
+An embedding or search-index row can represent a chunk for retrieval, but it does not replace the canonical evidence object.
+
+### Chunk identity
 
 ```text
 knowledge_id
@@ -180,70 +153,36 @@ knowledge_id
 + chunking_strategy_version
 + start_offset
 + end_offset
-+ exact text fingerprint
++ exact_chunk_text_fingerprint
 ```
 
-This means source-version or raw-formatting churn alone does not change a chunk ID. A true canonical content change, normalizer change, chunker change, boundary change or exact chunk-text change does.
+Source-version and raw-formatting changes do not affect chunk identity unless they change canonical content.
 
-## Lossless canonical chunking
+## Chunk-set invariants
 
-The chunker still prefers boundaries in this order:
+A valid chunk set must:
 
-```text
-paragraph break → line break → sentence-space → space → hard boundary
-```
+- use contiguous sequence numbers;
+- contain unique chunk IDs;
+- have no text gaps or overlaps;
+- match exact offsets into canonical document text;
+- reconstruct the canonical document exactly when concatenated;
+- preserve document access policy and provenance;
+- use one chunking strategy version for the set.
 
-But readability never overrides canonical evidence fidelity.
+`validate_chunk_set` enforces these constraints.
+
+## Persistence model
+
+Persistence is not implemented yet. The planned store must keep source/capture state, canonical version state, governance state, and chunk state distinct rather than collapsing them into one opaque search row.
 
 ```mermaid
 flowchart LR
-    Source[KnowledgeDocument canonical text]
-    --> C0[Chunk 0]
-    --> C1[Chunk 1]
-    --> CN[Chunk n]
-    --> Rebuild[Concatenate]
-    --> Check{equals canonical source exactly?}
-    Check -- yes --> Valid[valid]
-    Check -- no --> Reject[reject]
-```
-
-## Why strategy versions matter
-
-There are two processing strategies with different responsibilities:
-
-| Strategy | Governs |
-| --- | --- |
-| `normalization_strategy_version` | What source variations count as the same canonical knowledge representation |
-| chunk `strategy_version` | How canonical text is divided into retrieval evidence units |
-
-Changing the normalizer can alter identity for the whole corpus, so Tropos requires explicit rebaseline. Changing the chunker can alter evidence boundaries, so chunks carry their chunking strategy version and retrieval evaluation should compare strategies.
-
-## Invariants / fitness functions
-
-- raw evidence remains separately identifiable;
-- canonical identity is deterministic;
-- formatting-only equivalence is regression-tested;
-- meaningful content/structure changes alter canonical identity;
-- access changes remain independently observable;
-- canonical fingerprint and canonical text derive from the same structure;
-- chunks reconstruct canonical text exactly;
-- chunk IDs are stable across upstream-only churn;
-- all retrieval evidence preserves access and provenance.
-
-## Next model additions
-
-**PLANNED:** persistence should store raw/source lineage, canonical versions, governance state and chunks without collapsing them into one table/object. Retrieval/index representations should reference canonical chunk identity.
-
-```mermaid
-flowchart LR
-    Raw[(Raw/capture state)]
-    --> Version[(Canonical version state)]
+    Raw[(Raw capture state)]
+    --> Version[(Canonical version)]
     --> Chunk[(Canonical chunks)]
-    Chunk --> Lex[Lexical index]
-    Chunk -. later .-> Vec[Vector index]
-    Lex --> Hit[RetrievalHit]
-    Vec -. later .-> Hit
-    Hit --> Evidence[Evidence bundle]
+    Chunk --> Lex[(Lexical index)]
+    Chunk -. later .-> Vec[(Vector index)]
 ```
 
-See [`INGESTION_NORMALIZATION.md`](INGESTION_NORMALIZATION.md) and [`../decisions/ADR-004-deterministic-normalization-and-content-versioning.md`](../decisions/ADR-004-deterministic-normalization-and-content-versioning.md).
+See [Ingestion and normalization](INGESTION_NORMALIZATION.md) for canonicalization rules and [ADR-002](../decisions/ADR-002-governed-evidence-and-deterministic-chunking.md) for the chunk evidence decision.
