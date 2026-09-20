@@ -31,7 +31,7 @@ def access_policy_fingerprint(policy: AccessPolicy) -> str:
 
 
 class VersionAction(StrEnum):
-    """Action required after comparing a normalized candidate with current state."""
+    """Primary content-processing action after comparing canonical state."""
 
     CREATE_VERSION = "CREATE_VERSION"
     NO_CONTENT_VERSION = "NO_CONTENT_VERSION"
@@ -68,10 +68,11 @@ class CanonicalKnowledgeState:
 
 @dataclass(frozen=True, slots=True)
 class VersionDecision:
-    """Auditable result of comparing a candidate with the current canonical state."""
+    """Auditable content action plus an independent governance-refresh signal."""
 
     action: VersionAction
     reason: VersionReason
+    requires_governance_refresh: bool
 
 
 def state_from_candidate(normalized: NormalizedKnowledge) -> CanonicalKnowledgeState:
@@ -89,34 +90,47 @@ def resolve_canonical_version(
     previous: CanonicalKnowledgeState | None,
     candidate: NormalizedKnowledge,
 ) -> VersionDecision:
-    """Choose content-version or governance action without trusting source-version churn."""
+    """Resolve content work without allowing access changes to be hidden by it.
+
+    Content/version work and governance work are separate dimensions. If access
+    changes at the same time as content or normalization strategy, callers must
+    refresh retrieval governance immediately rather than waiting for the content
+    workflow to complete.
+    """
 
     if previous is None:
         return VersionDecision(
             action=VersionAction.CREATE_VERSION,
             reason=VersionReason.FIRST_SEEN,
+            requires_governance_refresh=False,
         )
+
+    candidate_access = access_policy_fingerprint(candidate.source.raw_record.access_policy)
+    access_changed = previous.access_fingerprint != candidate_access
 
     if previous.normalization_strategy_version != candidate.strategy_version:
         return VersionDecision(
             action=VersionAction.REBASELINE_REQUIRED,
             reason=VersionReason.NORMALIZATION_STRATEGY_CHANGED,
+            requires_governance_refresh=access_changed,
         )
 
     if previous.content_fingerprint != candidate.content_fingerprint:
         return VersionDecision(
             action=VersionAction.CREATE_VERSION,
             reason=VersionReason.CONTENT_CHANGED,
+            requires_governance_refresh=access_changed,
         )
 
-    candidate_access = access_policy_fingerprint(candidate.source.raw_record.access_policy)
-    if previous.access_fingerprint != candidate_access:
+    if access_changed:
         return VersionDecision(
             action=VersionAction.REFRESH_GOVERNANCE,
             reason=VersionReason.ACCESS_CHANGED,
+            requires_governance_refresh=True,
         )
 
     return VersionDecision(
         action=VersionAction.NO_CONTENT_VERSION,
         reason=VersionReason.CONTENT_UNCHANGED,
+        requires_governance_refresh=False,
     )
