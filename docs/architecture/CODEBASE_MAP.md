@@ -122,12 +122,9 @@ There is currently no normalization adapter or persistent store. The diagram sho
 ```mermaid
 flowchart TB
     Tests[tests/unit]
-    Tests --> Domain[domain/
-access, knowledge, knowledge_action, resolved_case]
-    Tests --> App[application/
-evaluate_case_closure + ingestion]
-    Tests --> Adapter[adapters/
-chunking + closure evaluation]
+    Tests --> Domain[domain/<br/>access, knowledge, knowledge_action, resolved_case]
+    Tests --> App[application/<br/>evaluate_case_closure + ingestion]
+    Tests --> Adapter[adapters/<br/>chunking + closure evaluation]
 ```
 
 The current test suite is intentionally unit-focused. Integration tests will become necessary when persistence, retrieval and external adapters exist.
