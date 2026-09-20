@@ -38,9 +38,9 @@ flowchart LR
     --> V[Resolve canonical version]
     --> D[KnowledgeDocument]
     --> C[KnowledgeChunk]
-    --> P[(Persistence\nplanned)]
-    --> Q[Retrieval\nplanned]
-    --> G[Coverage\nplanned]
+    --> P[(Persistence<br/>planned)]
+    --> Q[Retrieval<br/>planned]
+    --> G[Coverage<br/>planned]
     --> A[Knowledge action]
 ```
 
