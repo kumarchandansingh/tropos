@@ -21,9 +21,11 @@ The deterministic knowledge foundation is implemented. Persistence, retrieval, c
 
 | Area | Status |
 | --- | --- |
-| Raw capture, access policy, normalization, canonical versioning | Implemented |
+| Raw capture and deterministic parsing for text, Markdown, HTML, and DOCX | Implemented |
+| Access policy, normalization, canonical versioning | Implemented |
 | Deterministic chunking and evidence lineage | Implemented |
 | Resolve decision policy and orchestration contracts | Implemented |
+| PDF/OCR and richer document parsing | Planned |
 | Persistence and lexical retrieval | Planned |
 | Concrete coverage evaluation and retrieval evals | Planned |
 | Embeddings, hybrid retrieval, and LLM assistance | Deferred until the deterministic baseline is measurable |
@@ -34,6 +36,7 @@ The deterministic knowledge foundation is implemented. Persistence, retrieval, c
 flowchart LR
     S[(Source)]
     --> R[Raw capture]
+    --> X[Parse]
     --> N[Normalize]
     --> V[Resolve canonical version]
     --> D[KnowledgeDocument]
@@ -44,7 +47,7 @@ flowchart LR
     --> A[Knowledge action]
 ```
 
-The codebase follows a modular-monolith and Ports-and-Adapters design. Reusable evidence, access, normalization, versioning, and chunking live in `tropos.core`; support-case-specific policy lives in `tropos.capabilities.resolve`.
+The codebase follows a modular-monolith and Ports-and-Adapters design. Reusable evidence, access, parsing, normalization, versioning, and chunking live in `tropos.core`; support-case-specific policy lives in `tropos.capabilities.resolve`.
 
 See [Architecture overview](docs/architecture/ARCHITECTURE_OVERVIEW.md) for module boundaries and dependency rules.
 
