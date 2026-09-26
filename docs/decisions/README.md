@@ -14,6 +14,7 @@ Architecture Decision Records (ADRs) preserve the context, alternatives, and con
 | [ADR-006](ADR-006-deterministic-format-aware-parsing.md) | Accepted | Route supported source formats through deterministic parsers before canonical normalization |
 | [ADR-007](ADR-007-synchronous-ingestion-orchestration-and-sqlite-persistence.md) | Accepted | Use synchronous application orchestration with durable SQLite state as the first ingestion baseline |
 | [ADR-008](ADR-008-source-connectors-separate-from-format-parsing.md) | Accepted | Separate source-system acquisition from reusable content-format parsing |
+| [ADR-009](ADR-009-explicit-source-failure-taxonomy-and-bounded-retry.md) | Accepted | Classify source failures explicitly and retry only bounded transient failures |
 
 ## Scope
 
