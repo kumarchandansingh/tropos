@@ -6,7 +6,33 @@ from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
 
 
 class SourceCaptureError(RuntimeError):
-    """Raised when a source connector cannot produce a safe immutable capture."""
+    """Base error raised when source capture cannot complete safely."""
+
+
+class RetryableSourceError(SourceCaptureError):
+    """Base error for transient source failures that may succeed on retry."""
+
+
+class SourceUnavailableError(RetryableSourceError):
+    """Raised for transient source/network/service unavailability."""
+
+
+class SourceRateLimitedError(RetryableSourceError):
+    """Raised when the source asks the connector to retry after throttling."""
+
+    def __init__(self, message: str, *, retry_after_seconds: float | None = None) -> None:
+        if retry_after_seconds is not None and retry_after_seconds < 0:
+            raise ValueError("retry_after_seconds must be non-negative when provided")
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
+
+
+class SourceAuthenticationError(SourceCaptureError):
+    """Raised when source authentication cannot be recovered inside the adapter."""
+
+
+class SourceConfigurationError(SourceCaptureError):
+    """Raised when connector configuration prevents safe source access."""
 
 
 class SourceRecordNotFoundError(SourceCaptureError):
