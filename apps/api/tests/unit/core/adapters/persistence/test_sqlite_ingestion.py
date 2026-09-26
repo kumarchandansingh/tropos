@@ -35,8 +35,7 @@ def _raw(
         source_version=source_version,
         content_type=content_type,
         payload=text.encode("utf-8"),
-        access_policy=access_policy
-        or AccessPolicy(tenant_id="tenant-a", scope=AccessScope.TENANT),
+        access_policy=access_policy or AccessPolicy(tenant_id="tenant-a", scope=AccessScope.TENANT),
         captured_at=datetime(2026, 9, 26, tzinfo=UTC),
     )
 
@@ -169,9 +168,7 @@ def test_parser_failure_is_persisted_as_failed_run(tmp_path: Path) -> None:
     raw = _raw("%PDF-1.7", source_version="1", content_type="application/pdf")
 
     with pytest.raises(UnsupportedContentTypeError):
-        orchestrator.execute(
-            IngestKnowledgeCommand(knowledge_id="knowledge-pdf", raw_record=raw)
-        )
+        orchestrator.execute(IngestKnowledgeCommand(knowledge_id="knowledge-pdf", raw_record=raw))
 
     with sqlite3.connect(database) as connection:
         row = connection.execute(
