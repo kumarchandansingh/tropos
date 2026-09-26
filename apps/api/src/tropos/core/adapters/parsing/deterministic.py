@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import re
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from html.parser import HTMLParser
 from io import BytesIO
-import re
-import xml.etree.ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
 from tropos.core.application.ingestion.normalization import ExtractedKnowledgeText, TextFormat
-from tropos.core.application.ingestion.parsing import KnowledgeParseError, UnsupportedContentTypeError
+from tropos.core.application.ingestion.parsing import (
+    KnowledgeParseError,
+    UnsupportedContentTypeError,
+)
 from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
 
 _DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -263,7 +266,11 @@ def _docx_table_markdown(table: ET.Element) -> list[str]:
     for row in table.findall("w:tr", _NS):
         cells: list[str] = []
         for cell in row.findall("w:tc", _NS):
-            text = _collapse_inline(" ".join(filter(None, (_docx_paragraph_text(p) for p in cell.findall("w:p", _NS)))))
+            text = _collapse_inline(
+                " ".join(
+                    filter(None, (_docx_paragraph_text(p) for p in cell.findall("w:p", _NS)))
+                )
+            )
             cells.append(text)
         if any(cells):
             rows.append(" | ".join(cells))
