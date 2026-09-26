@@ -7,7 +7,10 @@ import pytest
 from tropos.core.adapters.normalization.deterministic import DeterministicKnowledgeNormalizer
 from tropos.core.adapters.parsing.deterministic import DeterministicKnowledgeParser
 from tropos.core.application.ingestion.normalization import StructuralBlockKind, TextFormat
-from tropos.core.application.ingestion.parsing import KnowledgeParseError, UnsupportedContentTypeError
+from tropos.core.application.ingestion.parsing import (
+    KnowledgeParseError,
+    UnsupportedContentTypeError,
+)
 from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
 from tropos.core.domain.access import AccessPolicy, AccessScope
 
@@ -140,16 +143,12 @@ def test_plain_text_uses_source_identity_as_title() -> None:
 
 def test_unsupported_content_type_fails_closed() -> None:
     with pytest.raises(UnsupportedContentTypeError, match="application/pdf"):
-        DeterministicKnowledgeParser().parse(
-            _raw(b"%PDF-1.7", content_type="application/pdf")
-        )
+        DeterministicKnowledgeParser().parse(_raw(b"%PDF-1.7", content_type="application/pdf"))
 
 
 def test_invalid_utf8_is_rejected_instead_of_silently_replaced() -> None:
     with pytest.raises(KnowledgeParseError, match="valid UTF-8"):
-        DeterministicKnowledgeParser().parse(
-            _raw(b"\xff\xfe", content_type="text/plain")
-        )
+        DeterministicKnowledgeParser().parse(_raw(b"\xff\xfe", content_type="text/plain"))
 
 
 def test_invalid_docx_package_is_rejected() -> None:
