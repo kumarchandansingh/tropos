@@ -36,9 +36,7 @@ class SourceRetryPolicy:
 
         if failed_attempt < 1:
             raise ValueError("failed_attempt must be at least 1")
-        delay = self.initial_backoff_seconds * (
-            self.backoff_multiplier ** (failed_attempt - 1)
-        )
+        delay = self.initial_backoff_seconds * (self.backoff_multiplier ** (failed_attempt - 1))
         return min(delay, self.max_backoff_seconds)
 
 
