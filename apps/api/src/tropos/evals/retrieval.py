@@ -152,7 +152,11 @@ def _evaluate_case(
         )
 
     first_relevant_rank = next(
-        (rank for rank, knowledge_id in enumerate(retrieved_ids, start=1) if knowledge_id in relevant),
+        (
+            rank
+            for rank, knowledge_id in enumerate(retrieved_ids, start=1)
+            if knowledge_id in relevant
+        ),
         None,
     )
 
