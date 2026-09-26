@@ -11,6 +11,7 @@ Architecture Decision Records (ADRs) preserve the context, alternatives, and con
 | [ADR-003](ADR-003-protected-main-and-required-ci.md) | Accepted | Protect `main` and require PR-based integration with `api-quality` |
 | [ADR-004](ADR-004-deterministic-normalization-and-content-versioning.md) | Accepted | Separate raw/source identity from deterministic canonical content identity |
 | [ADR-005](ADR-005-independent-governance-refresh-signal.md) | Accepted | Keep governance refresh independently observable from content/version work |
+| [ADR-006](ADR-006-deterministic-format-aware-parsing.md) | Accepted | Route supported source formats through deterministic parsers before canonical normalization |
 
 ## Scope
 

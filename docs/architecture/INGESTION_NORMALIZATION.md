@@ -1,6 +1,6 @@
 # Ingestion and normalization
 
-Tropos separates exact source capture from canonical knowledge identity. A source artifact can change because of formatting or metadata without changing the knowledge it represents, while a small business-content change must create a new canonical version.
+Tropos separates exact source capture from parser output and canonical knowledge identity. A source artifact can change because of formatting or metadata without changing the knowledge it represents, while a small business-content change must create a new canonical version.
 
 ## Pipeline
 
@@ -8,6 +8,7 @@ Tropos separates exact source capture from canonical knowledge identity. A sourc
 flowchart LR
     S[(Source record)]
     --> R[RawKnowledgeRecord]
+    --> P[DeterministicKnowledgeParser]
     --> E[ExtractedKnowledgeText]
     --> N[DeterministicKnowledgeNormalizer]
     --> C[NormalizedKnowledge]
@@ -17,7 +18,24 @@ flowchart LR
     --> K[KnowledgeChunk]
 ```
 
-Source-format parsing sits before `ExtractedKnowledgeText`. Tropos currently accepts extracted plain text or Markdown; rich PDF, DOCX, HTML, and connector-specific parsers are planned.
+Parsing v1 routes by normalized MIME content type and supports UTF-8 plain text, Markdown, HTML, and DOCX. PDF, OCR, scanned-document extraction, and multimodal parsing are not implemented yet.
+
+## Parsing
+
+`DeterministicKnowledgeParser` keeps canonical ingestion deterministic and source-aware.
+
+| Source | Strategy | Output format |
+| --- | --- | --- |
+| Plain text | UTF-8 decode with invalid-byte rejection | Plain text |
+| Markdown | Preserve source Markdown and derive title from heading when available | Markdown |
+| HTML | Deterministic HTML parsing; remove executable/noise tags; preserve headings, paragraphs, and list semantics | Markdown |
+| DOCX | Parse OOXML package; preserve headings, lists, table row text, and document title | Markdown |
+
+Unsupported formats fail closed with `UnsupportedContentTypeError`. Malformed supported documents raise `KnowledgeParseError` rather than silently degrading or replacing source bytes.
+
+HTML and DOCX are rendered into Markdown because the current normalization contract already understands explicit headings and ordered/unordered list markers. DOCX table cells are currently retained as textual rows; tables are not yet first-class canonical blocks.
+
+No model call participates in parsing v1. A future probabilistic parser must define how its output is validated before it can affect canonical identity.
 
 ## Identity layers
 
@@ -41,7 +59,7 @@ The upstream `source_version` remains provenance. It does not create a Tropos co
 - capture timestamp;
 - raw-payload and ingestion fingerprints.
 
-The raw record remains immutable so later canonicalization does not erase what Tropos received.
+The raw record remains immutable so parsing and canonicalization do not erase what Tropos received.
 
 ## Deterministic normalization
 
@@ -73,7 +91,7 @@ ATX headings are recognized only when `TextFormat.MARKDOWN` is supplied. Ordered
 
 The normalized title and ordered block sequence are serialized as stable JSON. SHA-256 of that serialization becomes `normalized_content_fingerprint`. The same blocks render the canonical text stored in `KnowledgeDocument.content`.
 
-This coupling is important: equal canonical fingerprints under the same strategy also produce equal canonical text for downstream chunking.
+This coupling means equal canonical fingerprints under the same strategy also produce equal canonical text for downstream chunking.
 
 ## Version resolution
 
@@ -127,26 +145,31 @@ knowledge_id
 The implemented ingestion foundation guarantees that:
 
 1. Exact source evidence remains separately identifiable.
-2. Canonical identity is deterministic for a given normalization strategy.
-3. Presentation-only changes covered by the normalizer do not create content versions.
-4. Meaning-bearing text or structural changes change canonical identity.
-5. Access changes remain independently observable from content changes.
-6. Normalizer changes require explicit rebaselining.
-7. Canonical text and canonical fingerprint derive from the same structural representation.
-8. Chunk identity derives from canonical content identity while raw/source state remains provenance.
+2. Supported source formats are parsed deterministically before normalization.
+3. Unsupported or malformed sources fail explicitly.
+4. Canonical identity is deterministic for a given normalization strategy.
+5. Presentation-only changes covered by the normalizer do not create content versions.
+6. Meaning-bearing text or structural changes change canonical identity.
+7. Access changes remain independently observable from content changes.
+8. Normalizer changes require explicit rebaselining.
+9. Canonical text and canonical fingerprint derive from the same structural representation.
+10. Chunk identity derives from canonical content identity while raw/source state remains provenance.
 
 ## Known limits
 
-`canonical-text-v1` does not yet provide format-specific semantics for tables, code blocks, embedded objects, or rich document structures. It also does not attempt semantic equivalence between genuinely different wording.
+Parsing v1 does not support PDF, OCR, scanned documents, images, or multimodal extraction. DOCX tables are retained as text rather than canonical table objects.
 
-Those cases require additional parser/canonicalization work and evaluation before they can participate safely in identity decisions.
+`canonical-text-v1` does not yet provide first-class semantics for tables, code blocks, embedded objects, or images, and it does not attempt semantic equivalence between genuinely different wording.
+
+Those cases require parser/canonicalization work and evaluation before they can participate safely in identity decisions.
 
 ## Implementation
 
 - `apps/api/src/tropos/core/application/ingestion/raw_record.py`
+- `apps/api/src/tropos/core/application/ingestion/parsing.py`
+- `apps/api/src/tropos/core/adapters/parsing/deterministic.py`
 - `apps/api/src/tropos/core/application/ingestion/normalization.py`
 - `apps/api/src/tropos/core/application/ingestion/versioning.py`
-- `apps/api/src/tropos/core/application/ports/normalization.py`
 - `apps/api/src/tropos/core/adapters/normalization/deterministic.py`
 - `apps/api/src/tropos/core/domain/knowledge.py`
 - `apps/api/src/tropos/core/domain/knowledge_chunk.py`
@@ -156,3 +179,4 @@ Related decisions:
 
 - [ADR-004: Deterministic normalization and content versioning](../decisions/ADR-004-deterministic-normalization-and-content-versioning.md)
 - [ADR-005: Independent governance refresh signal](../decisions/ADR-005-independent-governance-refresh-signal.md)
+- [ADR-006: Deterministic format-aware parsing](../decisions/ADR-006-deterministic-format-aware-parsing.md)
