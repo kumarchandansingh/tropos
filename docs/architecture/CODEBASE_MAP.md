@@ -21,6 +21,8 @@ apps/api/
 │   │   │   │   ├── normalization.py
 │   │   │   │   ├── run_state.py
 │   │   │   │   └── versioning.py
+│   │   │   ├── sources/
+│   │   │   │   └── reliability.py
 │   │   │   └── ports/
 │   │   │       ├── sources.py
 │   │   │       ├── chunking.py
@@ -49,7 +51,8 @@ apps/api/
 | `core/domain/access.py` | Tenant/group access semantics and indexability |
 | `core/domain/knowledge.py` | Canonical `KnowledgeDocument` model |
 | `core/domain/knowledge_chunk.py` | `KnowledgeChunk` model and chunk-set invariants |
-| `core/application/ports/sources.py` | Source connector contract and common `SourceCapture` envelope |
+| `core/application/ports/sources.py` | Source connector contract, source failure taxonomy, and common `SourceCapture` envelope |
+| `core/application/sources/reliability.py` | Bounded retry policy and reusable source-connector reliability decorator |
 | `core/application/ingestion/ingest_from_source.py` | Bridge a replaceable connector into the stable ingestion workflow |
 | `core/application/ingestion/ingest_knowledge.py` | Synchronous ingestion workflow order, branching, idempotency, and failure recording |
 | `core/application/ingestion/raw_record.py` | Immutable source envelope and raw/ingestion fingerprints |
@@ -75,6 +78,7 @@ apps/api/
 flowchart LR
     Source[(Source)]
     --> Connector[KnowledgeSourceConnector]
+    --> Reliable[RetryingSourceConnector]
     --> Capture[SourceCapture]
     --> SourceUseCase[IngestFromSource]
     --> Ingestion[IngestKnowledge]
@@ -85,7 +89,7 @@ flowchart LR
     --> Store[(Persistence)]
 ```
 
-`IngestFromSource` is intentionally thin. It validates connector source identity, translates `SourceCapture` into `IngestKnowledgeCommand`, and delegates all canonical processing to the existing orchestrator.
+`RetryingSourceConnector` is optional composition around a connector. It retries only explicitly transient source failures. `IngestFromSource` remains intentionally thin: it validates connector source identity, translates `SourceCapture` into `IngestKnowledgeCommand`, and delegates all canonical processing to the existing orchestrator.
 
 ## Resolve flow
 
@@ -108,6 +112,7 @@ Tests mirror the source boundaries under `apps/api/tests/unit/`:
 
 - `core/domain/` for access and evidence invariants;
 - `core/application/ingestion/` for raw identity and version resolution;
+- `core/application/sources/` for reusable source reliability policy;
 - `core/adapters/sources/` for source-connector behavior and source-to-ingestion integration;
 - `core/adapters/parsing/` for deterministic format parsing;
 - `core/adapters/normalization/` for canonicalization behavior;
