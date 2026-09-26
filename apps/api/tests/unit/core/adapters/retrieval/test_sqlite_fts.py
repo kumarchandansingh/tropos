@@ -125,9 +125,7 @@ def test_restricted_chunks_require_group_membership_inside_retrieval(tmp_path: P
 
     assert _search(retriever, "command bridge") == ()
     assert _search(retriever, "command bridge", groups=("support-agents",)) == ()
-    assert _search(retriever, "command bridge", groups=("support-leads",)) == (
-        "incident-runbook",
-    )
+    assert _search(retriever, "command bridge", groups=("support-leads",)) == ("incident-runbook",)
 
 
 def test_historical_chunks_remain_stored_but_are_not_retrieved(tmp_path: Path) -> None:
