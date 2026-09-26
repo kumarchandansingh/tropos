@@ -267,9 +267,7 @@ def _docx_table_markdown(table: ET.Element) -> list[str]:
         cells: list[str] = []
         for cell in row.findall("w:tc", _NS):
             text = _collapse_inline(
-                " ".join(
-                    filter(None, (_docx_paragraph_text(p) for p in cell.findall("w:p", _NS)))
-                )
+                " ".join(filter(None, (_docx_paragraph_text(p) for p in cell.findall("w:p", _NS))))
             )
             cells.append(text)
         if any(cells):
