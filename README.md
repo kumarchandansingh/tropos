@@ -17,16 +17,17 @@ Tropos Resolve produces one of four actions:
 
 ## Status
 
-The deterministic knowledge foundation is implemented. Persistence, retrieval, coverage evaluation, delivery surfaces, and model-assisted behavior remain staged.
+The deterministic ingestion foundation is implemented through durable local persistence. Retrieval, coverage evaluation, delivery surfaces, and model-assisted behavior remain staged.
 
 | Area | Status |
 | --- | --- |
 | Raw capture and deterministic parsing for text, Markdown, HTML, and DOCX | Implemented |
 | Access policy, normalization, canonical versioning | Implemented |
 | Deterministic chunking and evidence lineage | Implemented |
+| Synchronous ingestion orchestration and SQLite persistence baseline | Implemented |
 | Resolve decision policy and orchestration contracts | Implemented |
 | PDF/OCR and richer document parsing | Planned |
-| Persistence and lexical retrieval | Planned |
+| Lexical retrieval | Planned |
 | Concrete coverage evaluation and retrieval evals | Planned |
 | Embeddings, hybrid retrieval, and LLM assistance | Deferred until the deterministic baseline is measurable |
 
@@ -41,13 +42,15 @@ flowchart LR
     --> V[Resolve canonical version]
     --> D[KnowledgeDocument]
     --> C[KnowledgeChunk]
-    --> P[(Persistence<br/>planned)]
+    --> P[(SQLite persistence)]
     --> Q[Retrieval<br/>planned]
     --> G[Coverage<br/>planned]
     --> A[Knowledge action]
 ```
 
-The codebase follows a modular-monolith and Ports-and-Adapters design. Reusable evidence, access, parsing, normalization, versioning, and chunking live in `tropos.core`; support-case-specific policy lives in `tropos.capabilities.resolve`.
+`IngestKnowledge` coordinates the ingestion stages while parser, normalizer, version resolver, chunker, and persistence adapters keep their own implementation responsibilities. The first persistence adapter uses SQLite for durable source captures, ingestion-run state, canonical versions, chunks, and access state.
+
+The codebase follows a modular-monolith and Ports-and-Adapters design. Reusable evidence, access, parsing, normalization, versioning, chunking, orchestration, and persistence boundaries live in `tropos.core`; support-case-specific policy lives in `tropos.capabilities.resolve`.
 
 See [Architecture overview](docs/architecture/ARCHITECTURE_OVERVIEW.md) for module boundaries and dependency rules.
 
