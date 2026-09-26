@@ -16,6 +16,7 @@ Architecture Decision Records (ADRs) preserve the context, alternatives, and con
 | [ADR-008](ADR-008-source-connectors-separate-from-format-parsing.md) | Accepted | Separate source-system acquisition from reusable content-format parsing |
 | [ADR-009](ADR-009-explicit-source-failure-taxonomy-and-bounded-retry.md) | Accepted | Classify source failures explicitly and retry only bounded transient failures |
 | [ADR-010](ADR-010-governed-sqlite-fts5-retrieval-baseline.md) | Accepted | Use current-version, tenant/group-filtered SQLite FTS5/BM25 as the first retrieval baseline |
+| [ADR-011](ADR-011-labeled-retrieval-evaluation-before-semantic-expansion.md) | Accepted | Measure the lexical baseline on a versioned labeled corpus before adding semantic retrieval complexity |
 
 ## Scope
 
@@ -33,7 +34,7 @@ An ADR is appropriate when a choice materially constrains one or more of these a
 
 Routine refactoring, naming changes, and local implementation details do not require ADRs.
 
-Planned technologies are not accepted decisions until the project has enough requirements or implementation evidence to choose them. The first lexical retrieval baseline is now accepted through ADR-010; vector store, model provider, deployment platform, and observability stack remain undecided. SQLite remains the accepted first local persistence/search baseline, not a production-scale persistence or search commitment.
+Planned technologies are not accepted decisions until the project has enough requirements or implementation evidence to choose them. The lexical retrieval baseline is accepted through ADR-010 and its evaluation method through ADR-011; vector store, model provider, deployment platform, and observability stack remain undecided. SQLite remains the accepted first local persistence/search baseline, not a production-scale persistence or search commitment.
 
 ## Template
 

@@ -28,7 +28,7 @@ class RetrievalAccessContext:
 
 @dataclass(frozen=True, slots=True)
 class KnowledgeSearchRequest:
-    """One authorized lexical retrieval request."""
+    """One authorized retrieval request, independent of the concrete search strategy."""
 
     query: str
     access: RetrievalAccessContext
