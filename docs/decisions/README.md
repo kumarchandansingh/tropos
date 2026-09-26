@@ -12,6 +12,7 @@ Architecture Decision Records (ADRs) preserve the context, alternatives, and con
 | [ADR-004](ADR-004-deterministic-normalization-and-content-versioning.md) | Accepted | Separate raw/source identity from deterministic canonical content identity |
 | [ADR-005](ADR-005-independent-governance-refresh-signal.md) | Accepted | Keep governance refresh independently observable from content/version work |
 | [ADR-006](ADR-006-deterministic-format-aware-parsing.md) | Accepted | Route supported source formats through deterministic parsers before canonical normalization |
+| [ADR-007](ADR-007-synchronous-ingestion-orchestration-and-sqlite-persistence.md) | Accepted | Coordinate ingestion in one application service and persist durable state through ports, with SQLite as the first adapter |
 
 ## Scope
 
@@ -29,7 +30,7 @@ An ADR is appropriate when a choice materially constrains one or more of these a
 
 Routine refactoring, naming changes, and local implementation details do not require ADRs.
 
-Planned technologies are not accepted decisions until the project has enough requirements or implementation evidence to choose them. Persistence engine, search engine, vector store, model provider, deployment platform, and observability stack remain undecided.
+Planned technologies are not accepted decisions until the project has enough requirements or implementation evidence to choose them. SQLite is accepted as the initial local persistence adapter, while the production persistence engine, search engine, vector store, model provider, deployment platform, and observability stack remain undecided.
 
 ## Template
 
