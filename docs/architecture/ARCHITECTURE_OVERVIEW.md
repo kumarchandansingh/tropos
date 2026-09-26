@@ -13,21 +13,22 @@ flowchart TB
       Doc[KnowledgeDocument]
       Chunk[KnowledgeChunk]
       Store[(Persistence)]
-      Source --> Raw --> Norm --> Doc --> Chunk --> Store
+      Retrieve[Governed retrieval]
+      Source --> Raw --> Norm --> Doc --> Chunk --> Store --> Retrieve
     end
 
     subgraph Resolve[Tropos Resolve]
       Case[ResolvedCase]
       Closure[Closure evidence]
-      Retrieval[Retrieval and coverage contracts]
+      Coverage[Retrieval and coverage policy]
       Action[REUSE / IMPROVE / CREATE / NO_ACTION]
-      Case --> Closure --> Retrieval --> Action
+      Case --> Closure --> Coverage --> Action
     end
 
-    Chunk -. governed evidence .-> Retrieval
+    Retrieve -. governed evidence .-> Coverage
 ```
 
-`tropos.core` owns reusable source integration, evidence identity, access, parsing, normalization, versioning, chunking, and persistence contracts/adapters. `tropos.capabilities.resolve` owns support-case workflow and knowledge-action policy.
+`tropos.core` owns reusable source integration, evidence identity, access, parsing, normalization, versioning, chunking, persistence, and retrieval contracts/adapters. `tropos.capabilities.resolve` owns support-case workflow and knowledge-action policy.
 
 ## Dependency direction
 
@@ -58,16 +59,19 @@ Domain and application policy do not depend on database sessions, search engines
 | Boundary | Responsibility | Status |
 | --- | --- | --- |
 | Core domain | Access policy, canonical knowledge documents, governed chunks | Implemented |
-| Core application | Source-capture contracts, ingestion orchestration, normalization contracts, version resolution | Implemented |
+| Core application | Source-capture contracts, ingestion orchestration, normalization/version contracts, retrieval contracts | Implemented |
 | Source adapters | Local-file source capture | Implemented |
+| Source reliability | Explicit failure taxonomy and bounded retry/backoff decorator | Implemented |
 | Parsing adapters | Deterministic plain-text, Markdown, HTML, and DOCX parsing | Implemented |
 | Processing adapters | Deterministic normalizer and deterministic chunker | Implemented |
 | Persistence | SQLite source/run/canonical document/version/chunk storage | Implemented |
+| Retrieval | SQLite FTS5/BM25 over current tenant/group-authorized chunks | Implemented |
 | Resolve domain | Resolved-case and knowledge-action policy | Implemented |
 | Resolve application | Closure-evaluation orchestration and retrieval/coverage/store ports | Implemented contracts and orchestration |
+| Resolve-to-core retrieval adapter | Translate a resolved case into the reusable core search contract | Planned |
 | External connectors | SharePoint, Gmail, Jira, Confluence, and similar sources | Planned |
-| Retrieval | Lexical search and retrieval adapter | Planned |
 | Coverage | Concrete coverage evaluator | Planned |
+| Retrieval evaluation | Labeled query/evidence set and ranking metrics | Planned |
 | Model assistance | Embeddings, hybrid retrieval, LLM reasoning/drafting | Deferred until baseline evaluation |
 | Presentation/deployment | API, UI, hosted environments | Planned |
 
@@ -103,13 +107,29 @@ This pipeline keeps these concerns separate:
 
 See [Source integration](SOURCE_INTEGRATION.md) for connector boundaries and [Ingestion and normalization](INGESTION_NORMALIZATION.md) for canonicalization/version rules.
 
+## Retrieval boundary
+
+```mermaid
+flowchart LR
+    Query[KnowledgeSearchRequest]
+    --> Match[FTS5 lexical match]
+    --> Current[Current canonical-state filter]
+    --> Auth[Tenant/group authorization]
+    --> Rank[BM25 rank]
+    --> Evidence[RetrievedKnowledgeChunk]
+```
+
+The first retrieval adapter is deliberately lexical. It searches persisted chunks, excludes historical versions by joining against current `knowledge_state`, and applies tenant/group access constraints inside the SQL query before evidence is returned. The strategy is explicitly identified as `sqlite-fts5-bm25-v1` so later retrieval evaluations can be tied to concrete behavior.
+
+See [RAG architecture](RAG_ARCHITECTURE.md) for retrieval semantics and the path toward evaluation and hybrid retrieval.
+
 ## Responsibility table
 
 | Layer | Owns | Excludes |
 | --- | --- | --- |
 | Core domain | Evidence and access invariants | Vendor SDKs, persistence, HTTP clients |
 | Core application | Core use cases and replaceable contracts | Vendor-specific behavior |
-| Core adapters | Source integrations, deterministic algorithms, persistence implementations | Capability-specific policy |
+| Core adapters | Source integrations, deterministic algorithms, persistence and retrieval implementations | Capability-specific policy |
 | Capability domain | Capability vocabulary and business rules | Infrastructure |
 | Capability application | Capability orchestration | Vendor-specific infrastructure |
 | Presentation/bootstrap | Request translation and dependency wiring | Domain decisions |
@@ -127,8 +147,9 @@ The implemented foundation maintains these guarantees:
 5. Presentation-only changes do not create canonical content versions.
 6. Access changes remain independently observable from content changes.
 7. Canonical fingerprints and canonical text derive from the same normalized structure.
-8. Retrieval evidence remains traceable to canonical content and captured source state.
-9. Capability policy remains isolated from reusable core mechanics.
+8. Core retrieval returns only current evidence authorized for the supplied tenant/group context.
+9. Retrieval evidence remains traceable to canonical content and captured source state.
+10. Capability policy remains isolated from reusable core mechanics.
 
 Changes to these guarantees require an architecture decision record.
 
