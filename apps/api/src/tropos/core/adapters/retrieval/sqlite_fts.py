@@ -178,9 +178,7 @@ class SQLiteFtsKnowledgeRetriever:
 
         results: list[RetrievedKnowledgeChunk] = []
         for rank, row in enumerate(rows, start=1):
-            allowed_groups = tuple(
-                cast(list[str], json.loads(str(row["allowed_groups_json"])))
-            )
+            allowed_groups = tuple(cast(list[str], json.loads(str(row["allowed_groups_json"]))))
             access_policy = AccessPolicy(
                 tenant_id=str(row["tenant_id"]),
                 scope=AccessScope(str(row["access_scope"])),
