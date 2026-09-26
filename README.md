@@ -17,18 +17,19 @@ Tropos Resolve produces one of four actions:
 
 ## Status
 
-The deterministic ingestion foundation is implemented through durable local persistence. Retrieval, coverage evaluation, delivery surfaces, and model-assisted behavior remain staged.
+The deterministic ingestion foundation is implemented through durable local persistence. Retrieval, production delivery surfaces, and model-assisted behavior remain staged.
 
 | Area | Status |
 | --- | --- |
+| Source-connector contract and local-file source adapter | Implemented |
 | Raw capture and deterministic parsing for text, Markdown, HTML, and DOCX | Implemented |
 | Access policy, normalization, canonical versioning | Implemented |
 | Deterministic chunking and evidence lineage | Implemented |
-| Synchronous ingestion orchestration and SQLite persistence baseline | Implemented |
+| Synchronous ingestion orchestration and SQLite persistence | Implemented |
 | Resolve decision policy and orchestration contracts | Implemented |
-| PDF/OCR and richer document parsing | Planned |
-| Lexical retrieval | Planned |
-| Concrete coverage evaluation and retrieval evals | Planned |
+| External source connectors; PDF/OCR and richer document parsing | Planned |
+| Lexical retrieval and retrieval evals | Planned |
+| Concrete coverage evaluation | Planned |
 | Embeddings, hybrid retrieval, and LLM assistance | Deferred until the deterministic baseline is measurable |
 
 ## Architecture
@@ -36,21 +37,20 @@ The deterministic ingestion foundation is implemented through durable local pers
 ```mermaid
 flowchart LR
     S[(Source)]
+    --> X[Source connector]
     --> R[Raw capture]
-    --> X[Parse]
+    --> P[Parse]
     --> N[Normalize]
     --> V[Resolve canonical version]
     --> D[KnowledgeDocument]
     --> C[KnowledgeChunk]
-    --> P[(SQLite persistence)]
+    --> DB[(SQLite persistence)]
     --> Q[Retrieval<br/>planned]
     --> G[Coverage<br/>planned]
     --> A[Knowledge action]
 ```
 
-`IngestKnowledge` coordinates the ingestion stages while parser, normalizer, version resolver, chunker, and persistence adapters keep their own implementation responsibilities. The first persistence adapter uses SQLite for durable source captures, ingestion-run state, canonical versions, chunks, and access state.
-
-The codebase follows a modular-monolith and Ports-and-Adapters design. Reusable evidence, access, parsing, normalization, versioning, chunking, orchestration, and persistence boundaries live in `tropos.core`; support-case-specific policy lives in `tropos.capabilities.resolve`.
+The codebase follows a modular-monolith and Ports-and-Adapters design. Reusable source integration, evidence, access, parsing, normalization, versioning, chunking, and persistence live in `tropos.core`; support-case-specific policy lives in `tropos.capabilities.resolve`.
 
 See [Architecture overview](docs/architecture/ARCHITECTURE_OVERVIEW.md) for module boundaries and dependency rules.
 
@@ -90,6 +90,7 @@ Key documents:
 
 - [Product model](docs/product/PRODUCT_MODEL.md)
 - [Architecture overview](docs/architecture/ARCHITECTURE_OVERVIEW.md)
+- [Source integration](docs/architecture/SOURCE_INTEGRATION.md)
 - [Ingestion and normalization](docs/architecture/INGESTION_NORMALIZATION.md)
 - [Knowledge model](docs/architecture/KNOWLEDGE_MODEL.md)
 - [RAG architecture](docs/architecture/RAG_ARCHITECTURE.md)
