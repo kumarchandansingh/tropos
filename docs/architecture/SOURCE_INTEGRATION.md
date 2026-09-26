@@ -17,7 +17,7 @@ flowchart LR
     --> D[(Persistence)]
 ```
 
-A connector owns source-system concerns such as authentication, record lookup, source-native version metadata, content-type mapping, access-policy mapping, and source URI/update metadata. It must not own canonical normalization, content version decisions, chunking, or persistence.
+A connector owns source-system concerns such as authentication, record lookup, source-native version metadata, content-type mapping, access-policy mapping, source URI/update metadata, and translation of vendor failures into Tropos source errors. It must not own canonical normalization, content version decisions, chunking, or persistence.
 
 A parser owns content-format interpretation such as HTML, DOCX, Markdown, or PDF. It must not know whether those bytes came from SharePoint, Gmail, Jira, a local directory, or another connector.
 
@@ -63,6 +63,26 @@ This convention prevents two unrelated source instances from accidentally sharin
 
 External connectors such as SharePoint, Gmail, Jira, and Confluence are not implemented yet.
 
+## Reliability boundary
+
+Source failures are classified before retry policy is applied.
+
+```text
+SourceUnavailableError    -> retryable
+SourceRateLimitedError    -> retryable
+SourceAuthenticationError -> terminal at generic retry boundary
+SourceConfigurationError  -> terminal
+SourceRecordNotFoundError -> terminal
+Unsupported artifact      -> terminal
+Identity mismatch         -> terminal
+```
+
+`RetryingSourceConnector` can wrap any connector and retries only `RetryableSourceError` subclasses with bounded exponential backoff. A rate-limit error may carry source-provided retry-after guidance, which takes precedence over computed backoff.
+
+The generic retry layer does not catch arbitrary exceptions or refresh vendor credentials. A source adapter may perform vendor-specific recovery, such as refreshing an expired OAuth token, before surfacing a terminal authentication failure.
+
+See [Connector reliability](CONNECTOR_RELIABILITY.md) for the implemented policy and remaining operational work.
+
 ## Adding a source
 
 A new connector should:
@@ -73,7 +93,8 @@ A new connector should:
 4. resolve source-native authorization into a Tropos `AccessPolicy` or fail closed if it cannot be resolved safely;
 5. return exact source bytes with an accurate MIME content type;
 6. preserve source URI/update metadata when available;
-7. pass the capture to `IngestFromSource` rather than calling parser, normalizer, versioning, chunking, or SQL directly.
+7. translate vendor-specific failures into the Tropos source failure taxonomy;
+8. pass the capture to `IngestFromSource` rather than calling parser, normalizer, versioning, chunking, or SQL directly.
 
 Adding a connector should not require changes to `IngestKnowledge` or to existing format parsers unless the new source introduces a genuinely new content format.
 
@@ -83,4 +104,4 @@ The connector boundary covers **pull-style** ingestion where Tropos reads a sour
 
 ## Current limits
 
-Connector discovery/listing, incremental sync cursors, deletion/tombstone handling, bulk backfills, connector credentials, rate limiting, retries, and webhook/event ingestion are not implemented. Those capabilities should be added when a real external source requires them rather than embedded prematurely into the core orchestrator.
+Connector discovery/listing, incremental sync cursors, deletion/tombstone handling, bulk backfills, connector credentials, durable retry across process restarts, proactive rate limiting, freshness monitoring, and webhook/event ingestion are not implemented. Those capabilities should be added when a real external source requires them rather than embedded prematurely into the core orchestrator.

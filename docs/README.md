@@ -9,6 +9,7 @@ Tropos documentation is organized by purpose so architecture, reference material
 | [Product model](product/PRODUCT_MODEL.md) | Problem, users, decision outcomes, and product boundaries |
 | [Architecture overview](architecture/ARCHITECTURE_OVERVIEW.md) | Module boundaries, dependency direction, and system responsibilities |
 | [Source integration](architecture/SOURCE_INTEGRATION.md) | Source connector boundary, source identity, and extension rules |
+| [Connector reliability](architecture/CONNECTOR_RELIABILITY.md) | Source failure taxonomy, bounded retry, and remaining operational reliability work |
 | [Ingestion and normalization](architecture/INGESTION_NORMALIZATION.md) | Raw capture, canonicalization, version resolution, and governance refresh |
 | [Knowledge model](architecture/KNOWLEDGE_MODEL.md) | Evidence entities, identity layers, provenance, access, and chunk semantics |
 | [RAG architecture](architecture/RAG_ARCHITECTURE.md) | Implemented RAG foundation and target retrieval/decision pipeline |
@@ -41,7 +42,7 @@ Architecture documents use these terms only when a capability boundary needs to 
 
 **Understand the product:** Product model → Architecture overview → Knowledge model.
 
-**Understand source ingestion:** Source integration → Ingestion and normalization → Knowledge model → Evaluation strategy.
+**Understand source ingestion:** Source integration → Connector reliability → Ingestion and normalization → Knowledge model → Evaluation strategy.
 
 **Understand retrieval:** Ingestion and normalization → Knowledge model → RAG architecture → Evaluation strategy.
 
