@@ -21,10 +21,13 @@ apps/api/
 │   │   │   │   ├── normalization.py
 │   │   │   │   ├── run_state.py
 │   │   │   │   └── versioning.py
+│   │   │   ├── retrieval/
+│   │   │   │   └── models.py
 │   │   │   ├── sources/
 │   │   │   │   └── reliability.py
 │   │   │   └── ports/
 │   │   │       ├── sources.py
+│   │   │       ├── retrieval.py
 │   │   │       ├── chunking.py
 │   │   │       ├── normalization.py
 │   │   │       └── persistence.py
@@ -33,7 +36,8 @@ apps/api/
 │   │       ├── parsing/deterministic.py
 │   │       ├── normalization/deterministic.py
 │   │       ├── chunking/deterministic.py
-│   │       └── persistence/sqlite.py
+│   │       ├── persistence/sqlite.py
+│   │       └── retrieval/sqlite_fts.py
 │   └── capabilities/
 │       └── resolve/
 │           ├── domain/
@@ -60,6 +64,8 @@ apps/api/
 | `core/application/ingestion/normalization.py` | Extracted/normalized data contracts and document materialization |
 | `core/application/ingestion/run_state.py` | Ingestion workflow stages and outcomes |
 | `core/application/ingestion/versioning.py` | Canonical content and governance change resolution |
+| `core/application/retrieval/models.py` | Authorized search request/access context and retrieved-chunk result contracts |
+| `core/application/ports/retrieval.py` | Reusable governed chunk-retrieval port |
 | `core/application/ports/normalization.py` | Normalizer contract |
 | `core/application/ports/chunking.py` | Chunker contract |
 | `core/application/ports/persistence.py` | Source capture, ingestion-run, and canonical-state persistence ports |
@@ -68,6 +74,7 @@ apps/api/
 | `core/adapters/normalization/deterministic.py` | Deterministic text normalization and structural extraction |
 | `core/adapters/chunking/deterministic.py` | Deterministic, lossless chunk generation |
 | `core/adapters/persistence/sqlite.py` | SQLite source/run/version/chunk persistence |
+| `core/adapters/retrieval/sqlite_fts.py` | SQLite FTS5/BM25 retrieval over current tenant/group-authorized chunks |
 | `capabilities/resolve/domain/` | Resolved-case and knowledge-action vocabulary/policy |
 | `capabilities/resolve/application/` | Resolve orchestration and retrieval/coverage/store contracts |
 | `capabilities/resolve/adapters/` | Replaceable Resolve-specific implementations |
@@ -91,6 +98,20 @@ flowchart LR
 
 `RetryingSourceConnector` is optional composition around a connector. It retries only explicitly transient source failures. `IngestFromSource` remains intentionally thin: it validates connector source identity, translates `SourceCapture` into `IngestKnowledgeCommand`, and delegates all canonical processing to the existing orchestrator.
 
+## Core retrieval flow
+
+```mermaid
+flowchart LR
+    Request[KnowledgeSearchRequest]
+    --> FTS[SQLite FTS5]
+    --> Current[Current canonical state]
+    --> Access[Tenant/group SQL filter]
+    --> Rank[BM25]
+    --> Result[RetrievedKnowledgeChunk]
+```
+
+The core retrieval adapter is concrete. It operates on governed chunks and enforces authorization before results leave SQLite. Its strategy identifier is `sqlite-fts5-bm25-v1`.
+
 ## Resolve flow
 
 ```mermaid
@@ -98,13 +119,13 @@ flowchart LR
     Case[ResolvedCase]
     --> UseCase[EvaluateCaseClosure]
     --> Evidence[ClosureEvidenceEvaluator]
-    --> Retrieve[KnowledgeRetriever]
+    --> Retrieve[Resolve KnowledgeRetriever]
     --> Coverage[KnowledgeCoverageEvaluator]
     --> Policy[decide_knowledge_action]
     --> Store[KnowledgeDecisionStore]
 ```
 
-The retriever, coverage evaluator, and decision store are contracts; production adapters are not implemented.
+Resolve still owns a capability-specific retrieval contract because it starts from a `ResolvedCase`. An adapter from that case contract to the reusable core chunk retriever is not implemented yet. The coverage evaluator and decision store also remain contract-only.
 
 ## Tests
 
@@ -118,4 +139,5 @@ Tests mirror the source boundaries under `apps/api/tests/unit/`:
 - `core/adapters/normalization/` for canonicalization behavior;
 - `core/adapters/chunking/` for chunk identity and lossless coverage;
 - `core/adapters/persistence/` for durable ingestion workflow behavior;
+- `core/adapters/retrieval/` for ranking, current-version filtering, tenant isolation, and restricted-group authorization;
 - `capabilities/resolve/` for decision policy and orchestration.
