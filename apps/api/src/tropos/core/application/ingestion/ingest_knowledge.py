@@ -1,6 +1,6 @@
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Callable
 from uuid import uuid4
 
 from tropos.core.application.ingestion.normalization import materialize_knowledge_document
