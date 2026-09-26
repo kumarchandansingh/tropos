@@ -8,6 +8,7 @@ Tropos separates exact source capture from parser output and canonical knowledge
 flowchart LR
     S[(Source record)]
     --> R[RawKnowledgeRecord]
+    --> O[IngestKnowledge]
     --> P[DeterministicKnowledgeParser]
     --> E[ExtractedKnowledgeText]
     --> N[DeterministicKnowledgeNormalizer]
@@ -16,7 +17,10 @@ flowchart LR
     --> D[KnowledgeDocument]
     --> H[DeterministicKnowledgeChunker]
     --> K[KnowledgeChunk]
+    --> DB[(SQLite persistence)]
 ```
+
+`IngestKnowledge` is the synchronous application orchestrator. It owns sequencing and branching but delegates parsing, normalization, version rules, chunking, and persistence behavior to their respective components and ports.
 
 Parsing v1 routes by normalized MIME content type and supports UTF-8 plain text, Markdown, HTML, and DOCX. PDF, OCR, scanned-document extraction, and multimodal parsing are not implemented yet.
 
@@ -59,7 +63,30 @@ The upstream `source_version` remains provenance. It does not create a Tropos co
 - capture timestamp;
 - raw-payload and ingestion fingerprints.
 
-The raw record remains immutable so parsing and canonicalization do not erase what Tropos received.
+The raw record remains immutable so parsing and canonicalization do not erase what Tropos received. The SQLite persistence adapter stores exact source captures separately from canonical document versions.
+
+## Orchestration and durable state
+
+The orchestrator executes one explicit workflow:
+
+```text
+capture source
+→ parse
+→ normalize
+→ load previous canonical state
+→ resolve content and governance actions
+→ refresh governance when required
+→ materialize and chunk only for CREATE_VERSION
+→ persist outcome
+```
+
+Workflow state is persisted through `IngestionRunStore`. Runs record a durable stage such as `PARSING`, `NORMALIZING`, `DECIDING`, `CHUNKING`, or `PERSISTING`, and failed runs retain the error type and stage for diagnosis.
+
+A completed immutable capture is idempotent. If the same `knowledge_id` and `ingestion_fingerprint` are submitted again, Tropos returns the previous completed result as a replay instead of creating a duplicate content version.
+
+`KnowledgeStateRepository` uses expected-state checks for version and governance writes. If canonical state changes after the orchestrator reads it, the write fails with `ConcurrentKnowledgeUpdateError` rather than silently overwriting a newer state.
+
+The first adapter is SQLite. It persists source captures, ingestion runs, canonical current state, document versions, and chunks. A new version's document, chunks, and current-state pointer are committed in one SQLite transaction.
 
 ## Deterministic normalization
 
@@ -120,9 +147,9 @@ A normalization-strategy change is not treated as proof that business content ch
 
 Content and authorization have separate lifecycles. A document can change content and access policy in the same source update.
 
-`VersionDecision.requires_governance_refresh` preserves that second obligation even when the primary action is `CREATE_VERSION` or `REBASELINE_REQUIRED`. Downstream persistence and indexing must apply new retrieval authorization without waiting for unrelated content processing.
+`VersionDecision.requires_governance_refresh` preserves that second obligation even when the primary action is `CREATE_VERSION` or `REBASELINE_REQUIRED`. The orchestrator applies the new governance state to the currently persisted version before continuing new-version work when both dimensions change.
 
-The atomic persistence/indexing behavior for that future workflow is not implemented yet.
+Governance refresh and subsequent new-version creation are intentionally separate transactions. If the later version commit fails, the old version remains restricted by the new access policy rather than retaining stale broader access.
 
 ## Chunk identity
 
@@ -144,16 +171,19 @@ knowledge_id
 
 The implemented ingestion foundation guarantees that:
 
-1. Exact source evidence remains separately identifiable.
+1. Exact source evidence remains separately identifiable and durably captured by the SQLite baseline.
 2. Supported source formats are parsed deterministically before normalization.
-3. Unsupported or malformed sources fail explicitly.
+3. Unsupported or malformed sources fail explicitly and the failed workflow stage is recorded.
 4. Canonical identity is deterministic for a given normalization strategy.
 5. Presentation-only changes covered by the normalizer do not create content versions.
 6. Meaning-bearing text or structural changes change canonical identity.
-7. Access changes remain independently observable from content changes.
+7. Access changes remain independently observable and persistable from content changes.
 8. Normalizer changes require explicit rebaselining.
 9. Canonical text and canonical fingerprint derive from the same structural representation.
 10. Chunk identity derives from canonical content identity while raw/source state remains provenance.
+11. Duplicate completed immutable captures are idempotent.
+12. A new document version, its chunks, and its current-state pointer are committed atomically in SQLite.
+13. Stale concurrent canonical writes fail instead of overwriting newer persisted state.
 
 ## Known limits
 
@@ -161,7 +191,7 @@ Parsing v1 does not support PDF, OCR, scanned documents, images, or multimodal e
 
 `canonical-text-v1` does not yet provide first-class semantics for tables, code blocks, embedded objects, or images, and it does not attempt semantic equivalence between genuinely different wording.
 
-Those cases require parser/canonicalization work and evaluation before they can participate safely in identity decisions.
+The orchestrator is synchronous. It does not yet provide automatic retry/backoff, queue-based execution, worker resumption after process termination, or distributed compensation. SQLite is the first local durable adapter, not a production-scale persistence commitment.
 
 ## Implementation
 
@@ -170,6 +200,10 @@ Those cases require parser/canonicalization work and evaluation before they can 
 - `apps/api/src/tropos/core/adapters/parsing/deterministic.py`
 - `apps/api/src/tropos/core/application/ingestion/normalization.py`
 - `apps/api/src/tropos/core/application/ingestion/versioning.py`
+- `apps/api/src/tropos/core/application/ingestion/run_state.py`
+- `apps/api/src/tropos/core/application/ingestion/ingest_knowledge.py`
+- `apps/api/src/tropos/core/application/ports/persistence.py`
+- `apps/api/src/tropos/core/adapters/persistence/sqlite.py`
 - `apps/api/src/tropos/core/adapters/normalization/deterministic.py`
 - `apps/api/src/tropos/core/domain/knowledge.py`
 - `apps/api/src/tropos/core/domain/knowledge_chunk.py`
@@ -180,3 +214,4 @@ Related decisions:
 - [ADR-004: Deterministic normalization and content versioning](../decisions/ADR-004-deterministic-normalization-and-content-versioning.md)
 - [ADR-005: Independent governance refresh signal](../decisions/ADR-005-independent-governance-refresh-signal.md)
 - [ADR-006: Deterministic format-aware parsing](../decisions/ADR-006-deterministic-format-aware-parsing.md)
+- [ADR-007: Synchronous ingestion orchestration and SQLite persistence](../decisions/ADR-007-synchronous-ingestion-orchestration-and-sqlite-persistence.md)
