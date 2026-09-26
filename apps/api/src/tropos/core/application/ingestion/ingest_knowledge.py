@@ -42,8 +42,7 @@ class IngestKnowledgeCommand:
         if self.source_uri is not None and not self.source_uri.strip():
             raise ValueError("source_uri must not be blank when provided")
         if self.source_updated_at is not None and (
-            self.source_updated_at.tzinfo is None
-            or self.source_updated_at.utcoffset() is None
+            self.source_updated_at.tzinfo is None or self.source_updated_at.utcoffset() is None
         ):
             raise ValueError("source_updated_at must include timezone information")
 
