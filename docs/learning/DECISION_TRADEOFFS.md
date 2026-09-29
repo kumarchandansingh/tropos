@@ -1,0 +1,725 @@
+# Enterprise Knowledge Systems — Decision & Trade-off Matrix
+
+This companion to the [Enterprise Knowledge Systems — Interview Playbook](ENTERPRISE_KNOWLEDGE_SYSTEMS_INTERVIEW_GUIDE.md) focuses on one question senior interviewers keep asking:
+
+> **Why did you choose this design, what alternatives did you consider, what did you give up, and when would you change the decision?**
+
+Use each section as a decision story, not as a list to memorize.
+
+```mermaid
+flowchart LR
+    P[Production problem]
+    --> F[Failure mode]
+    --> I[Invariant]
+    --> O[Options]
+    --> D[Decision]
+    --> C[Cost / downside]
+    --> R[Revisit trigger]
+    --> E[Evidence]
+```
+
+## Architecture decision matrix — at a glance
+
+| Decision area | Options considered | Tropos baseline | Why this choice | Cost / downside | Revisit when | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Source identity | filename/path, source-native ID, content identity | source-system namespace + source-record ID | survives presentation changes and keeps source lineage explicit | moves/renames and cross-source duplicates are separate problems | source systems lack stable IDs or cross-source canonical identity is required | **Implemented** |
+| Duplicate delivery | assume exactly-once, de-duplicate downstream, idempotent consumer | ingestion fingerprint + completed-run lookup | retries and duplicate delivery are normal in sync/queue systems | requires idempotency state and careful key design | retention/volume makes idempotency state expensive | **Implemented** |
+| Parsing | source-specific logic everywhere, bounded in-house parser, Tika/managed extraction | bounded deterministic parser behind a parser boundary | small supported format set, no extra infrastructure, deterministic behavior | limited format coverage and more parser maintenance | PDF/PPT/XLS/OCR/large-format surface becomes required | **Implemented baseline** |
+| Canonicalization | raw bytes, deterministic normalization, LLM semantic rewriting | deterministic normalization | reproducible equality and safe version comparison | semantically equivalent rewrites may still appear different | domain needs semantic equivalence beyond deterministic rules | **Implemented** |
+| Change detection | compare full text, raw-file hash, canonical-content hash | SHA-256 of deterministic canonical serialization | compact persistent equality key aligned to canonicalization rules | hash does not understand meaning; theoretical collision risk | canonicalization rules, not SHA-256, are the likely change point | **Implemented** |
+| Knowledge history | update in place, event-sourced model, immutable versions + current projection | immutable versions + current-state projection | auditability plus simple active-state lookup | more rows, retention and migration complexity | history/storage cost becomes material or temporal queries dominate | **Implemented** |
+| ACL evolution | content version for every ACL change, source lookup on every query, separate governance state | separate access fingerprint + governance refresh | permissions evolve independently of content | governance state must stay synchronized with searchable chunks | source-of-truth authorization can be queried cheaply enough per request | **Implemented** |
+| Concurrent writes | last-write-wins, pessimistic locking, optimistic concurrency | expected-state validation in transaction | prevents lost updates without long-held locks when conflicts are rare | conflicting operations must retry/reconcile | write contention becomes frequent | **Implemented** |
+| Out-of-order source events | ignore order, timestamps only, source-native sequence/cursor validation | preserve source version now; mature ordering control belongs in future sync layer | source-native ordering is more trustworthy than arrival time | not yet a complete enterprise sync solution | durable multi-record sync is built | **Planned** |
+| Version commit consistency | independent writes, distributed transaction, local atomic DB transaction | atomic SQLite transaction for version/chunks/current state | these writes are one canonical state transition | only protects one DB boundary, not external indexes/services | separate search index/event bus is introduced | **Implemented** |
+| Chunking | fixed tokens, arbitrary characters, structural chunks, semantic chunking | deterministic structural-character baseline | reproducibility, traceability and simple failure analysis | may miss optimal semantic boundaries; zero overlap can lose cross-boundary context | eval data shows chunk-boundary recall problems | **Implemented baseline** |
+| Lexical retrieval | SQL LIKE, FTS/BM25, vector-only | SQLite FTS5 + BM25 | strong exact-term/identifier retrieval with low operational complexity | weak paraphrase/semantic recall | semantic misses are measured | **Implemented** |
+| Retrieval authorization | retrieve then filter, post-filter and refill, pre-filter authorized candidates | current-version + tenant/group authorization during retrieval | unauthorized evidence should not cross retrieval boundary | complicates vector/ANN design and may reduce index choices | never relax security invariant; implementation may change | **Implemented invariant** |
+| Retrieval evaluation | manual spot checks, online-only metrics, versioned offline golden set | labeled golden corpus + Recall@K/MRR/Precision/no-answer checks | makes retrieval changes comparable and regressions visible in CI | synthetic corpus can overfit and is not production truth | held-out/production-like data becomes available | **Implemented baseline** |
+| Semantic retrieval | skip vectors, vector-only replacement, additive vector path | build vector retrieval as a second strategy behind the same retrieval contract | measured BM25 semantic misses justify an evidence-based comparison | embedding cost, model lifecycle, vector storage complexity | after BM25-vs-vector evaluation | **Planned next** |
+| Vector search | exact flat scan, HNSW, IVF, managed vector DB | exact/flat search first for V1 | isolates embedding quality from ANN approximation and infrastructure | does not scale to large corpora | corpus/latency makes exact scan materially slow | **Planned V1 / ANN deferred** |
+| Hybrid retrieval | replace BM25 with vector, fixed weighted score, rank fusion/reranking | defer until BM25-vs-vector evidence exists | avoids solving fusion before proving complementary value | delays best-possible retrieval quality | vector adds semantic recall while BM25 remains stronger on exact terms | **Deferred** |
+| Persistence | SQLite, Postgres/pgvector, dedicated search/vector stack | SQLite while service/runtime scale is local | simplest durable baseline for correctness and evaluation | limited concurrency/operations/scale | shared hosted service, multi-tenant runtime, or scale requires it | **Implemented baseline** |
+| Enterprise sync | single-record capture, periodic full scan, delta/cursor sync engine | single-record connector + retry boundary today | isolates acquisition contract before adding operational sync complexity | no backfill/deletion/checkpoint/resume engine yet | enterprise connector rollout begins | **Deferred / planned** |
+
+---
+
+# 1. Stable source identity
+
+## Problem
+
+A document can be renamed, reformatted, moved, or fetched repeatedly. The system still needs to know whether it is dealing with the same source object.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Filename/path as identity | easy to understand | rename/move can create a fake new object |
+| Hash content as identity | deduplicates byte-identical content | same object with changed content becomes a different identity |
+| Source-native stable ID | follows the object through content changes | source-specific and does not solve cross-source duplicates |
+
+## Decision
+
+Use a configured source-system namespace plus the source-native record ID as source identity.
+
+```text
+source identity
+= source_system + source_record_id
+```
+
+### Why
+
+Identity answers **which object is this?**; content fingerprints answer **did its representation change?**. Mixing those questions makes versioning brittle.
+
+### Cost / downside
+
+Cross-source duplicates are not automatically the same knowledge object. A SharePoint copy and a Jira copy can contain the same text but still have different source identities.
+
+### Revisit trigger
+
+Introduce canonical cross-source identity only when a real product requirement exists for deduplicating or reconciling multiple authoritative sources.
+
+### Interview probe
+
+**“Why not just use the document hash as the document ID?”**
+
+A strong answer separates object identity from content state.
+
+---
+
+# 2. Idempotent ingestion instead of assuming exactly-once delivery
+
+## Problem
+
+Source APIs, queues, retries and worker restarts can deliver the same captured state more than once.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Assume exactly-once delivery | simplest consumer | unrealistic across many distributed systems |
+| Allow duplicates and clean later | simple write path | downstream version/chunk/index pollution |
+| Make consumer idempotent | safe retries | requires deterministic processing identity and retained state |
+
+## Decision
+
+Compute a deterministic ingestion fingerprint and check whether that knowledge ID + fingerprint already completed successfully.
+
+### Why
+
+Retries should be normal operational behavior, not a correctness risk.
+
+### Cost / downside
+
+The idempotency key definition becomes part of the contract. A poorly chosen key can suppress legitimate work or fail to collapse true duplicates.
+
+### Revisit trigger
+
+If the retained idempotency history becomes large, add explicit retention/partitioning rules rather than weakening the invariant.
+
+---
+
+# 3. Bounded deterministic parsing before adopting a broad extraction platform
+
+## Problem
+
+DOCX, HTML, Markdown and text have different physical formats, but downstream versioning should receive one common extracted representation.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Source-specific parsing inside every connector | fast initial implementation | duplicates logic and couples connectors to formats |
+| Small deterministic parser layer | reproducible, low-dependency baseline | limited file-type coverage |
+| Apache Tika / managed extraction | broad format coverage | extra dependency/runtime/operational boundary |
+
+## Decision
+
+Keep parsing behind one reusable parser boundary and implement only the bounded formats Tropos currently needs.
+
+### Why
+
+The system can validate parsing/versioning behavior without introducing an extraction platform before there is a format breadth requirement.
+
+### Cost / downside
+
+PDF, PowerPoint, spreadsheets, OCR and complex layout are not solved by the current baseline.
+
+### Revisit trigger
+
+Move to Tika or a managed document-processing layer when broad enterprise format support becomes a real ingestion requirement.
+
+---
+
+# 4. Deterministic canonicalization instead of LLM normalization
+
+## Problem
+
+Formatting noise should not create fake knowledge versions, but version identity must be reproducible.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Compare raw bytes | simple | every re-save/markup difference can look like a content change |
+| Deterministic normalization | reproducible | cannot collapse all semantic paraphrases |
+| LLM semantic rewriting | may detect deeper equivalence | non-deterministic, model/version/cost dependence, risky for identity |
+
+## Decision
+
+Use deterministic Unicode, newline, whitespace and structural normalization, then version the normalization strategy itself.
+
+### Why
+
+Canonicalization is an identity rule. Re-running the same source under the same strategy must produce the same canonical output.
+
+### Cost / downside
+
+`"work from home two days"` and `"perform duties remotely twice each week"` may still produce different canonical text even if a human considers them equivalent.
+
+### Revisit trigger
+
+If the product later requires semantic deduplication, add it as a separate matching/review capability rather than silently replacing deterministic content identity.
+
+---
+
+# 5. Canonical SHA-256 fingerprint instead of raw-file fingerprint for knowledge versioning
+
+## Problem
+
+The system needs a compact equality key for canonical state.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Compare full canonical serialization | exact and conceptually simple | larger state/comparisons and awkward keys |
+| Hash raw bytes | cheap | measures file equality, not canonical knowledge equality |
+| Hash canonical serialization | compact and aligned to version semantics | depends entirely on correctness of canonicalization |
+
+## Decision
+
+SHA-256 the deterministic canonical serialization and persist that as the content fingerprint. Keep raw-payload fingerprints separately for source lineage.
+
+### Why
+
+The two hashes answer different questions:
+
+```text
+raw payload hash        → did the source bytes change?
+canonical content hash  → did the normalized knowledge representation change?
+```
+
+### Cost / downside
+
+A hash does not understand meaning. It is only a digest of the representation chosen upstream.
+
+### Revisit trigger
+
+The likely evolution point is the canonicalization policy, not the cryptographic hash algorithm.
+
+---
+
+# 6. Immutable versions plus a current-state projection
+
+## Problem
+
+The system needs both historical auditability and a cheap answer to “what is active now?”.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Update current row in place | simple current reads | destroys history |
+| Recompute current from all versions | pure history model | every consumer pays temporal query cost |
+| Immutable history + explicit current projection | history and fast current reads | duplicate state and consistency responsibility |
+
+## Decision
+
+Append knowledge versions and maintain a small current-state projection used by reconciliation and retrieval.
+
+### Why
+
+History and active state answer different questions.
+
+### Cost / downside
+
+Retention, migrations and consistency checks become part of operations.
+
+### Revisit trigger
+
+If temporal/event queries become dominant, evaluate a fuller event-sourced or bitemporal model. Do not remove history merely to reduce table size without a retention policy.
+
+---
+
+# 7. Separate governance state from content versioning
+
+## Problem
+
+Permissions can change without business content changing.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Create a content version for every ACL change | one version mechanism | pollutes content history |
+| Resolve all ACLs live from source on every query | freshest source authorization | latency, availability and source coupling |
+| Track governance separately | clean semantics and local retrieval enforcement | ACL synchronization becomes its own lifecycle |
+
+## Decision
+
+Use a separate access-policy fingerprint and refresh governance without creating a fake content version.
+
+### Why
+
+`CONTENT HISTORY ≠ PERMISSION HISTORY`.
+
+### Cost / downside
+
+Permission revocation freshness is now a first-class operational requirement.
+
+### Revisit trigger
+
+If a source can provide authoritative low-latency policy checks at query time, evaluate a hybrid authorization model, but keep fail-closed retrieval behavior.
+
+---
+
+# 8. Optimistic concurrency instead of last-write-wins or long-held locks
+
+## Problem
+
+Two workers can read state A, independently derive B and C, then race to commit.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Last-write-wins | simple | silently loses valid updates |
+| Pessimistic lock while processing | strong serialization | long lock duration, throughput/availability cost |
+| Optimistic concurrency | low lock contention | conflict requires retry/reconciliation |
+
+## Decision
+
+Make the decision against a specific previous state and validate `expected_previous` again inside the write transaction.
+
+```mermaid
+sequenceDiagram
+    participant W1 as Worker 1
+    participant DB as Current state
+    participant W2 as Worker 2
+    W1->>DB: Read A
+    W2->>DB: Read A
+    W1->>DB: Commit B if current == A
+    DB-->>W1: Success; current = B
+    W2->>DB: Commit C if current == A
+    DB-->>W2: Reject; expected A, found B
+```
+
+### Why
+
+Conflicts are expected to be uncommon, so there is no reason to lock knowledge state for the whole parse/normalize/chunk pipeline.
+
+### Cost / downside
+
+The caller or future worker orchestration must re-read and reconcile after a conflict. Detection is implemented; sophisticated durable retry orchestration is separate work.
+
+### Revisit trigger
+
+If conflict frequency becomes high enough that retries dominate, reconsider partitioning/serialization or shorter critical sections before jumping to coarse pessimistic locking.
+
+---
+
+# 9. Source ordering is a separate problem from concurrency
+
+## Problem
+
+Revision 20 can be accepted and a delayed revision 19 can arrive later.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Trust arrival time | simple | networks/queues do not preserve business recency reliably |
+| Compare generic timestamps | better | clock/semantics can be ambiguous |
+| Use source-native revision/sequence/delta cursor | aligned to source truth | connector-specific logic |
+
+## Decision
+
+The current core preserves source version information, but mature source ordering belongs in the future sync layer using source-native revision/cursor semantics.
+
+### Why
+
+Concurrency asks **“did someone change state since I read it?”**. Ordering asks **“is this event older than the state already accepted from the source?”**.
+
+### Cost / downside
+
+The current single-record ingestion baseline does not yet solve full out-of-order enterprise synchronization.
+
+### Revisit trigger
+
+Before introducing production multi-record source sync with backfill/deltas/checkpoints.
+
+---
+
+# 10. One local transaction for one canonical state transition
+
+## Problem
+
+Creating a version involves multiple writes: version row, chunks and current-state advancement.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Independent writes | simple code | partial failure creates inconsistent canonical state |
+| Distributed transaction across every subsystem | strongest atomicity | high complexity and weak ecosystem support |
+| Atomic transaction in canonical DB | protects local invariant | external indexes/services are eventually consistent separately |
+
+## Decision
+
+Commit canonical version, chunks and current-state transition atomically in SQLite.
+
+### Why
+
+These writes represent one business state transition and should not be partially visible.
+
+### Cost / downside
+
+A future external vector/search index will create a second consistency boundary requiring an outbox/reconciliation strategy.
+
+### Revisit trigger
+
+As soon as canonical persistence and retrieval index live in different systems.
+
+---
+
+# 11. Deterministic structural chunking as the baseline
+
+## Problem
+
+Retrieving a whole long document is too coarse, but arbitrary splits can destroy context and provenance.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Whole document | maximum context | poor ranking specificity and large context cost |
+| Fixed characters/tokens | easy | splits semantic structure |
+| Structural deterministic chunks | explainable and reproducible | not always optimal for semantic recall |
+| Semantic/LLM chunking | context-aware | cost, model dependence and harder reproducibility |
+
+## Decision
+
+Use deterministic structural-character chunking as the first retrieval unit.
+
+### Why
+
+It preserves traceability and gives a stable baseline for retrieval evaluation.
+
+### Cost / downside
+
+Boundary effects remain possible and zero overlap can lose context spanning adjacent chunks.
+
+### Revisit trigger
+
+Change chunking only when labeled retrieval cases demonstrate boundary-related misses. Evaluate new chunking against the same corpus before migration.
+
+---
+
+# 12. BM25 lexical retrieval before vector retrieval
+
+## Problem
+
+The platform needs a reliable baseline search path before adding embedding/model infrastructure.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| SQL substring/LIKE | trivial | poor ranking and scale |
+| BM25 lexical retrieval | strong exact-term ranking | weak paraphrase recall |
+| Vector-only from day one | semantic matching | model/infrastructure complexity and weaker exact identifiers in some cases |
+| Hybrid immediately | potentially best coverage | too many variables before measuring either path |
+
+## Decision
+
+Start with SQLite FTS5/BM25, evaluate it, then add semantic retrieval only when measured misses justify it.
+
+### Why
+
+Exact identifiers, policy names, acronyms and product codes are common enterprise queries and lexical search is cheap, transparent and deterministic.
+
+### Cost / downside
+
+Paraphrases can miss even when the evidence is conceptually relevant.
+
+### Evidence / revisit trigger
+
+The current golden retrieval baseline intentionally contains semantic misses. That is the evidence motivating Vector Retrieval V1.
+
+---
+
+# 13. Authorization inside retrieval rather than post-filtering
+
+## Problem
+
+A search system can rank unauthorized evidence above authorized evidence.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Retrieve globally, then filter top-K | easy | leakage risk and under-return of authorized results |
+| Retrieve more globally, filter and refill | better recall | unauthorized evidence still crosses internal ranking boundary |
+| Scope candidate set by current state + authorization | security-aligned | harder with some ANN/index architectures |
+
+## Decision
+
+Filter current version, tenant and restricted-group eligibility as part of retrieval.
+
+### Why
+
+The invariant is stronger than “don't display unauthorized text”:
+
+> **Unauthorized evidence should not cross the governed retrieval boundary.**
+
+### Cost / downside
+
+This constrains future vector-index choices. Metadata filtering cannot be treated as an afterthought.
+
+### Revisit trigger
+
+Implementation can change, but the security invariant should not.
+
+---
+
+# 14. Offline labeled evaluation before semantic expansion
+
+## Problem
+
+A retriever can pass unit tests while returning irrelevant evidence.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Manual spot checks | fast initially | subjective and not regression-safe |
+| Online metrics only | reflects production behavior | hard to diagnose and risky before deployment |
+| Versioned offline golden set | reproducible comparisons in CI | synthetic/small datasets can overfit |
+
+## Decision
+
+Use a labeled retrieval dataset and deterministic metrics such as Recall@K and MRR, with no-answer and access-control cases.
+
+### Why
+
+Architecture changes should be justified by measured failure modes rather than “RAG best practice.”
+
+### Cost / downside
+
+The current synthetic V1 corpus is a development seed, not proof of enterprise accuracy.
+
+### Revisit trigger
+
+Add held-out production-like datasets, graded relevance/nDCG and category-specific thresholds as real data becomes available.
+
+---
+
+# 15. Vector retrieval as an additive strategy, not an immediate BM25 replacement
+
+## Problem
+
+BM25 misses semantic paraphrases, but vector retrieval can regress exact identifiers and introduces model lifecycle cost.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Keep BM25 only | simple | known semantic misses remain |
+| Replace BM25 with vectors | one search path | may lose exact lexical strengths and creates model dependency |
+| Add vector retriever behind same contract | controlled comparison | two strategies to operate/evaluate |
+
+## Decision
+
+Build Vector Retrieval V1 behind the existing strategy-neutral retrieval contract and run the same golden cases through BM25 and vector search.
+
+### Why
+
+This isolates the question: **does semantic representation recover the observed misses without governance regressions?**
+
+### Cost / downside
+
+Embedding generation, storage, model versioning and re-embedding become new processing concerns.
+
+### Revisit trigger
+
+After comparative metrics exist; only then decide whether vector is additive, replacement-worthy, or insufficient.
+
+### Status
+
+**Planned next — not yet implemented.**
+
+---
+
+# 16. Exact vector similarity before HNSW/IVF
+
+## Problem
+
+Semantic quality and vector-index scalability are two different experiments.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Flat exact similarity | exact baseline and simple | O(N) query cost |
+| HNSW | fast high-recall ANN | memory/index tuning/approximation |
+| IVF/PQ | scalable/compressible | training/tuning/approximation complexity |
+| Managed vector DB | operational features | vendor/service cost and another dependency |
+
+## Decision
+
+For Vector Retrieval V1, use exact/flat similarity at the current small evaluation scale before introducing ANN infrastructure.
+
+### Why
+
+If vector recall is poor, exact search lets us attribute the miss to representation/chunking/query behavior rather than ANN approximation.
+
+### Cost / downside
+
+Flat scan is deliberately not the production topology for millions of vectors.
+
+### Revisit trigger
+
+Benchmark corpus size and p95 latency; introduce ANN only when exact search becomes a measured bottleneck.
+
+### Status
+
+**Planned V1; ANN deferred.**
+
+---
+
+# 17. Hybrid retrieval only after complementary strengths are measured
+
+## Problem
+
+Lexical and semantic retrieval may each win different query classes.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Pick one winner globally | simple | throws away complementary strengths |
+| Weighted raw-score blending | simple formula | BM25 and vector scores are not naturally calibrated to the same scale |
+| Rank fusion such as RRF | score-scale independent | another strategy/tuning layer |
+| Cross-encoder reranking | strong relevance potential | extra latency/cost/model dependency |
+
+## Decision
+
+Do not build hybrid yet. First obtain BM25-vs-vector results on the same labeled corpus.
+
+### Why
+
+Fusion is justified only if the two retrievers are measurably complementary.
+
+### Cost / downside
+
+The system temporarily leaves potential combined quality on the table.
+
+### Revisit trigger
+
+If vector recovers semantic cases while BM25 remains better on identifiers/exact terms, evaluate rank fusion or reranking.
+
+---
+
+# 18. SQLite now; larger serving infrastructure only when the service boundary earns it
+
+## Problem
+
+A local/solo build needs durability and real SQL behavior without prematurely operating a distributed serving stack.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| In-memory only | fastest prototyping | no durable behavior or realistic transaction tests |
+| SQLite | durable, transactional, zero service dependency | limited concurrency/scale/operations |
+| Postgres + pgvector now | service-ready path | infrastructure/dependency cost before API/runtime need |
+| Dedicated search/vector systems | scale/features | even larger operational surface |
+
+## Decision
+
+Use SQLite for the current foundation and migrate only when the hosted multi-consumer service requires stronger concurrency, operations or scale.
+
+### Why
+
+The current engineering questions are correctness, lineage, governance and retrieval quality—not horizontal database scale.
+
+### Cost / downside
+
+SQLite is not the final production topology for a large multi-tenant service.
+
+### Revisit trigger
+
+Workspace isolation, hosted APIs, multi-consumer concurrency, persistent production runtime or data scale make SQLite a measured constraint.
+
+---
+
+# 19. Connector boundary now; durable enterprise sync engine later
+
+## Problem
+
+Fetching one known source record is much simpler than continuously synchronizing millions of enterprise records.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Put discovery/sync/retry inside each connector | quick vertical integration | duplicates orchestration and makes connectors stateful |
+| Full generic sync engine immediately | comprehensive | large design surface before one-record ingestion is stable |
+| Stable capture contract first, sync orchestration later | isolates concerns | enterprise sync is intentionally incomplete for now |
+
+## Decision
+
+Keep connectors responsible for acquisition/metadata/ACL translation and the core ingestion pipeline source-agnostic. Add discovery, pagination, deltas, checkpoints, deletions and resume semantics as a separate sync capability when needed.
+
+### Why
+
+A connector answers **“how do I capture this source record?”**. A sync engine answers **“how do I continuously reconcile a changing source corpus?”**.
+
+### Cost / downside
+
+Current source reliability is bounded single-record retry, not durable fleet-scale synchronization.
+
+### Revisit trigger
+
+The first real enterprise source integration that needs backfill + incremental delta sync.
+
+---
+
+# Interview decision drill
+
+For any Tropos component, answer these seven questions without opening the repository:
+
+1. **What production failure are we trying to prevent?**
+2. **What invariant must remain true?**
+3. **What realistic alternatives exist?**
+4. **Why is the selected option appropriate at the current scale and constraints?**
+5. **What did we give up by choosing it?**
+6. **What metric/event would tell us the decision no longer fits?**
+7. **How would we migrate without breaking consumers or losing lineage?**
+
+A senior-level answer should be able to move from a mechanism back to this chain:
+
+```text
+"We use optimistic concurrency"
+        ↓ why?
+prevent lost updates
+        ↓ why this technique?
+conflicts expected to be rare
+        ↓ cost?
+retry/reconciliation on conflict
+        ↓ revisit?
+high sustained write contention
+```
+
+The same pattern should be applied to future Tropos feature PRs. A new technical mechanism is not fully documented until the associated alternative, downside, and revisit condition are also recorded.
