@@ -1,6 +1,6 @@
 # Tropos documentation
 
-Tropos documentation is organized by purpose so architecture, reference material, delivery guidance, and decision history do not compete on the same page.
+Tropos documentation is organized by purpose so architecture, reference material, delivery guidance, decision history, and learning material do not compete on the same page.
 
 ## Product and architecture
 
@@ -22,6 +22,15 @@ Tropos documentation is organized by purpose so architecture, reference material
 | [Evaluation strategy](quality/EVAL_STRATEGY.md) | Software, retrieval, AI, and product-quality evaluation |
 | [CI/CD](delivery/CI_CD.md) | Pull-request integration, quality gates, and deployment boundary |
 | [Environment strategy](delivery/ENVIRONMENT_STRATEGY.md) | Runtime-environment model and future promotion path |
+
+## Learning and interview translation
+
+| Document | Purpose |
+| --- | --- |
+| [Learning track](learning/README.md) | How implementation work is translated into reusable engineering understanding |
+| [Enterprise knowledge systems interview guide](learning/ENTERPRISE_KNOWLEDGE_SYSTEMS_INTERVIEW_GUIDE.md) | First-principles concepts, visual flows, interview-style questions, sample answers, failure modes, and trade-offs |
+
+Learning material is intentionally separate from product and architecture reference. It may explain concepts, teaching examples, and interview reasoning; authoritative implementation state remains in architecture documents, tests, and ADRs.
 
 ## Architecture decisions
 
@@ -47,3 +56,5 @@ Architecture documents use these terms only when a capability boundary needs to 
 **Understand retrieval:** Ingestion and normalization → Knowledge model → RAG architecture → Evaluation strategy.
 
 **Understand the repository:** Codebase map → CI/CD → Architecture decisions.
+
+**Build first-principles interview depth:** Learning track → Enterprise knowledge systems interview guide → relevant architecture doc → relevant ADR/test.
