@@ -1,171 +1,371 @@
-# Enterprise Knowledge Systems — First-Principles Interview Guide
+# Enterprise Knowledge Systems — Interview Playbook
 
-> A visual, interview-oriented companion to the Tropos architecture.
->
-> The goal is not to memorize Tropos. The goal is to be able to **reconstruct why Tropos looks the way it does** from system problems, failure modes, invariants, and trade-offs.
+You are building a platform that takes knowledge from enterprise systems such as SharePoint, Jira, Confluence, files, email, and support tools, then makes that knowledge safe and useful for search, RAG, and downstream agents.
 
-## How to use this guide
-
-For technical explanation questions, use this rhythm:
-
-1. **Clarify** — narrow the scope and define the exact concept or failure mode.
-2. **Explain step-by-step** — use plain language, an example, and the mechanism.
-3. **Conclude and discuss** — summarize the key idea, then surface trade-offs or adjacent design choices.
-
-For system-design or architecture questions, use this rhythm:
-
-1. **Clarify and scope** — users, scale, functional requirements, non-functional requirements.
-2. **Draw the high-level flow** — major components and data movement.
-3. **Deep dive** — pick one or two important components or failure modes.
-4. **Identify bottlenecks and trade-offs** — reliability, consistency, security, latency, cost, scale.
-5. **Bring it together** — check the design against the original goals and explain what would change at higher scale.
-
-The interview style is intentionally inspired by the structured, conversational approach used by IGotAnOffer and Exponent/Aced, but all explanations and examples here are original and specific to enterprise knowledge systems and Tropos.
-
----
-
-# 1. The system story
-
-The enterprise problem sounds simple:
-
-> “Take knowledge from company systems and make it reliably usable by humans and AI.”
-
-In practice, each word hides an engineering problem.
+The difficult part is not “put documents in a vector database.” The difficult part is preserving identity, meaning, permissions, history, freshness, and reliability while the source systems keep changing.
 
 ```mermaid
 flowchart LR
     S[Enterprise sources\nSharePoint / Jira / files / email]
-    --> C[Capture]
-    --> P[Parse]
-    --> N[Normalize]
-    --> V[Version + reconcile]
+    --> C[Capture source state]
+    --> P[Parse format]
+    --> N[Normalize + canonicalize]
+    --> V[Reconcile versions]
     --> K[Chunk]
     --> D[(Canonical storage)]
-    D --> L[Lexical retrieval\nBM25]
-    D --> E[Semantic representation\nEmbeddings]
+    D --> L[Lexical retrieval\nFTS / BM25]
+    D --> E[Semantic retrieval\nEmbeddings / vectors]
     L --> R[Governed retrieval]
     E --> R
-    R --> A[Agents / Resolve / Search]
-    A --> O[Evaluation + observability]
+    R --> A[Search / RAG / agents / Resolve]
+    A --> Q[Evaluation + observability]
 ```
 
-The architecture has to answer five classes of questions:
+The interview story is therefore a sequence of engineering problems:
 
-| Area | Core question |
+| Production problem | Engineering concept |
 | --- | --- |
-| Identity | What exactly is this thing, and is it the same thing I saw before? |
-| Change | Did meaningful content change, or only formatting/permissions/processing? |
-| Reliability | What happens on retries, concurrency, out-of-order events, and partial failure? |
-| Retrieval | How do I find the right current evidence quickly and securely? |
-| Trust | Can I prove where the evidence came from, who was allowed to see it, and whether retrieval quality is good? |
+| The same SharePoint item is seen twice during sync | idempotency, stable identity |
+| A DOCX is re-saved but business content did not change | parsing, canonicalization, hashing |
+| The text changes but permissions do not | content versioning |
+| Permissions change but text does not | governance state |
+| Two workers update the same knowledge concurrently | optimistic concurrency control |
+| Source revision 19 arrives after revision 20 | ordering and checkpointing |
+| Version row succeeds but chunk writes fail | transactions and consistency |
+| Historical versions remain stored | immutable history + current-state projection |
+| Exact product code search works, paraphrases do not | lexical vs semantic retrieval |
+| Search works technically but returns poor evidence | offline retrieval evaluation |
+| A user loses permission but an old index still exposes content | authorization and freshness |
 
 ---
 
-# 2. Concept map
+# 1. Source identity, duplicate delivery, and idempotency
 
-| Concept | Problem it solves | Typical technique |
-| --- | --- | --- |
-| Stable identity | Same object arrives repeatedly | source ID / knowledge ID |
-| Hashing | Efficient deterministic equality check | SHA-256 fingerprint |
-| Canonicalization | Ignore irrelevant representation changes | deterministic normalization |
-| Versioning | Preserve meaningful state changes | immutable versions + current pointer |
-| Idempotency | Same operation happens more than once | idempotency / ingestion fingerprint |
-| Optimistic concurrency | Two writers update the same state | expected-state / compare-and-swap |
-| Event ordering | Older update arrives after newer one | source version / sequence / checkpoint |
-| Transactions | Related writes must succeed together | atomic DB transaction |
-| Access control | Prevent unauthorized retrieval | tenant/group filtering |
-| Chunking | Define retrieval-sized evidence units | structural chunking |
-| Lexical retrieval | Exact term / code / identifier search | inverted index + BM25 |
-| Embeddings | Represent semantic similarity | embedding model |
-| Vector search | Find semantically nearby chunks | cosine/dot-product + vector index |
-| Hybrid retrieval | Combine exact and semantic strengths | rank fusion / reranking |
-| Checkpointing | Resume long-running syncs | cursor / delta token / checkpoint |
-| Evaluation | Know whether retrieval actually works | golden set + Recall@K / MRR |
-| Observability | Diagnose where the pipeline failed | run state, logs, metrics, traces |
-| Migration | Change algorithms/models safely | dual-write / backfill / rebaseline |
+## Production scenario
+
+A SharePoint synchronization job is reading changes using Microsoft Graph delta queries. The same `DriveItem` can appear more than once in a delta feed, and a worker can also see the same item again after retries or a restart. Microsoft recommends tracking items by ID and following `@odata.nextLink` until a `@odata.deltaLink` is returned.
+
+This is not unusual distributed-system behavior. At-least-once delivery systems such as standard Amazon SQS can also deliver the same message more than once, so consumers are expected to be idempotent.
+
+### Interviewer
+
+**“Your sync job receives the same document twice. How do you stop it from creating duplicate knowledge versions?”**
+
+### Candidate
+
+> “I separate source identity from processing identity. The source connector gives me a stable source-system namespace and source-record ID, so I know which enterprise object I am looking at. I also compute an ingestion fingerprint for the exact captured state. Before running the expensive pipeline, I check whether that knowledge ID plus ingestion fingerprint has already completed successfully. If it has, I return the previous result rather than create another version or another set of chunks.
+>
+> “That makes duplicate delivery safe. I do not assume exactly-once delivery from the source or queue; I make the consumer idempotent.”
+
+```mermaid
+flowchart TD
+    A[Incoming source capture] --> B[Stable source ID + ingestion fingerprint]
+    B --> C{Completed before?}
+    C -->|Yes| D[Return previous result\nNo duplicate business effect]
+    C -->|No| E[Start ingestion run]
+    E --> F[Parse → normalize → reconcile]
+```
+
+### Interviewer follow-up: “What exactly is the idempotency key?”
+
+For Tropos, the useful distinction is:
+
+```text
+source identity
+= source_system + source_record_id
+
+capture / ingestion identity
+= deterministic fingerprint of the captured source envelope + payload
+```
+
+The source identity answers **“which enterprise object is this?”**. The ingestion fingerprint answers **“have I already processed this exact captured state?”**.
+
+### Failure without idempotency
+
+```text
+SharePoint item 456
+        ↓
+worker processes revision
+        ↓
+worker crashes before checkpoint advances
+        ↓
+sync resumes
+        ↓
+item 456 appears again
+        ↓
+without idempotency:
+duplicate version / duplicate chunks / duplicate embedding cost
+```
+
+### Transferable pattern
+
+Use the same reasoning for payment APIs, file uploads, webhook consumers, job queues, or batch pipelines: retries are normal; repeated execution must not create unintended extra effects.
+
+### Industry references
+
+- Microsoft Graph DriveItem delta: <https://learn.microsoft.com/en-us/graph/api/driveitem-delta?view=graph-rest-1.0>
+- Amazon SQS at-least-once delivery: <https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues-at-least-once-delivery.html>
 
 ---
 
-# 3. Identity, hashing, and canonicalization
+# 2. Parsing: turning many file formats into one internal representation
 
-<details open>
-<summary><strong>Try this question: “What is hashing, and why would you use it in a knowledge-ingestion system?”</strong></summary>
+## Production scenario
 
-### What the interviewer is testing
+SharePoint can give you DOCX, HTML, Markdown, or plain text. A versioning system cannot compare those formats meaningfully if each downstream component understands files differently.
 
-Whether you understand hashing as a reusable systems primitive rather than as a Tropos-specific implementation detail.
+The first problem is therefore not “is this a new version?” It is:
 
-### Sample answer
+> **What information is actually inside this source artifact?**
 
-**Candidate:** “I’d first separate hashing from semantic understanding. A hash function takes arbitrary input and produces a fixed-size digest. For our ingestion flow, the useful properties are determinism and efficient comparison: the same canonical input gives the same digest, while a changed input will almost always produce a different digest.”
+### Interviewer
 
-**Candidate:** “The important design choice is what I hash. If I hash the raw DOCX bytes, a harmless formatting change may produce a different hash. So I first normalize the content into a deterministic canonical representation and then hash that representation. The hash becomes a compact fingerprint for equality.”
+**“Walk me through how you parse a DOCX or HTML file before versioning it.”**
+
+### Candidate
+
+> “I keep source acquisition and file-format parsing separate. The connector is responsible for fetching the source item and its metadata. A parser then converts the source bytes into a common extracted-text structure.
+>
+> “For DOCX, I treat the file as an Open Packaging Convention ZIP. I read `word/document.xml`, parse the XML, walk paragraph and table nodes, and preserve useful structure such as headings, lists, paragraphs, and tables. For HTML, I parse tags, skip non-content elements such as script and style, and map headings, paragraphs, and list items into the same markdown-like intermediate representation. Plain text and Markdown take simpler paths.
+>
+> “The output of parsing is not yet the canonical version. It is simply a format-independent extracted representation that the normalizer can process deterministically.”
 
 ```mermaid
 flowchart LR
-    R[Raw document] --> N[Normalize]
-    N --> C[Canonical representation]
-    C --> H[SHA-256]
-    H --> F[Content fingerprint]
+    D[DOCX] --> DP[ZIP + XML parser]
+    H[HTML] --> HP[HTML parser]
+    M[Markdown] --> MP[UTF-8 + heading parsing]
+    T[TXT] --> TP[UTF-8 decoding]
+    DP --> X[ExtractedKnowledgeText]
+    HP --> X
+    MP --> X
+    TP --> X
 ```
 
-**Candidate:** “So the hash is not deciding whether two documents mean the same thing. The normalization policy decides which differences matter; hashing just makes the resulting equality check cheap and easy to persist.”
+## What Tropos actually uses today
 
-### Strong follow-ups
+`DeterministicKnowledgeParser` uses only Python standard-library primitives:
 
-- Why not compare the full canonical text directly?
-- What is a hash collision?
-- When would you use cryptographic vs non-cryptographic hashing?
-- Why is password hashing a different problem?
-- Where else would you use content fingerprints: caches, dedupe, artifact verification, idempotency?
+| Format concern | Tool / module | What it does |
+| --- | --- | --- |
+| DOCX container | `zipfile.ZipFile`, `io.BytesIO` | opens DOCX as a ZIP package |
+| DOCX XML | `xml.etree.ElementTree` | reads WordprocessingML XML |
+| HTML | `html.parser.HTMLParser` | walks HTML tags and text |
+| text decoding | UTF-8 / UTF-8-SIG | converts source bytes to text |
+| structure matching | `re` | recognizes headings and styles |
 
-### Tropos translation
+Tropos specifically reads `word/document.xml`, optional `word/numbering.xml`, and optional core metadata. It maps heading styles, list numbering, paragraphs, and tables to a markdown-like structure.
 
-Tropos uses deterministic canonical serialization and a SHA-256 content fingerprint to compare canonical knowledge state.
+### Example: DOCX to common structure
 
-</details>
-
-<details>
-<summary><strong>Try this question: “Why normalize before hashing?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “Because raw representations contain noise. Two DOCX files can differ in whitespace, markup, line endings, or presentation while representing the same canonical text. If I hash first, I turn every representation difference into a version change.”
-
-**Candidate:** “So the order is deliberate: parse the source format, normalize into a stable internal representation, serialize that representation deterministically, and only then fingerprint it.”
+Conceptually, the DOCX may contain:
 
 ```text
-raw bytes
-  ↓
-parse format
-  ↓
-normalize structure/text
-  ↓
-canonical serialization
-  ↓
-hash
+Heading 1: Remote Work Policy
+Paragraph: Employees may work remotely two days per week.
+Bullet: Manager approval required.
 ```
 
-**Candidate:** “The trade-off is that normalization itself becomes part of the system’s business semantics. If I normalize too aggressively, I can erase meaningful differences. That is why the normalization strategy is versioned.”
+The parser emits something close to:
 
-### Reusable principle
+```markdown
+# Remote Work Policy
 
-> **Canonicalization defines equality. Hashing only accelerates the comparison.**
+Employees may work remotely two days per week.
 
-</details>
+- Manager approval required.
+```
+
+Now HTML, DOCX, and Markdown can converge onto a common downstream model.
+
+### Interviewer follow-up: “Would you keep writing parsers yourself in production?”
+
+> “Not indefinitely. The current parser is intentionally small and deterministic because the supported formats are bounded. If the platform expands to PDF, PowerPoint, Excel, email attachments, OCR, and hundreds of enterprise formats, I would evaluate a mature extraction layer such as Apache Tika or a managed document-extraction service. The architecture boundary should stay the same even if the implementation changes.”
+
+Apache Tika exposes text and metadata extraction across more than a thousand file types through a common interface, which is the kind of capability a broader enterprise ingestion layer eventually needs.
+
+### Industry reference
+
+- Apache Tika: <https://tika.apache.org/docs/>
 
 ---
 
-# 4. Versioning and reconciliation
+# 3. Normalization and canonicalization: deciding what differences should matter
 
-<details open>
-<summary><strong>Try this question: “A new source document revision arrives. How do you decide whether to create a new knowledge version?”</strong></summary>
+## Production scenario
 
-### Clarify
+Two DOCX revisions can contain the same policy but differ in line endings, Unicode representation, extra blank lines, or trailing spaces.
 
-**Candidate:** “I’d distinguish source revision from canonical knowledge version. A source system can create a new revision for formatting, metadata, ACL, or business-content changes, and I don’t want all of those to create a new knowledge version.”
+Raw file bytes therefore answer:
 
-### Explain step-by-step
+> **“Are these exact files identical?”**
+
+but versioning needs to answer:
+
+> **“Is the knowledge representation materially different according to our rules?”**
+
+### Interviewer
+
+**“What exactly do you normalize, and how?”**
+
+### Candidate
+
+> “After parsing, I normalize deterministically. I do not ask an LLM to rewrite the text because version identity has to be reproducible. In our baseline I normalize Unicode to NFC, remove a BOM if present, standardize CRLF and CR line endings to LF, trim trailing spaces and tabs, collapse repeated blank lines, normalize inline whitespace, and then extract explicit structural blocks such as headings, paragraphs, and list items.
+>
+> “I then render those blocks into a canonical representation and serialize the structure deterministically. That canonical serialization is what I fingerprint for content identity.”
+
+```mermaid
+flowchart TD
+    A[Parsed text] --> B[Unicode NFC]
+    B --> C[Normalize line endings]
+    C --> D[Trim trailing whitespace]
+    D --> E[Collapse repeated blank lines]
+    E --> F[Normalize inline whitespace]
+    F --> G[Extract structural blocks]
+    G --> H[Canonical serialization]
+```
+
+## Concrete example
+
+Revision A:
+
+```text
+Remote Work Policy\r\n
+\r\n
+Employees may work remotely two days per week.
+```
+
+Revision B:
+
+```text
+Remote Work Policy\n
+\n
+\n
+Employees may work remotely two days per week.    
+```
+
+After normalization, both can become the same canonical structure:
+
+```text
+HEADING(level=1, text="Remote Work Policy")
+PARAGRAPH(text="Employees may work remotely two days per week.")
+```
+
+## What Tropos actually does
+
+`DeterministicKnowledgeNormalizer` uses:
+
+- `unicodedata.normalize("NFC", ...)`
+- deterministic newline normalization
+- trailing whitespace cleanup
+- repeated blank-line compaction
+- regex-based heading and list recognition
+- explicit `StructuralBlock` objects
+- stable JSON serialization with sorted keys
+
+A simplified canonical payload looks like:
+
+```json
+{
+  "blocks": [
+    {
+      "kind": "heading",
+      "level": 1,
+      "text": "Remote Work Policy"
+    },
+    {
+      "kind": "paragraph",
+      "level": null,
+      "text": "Employees may work remotely two days per week."
+    }
+  ],
+  "title": "Remote Work Policy"
+}
+```
+
+### Interviewer follow-up: “Why not normalize more aggressively?”
+
+> “Because normalization defines equality. If I start removing punctuation, lower-casing everything, reordering lists, or semantically rewriting sentences, I may collapse two business states that should remain distinct. Canonicalization is therefore a product/domain decision, not merely text cleanup, and the strategy itself has to be versioned.”
+
+### Reusable principle
+
+> **Canonicalization decides which differences matter. Everything downstream inherits that decision.**
+
+---
+
+# 4. Hashing and fingerprints: efficient equality after canonicalization
+
+## Production scenario
+
+Once two large documents have been converted into deterministic canonical representations, the system needs an efficient way to compare them and store comparison state.
+
+### Interviewer
+
+**“What is the role of hashing in this design? Why not compare the full text?”**
+
+### Candidate
+
+> “A hash gives me a fixed-size deterministic digest for arbitrary input. In this design I use SHA-256 as a fingerprint of the canonical serialization. If the canonical input is identical, the fingerprint is identical. If the canonical input changes, the fingerprint will overwhelmingly likely change as well.
+>
+> “I could compare the entire canonical text directly, but a fingerprint is compact to persist and cheap to compare. The important point is that the hash is not deciding semantic sameness. The normalization policy decides the canonical representation; the hash only fingerprints it.”
+
+```mermaid
+flowchart LR
+    A[Raw source bytes] --> B[Parse]
+    B --> C[Normalize]
+    C --> D[Canonical serialization]
+    D --> E[SHA-256]
+    E --> F[content_fingerprint]
+```
+
+## Two different fingerprints answer two different questions
+
+```text
+raw_payload_fingerprint
+→ are the exact captured bytes identical?
+
+canonical content_fingerprint
+→ is the normalized canonical representation identical?
+```
+
+That distinction is why a harmless DOCX save can change raw bytes without creating a new knowledge version.
+
+### Interviewer follow-up: “Where else would you use hashing?”
+
+Strong examples:
+
+- file deduplication
+- content-addressed storage
+- cache keys
+- artifact integrity
+- deterministic change detection in data pipelines
+- idempotency keys derived from stable input
+- ETags / conditional update schemes conceptually
+
+Do not confuse this with password hashing. Password storage uses deliberately slow, salted password-hashing functions such as Argon2 or bcrypt; that is a different threat model.
+
+---
+
+# 5. Version reconciliation: source revision is not knowledge version
+
+## Production scenario
+
+SharePoint revision 18 arrives for an existing policy. It might represent:
+
+- only formatting changes;
+- a permission change;
+- an actual policy change;
+- or no meaningful change after normalization.
+
+### Interviewer
+
+**“A new source revision arrives. Walk me through exactly how you decide what to do.”**
+
+### Candidate
+
+> “First, I preserve the source revision as evidence, but I do not automatically create a knowledge version. I parse and normalize the source into a canonical candidate. From that candidate I derive three comparison dimensions: the content fingerprint, the access-policy fingerprint, and the normalization-strategy version. I load the current canonical state and compare them.
+>
+> “If there is no previous state, it is first-seen content and I create a version. If the normalization strategy changed, I stop and require a controlled rebaseline because the comparison rules themselves changed. If the content fingerprint changed, I create a new immutable content version and new chunks. If content is unchanged but access changed, I refresh governance only. If all three are unchanged, I no-op.”
 
 ```mermaid
 flowchart TD
@@ -173,43 +373,98 @@ flowchart TD
     B --> C[Parse]
     C --> D[Normalize]
     D --> E[Build candidate state]
-    E --> F{Compare with current state}
-    F -->|same content + same ACL| G[NO_CONTENT_VERSION]
-    F -->|same content + ACL changed| H[REFRESH_GOVERNANCE]
-    F -->|content changed| I[CREATE_VERSION]
-    F -->|normalizer changed| J[REBASELINE_REQUIRED]
+    E --> F{Previous state exists?}
+    F -->|No| G[CREATE_VERSION]
+    F -->|Yes| H{Normalizer changed?}
+    H -->|Yes| I[REBASELINE_REQUIRED]
+    H -->|No| J{Content fingerprint changed?}
+    J -->|Yes| K[CREATE_VERSION]
+    J -->|No| L{Access fingerprint changed?}
+    L -->|Yes| M[REFRESH_GOVERNANCE]
+    L -->|No| N[NO_CONTENT_VERSION]
 ```
 
-The comparison state contains three independent dimensions:
+## The comparison state
 
 ```text
-content_fingerprint
-access_fingerprint
-normalization_strategy_version
+CanonicalKnowledgeState
+├── content_fingerprint
+├── normalization_strategy_version
+└── access_fingerprint
 ```
 
-**Candidate:** “If the canonical content fingerprint changed, I create a new immutable content version and new chunks. If content is the same but access changed, I refresh governance without pretending the business content changed. If nothing changed, I no-op. If the normalization strategy itself changed, I treat it as a processing migration or rebaseline.”
+## Example 1: formatting only
 
-### Conclude
+Previous canonical text:
 
-**Candidate:** “The core principle is that a source-system version tells me something changed upstream; it does not tell me what changed semantically.”
+```text
+Employees may work remotely two days per week.
+```
 
-### Follow-ups
+Incoming source text:
 
-- Why preserve old versions?
-- How does retrieval know which version is current?
-- What if source version 19 arrives after source version 20?
-- What if the chunking algorithm changes?
-- What if the embedding model changes?
+```text
+Employees may work remotely   two days per week.   
+```
 
-</details>
+After normalization both produce the same canonical fingerprint.
 
-<details>
-<summary><strong>Try this question: “Why keep immutable history plus a current-state pointer?”</strong></summary>
+Result:
 
-### Sample answer
+```text
+NO_CONTENT_VERSION
+```
 
-**Candidate:** “I want both auditability and a simple answer to ‘what is active now?’ If I update rows in place, I lose evidence of previous states. If I keep every version but do not model current state explicitly, every consumer has to rediscover which version is active.”
+## Example 2: actual policy change
+
+Previous:
+
+```text
+Employees may work remotely two days per week.
+```
+
+Incoming:
+
+```text
+Employees may work remotely three days per week.
+```
+
+Canonical fingerprint changes.
+
+Result:
+
+```text
+CREATE_VERSION
+→ materialize new KnowledgeDocument
+→ create new chunks
+→ advance current state
+```
+
+## Example 3: permissions only
+
+Content fingerprint is unchanged, but allowed groups change from:
+
+```text
+["HR"]
+```
+
+to:
+
+```text
+["HR", "Managers"]
+```
+
+Result:
+
+```text
+REFRESH_GOVERNANCE
+```
+
+No fake content version is created.
+
+### Interviewer follow-up: “Why keep immutable history plus a current-state pointer?”
+
+> “The immutable version history answers ‘what existed before?’ for audit and rollback. The current-state projection answers ‘what should retrieval act on now?’ Historical rows can remain stored while retrieval joins against the current state so stale content is not served.”
 
 ```mermaid
 flowchart LR
@@ -219,131 +474,108 @@ flowchart LR
     S[knowledge_state] --> V3
 ```
 
-**Candidate:** “So the version table is append-oriented history, while `knowledge_state` is the current projection. Retrieval joins against the current state, which allows history to remain stored without stale versions becoming searchable.”
-
-### Reusable principle
-
-> **History answers ‘what happened?’; current state answers ‘what should the system act on now?’**
-
-</details>
-
 ---
 
-# 5. Duplicate processing and idempotency
+# 6. Conflict resolution: duplicate, concurrent, and out-of-order are different problems
 
-<details open>
-<summary><strong>Try this question: “What happens if the same source event is delivered twice?”</strong></summary>
+When an interviewer says **“How do you resolve conflicts?”**, do not jump immediately to one mechanism. Clarify which conflict class is meant.
 
-### Sample answer
+| Conflict class | Example | Mechanism |
+| --- | --- | --- |
+| duplicate processing | same capture handled twice | idempotency |
+| concurrent write | two workers both derive updates from state A | optimistic concurrency |
+| out-of-order source state | revision 19 arrives after 20 | ordering / source revision / checkpoint |
+| conflicting authorities | SharePoint and Jira disagree on same policy | ownership / precedence / human policy |
+| content + ACL change together | both content and governance moved | reconcile dimensions independently |
 
-**Candidate:** “I treat duplicate delivery as normal distributed-system behavior, not as an exceptional case. The ingestion command has a deterministic ingestion identity or fingerprint. Before processing, I check whether that knowledge ID and ingestion fingerprint already completed successfully.”
+## 6.1 Two workers update the same knowledge concurrently
 
-```mermaid
-flowchart TD
-    A[Incoming capture] --> B[Compute ingestion fingerprint]
-    B --> C{Completed before?}
-    C -->|yes| D[Return previous result\nreplayed=true]
-    C -->|no| E[Start ingestion]
-```
+### Interviewer
 
-**Candidate:** “That makes ingestion idempotent from the caller’s point of view: retrying the same capture does not create additional business effects.”
+**“Two workers both read the same current version and then receive different updates. What happens?”**
 
-### Follow-ups
+### Candidate
 
-- How do you choose an idempotency key?
-- How long should idempotency state be retained?
-- What if two identical requests arrive at exactly the same time?
-- What if the first request timed out after the server actually committed?
-
-### Reusable principle
-
-> **Retries are safe only when repeated execution is controlled.**
-
-</details>
-
----
-
-# 6. Conflict resolution and concurrency
-
-<details open>
-<summary><strong>Try this question: “How do you resolve conflicts if two workers update the same knowledge at the same time?”</strong></summary>
-
-### Clarify
-
-**Candidate:** “I’d first clarify the conflict class. Duplicate events, concurrent writers, and out-of-order source events are different problems. For two concurrent writers, the risk is a lost update.”
-
-### Explain step-by-step
-
-Assume both workers read current state `A`:
+> “The risk is a lost update. Suppose both workers read current state A. Worker 1 derives candidate B and Worker 2 derives candidate C. If they both write blindly, the second commit can overwrite the first worker’s state transition.
+>
+> “So the decision is tied to the state it was derived from. When a worker commits, it passes `expected_previous=A`. Inside the transaction the repository re-reads current state. Worker 1 sees A and commits B. Worker 2 then expects A but finds B, so its write is rejected with a concurrent-update error. It must re-read B and reconcile C again against the new current state.
+>
+> “That is optimistic concurrency control: allow work to proceed without holding a long-lived lock, but validate the assumption at commit time.”
 
 ```mermaid
 sequenceDiagram
     participant W1 as Worker 1
-    participant DB as Current state
+    participant DB as Knowledge state
     participant W2 as Worker 2
-    W1->>DB: Read A
-    W2->>DB: Read A
-    W1->>W1: Derive candidate B
-    W2->>W2: Derive candidate C
-    W1->>DB: Commit B only if current == A
-    DB-->>W1: Success, current = B
-    W2->>DB: Commit C only if current == A
-    DB-->>W2: Reject: expected A, found B
+    W1->>DB: Read current = A
+    W2->>DB: Read current = A
+    W1->>W1: Build candidate B
+    W2->>W2: Build candidate C
+    W1->>DB: Commit B if current == A
+    DB-->>W1: Success; current = B
+    W2->>DB: Commit C if current == A
+    DB-->>W2: Reject; expected A, found B
+    W2->>DB: Re-read current = B
+    W2->>W2: Reconcile C against B
 ```
 
-**Candidate:** “The version decision is made against a specific previous state. At commit time, inside a database transaction, I re-read the current state. If it no longer matches `expected_previous`, I reject the write with a concurrent-update error instead of silently overwriting the newer state.”
+## What Tropos actually does
 
-**Candidate:** “The stale worker then has to re-read the new current state and reconcile its candidate again. That is optimistic concurrency control: assume conflicts are uncommon, but verify the assumption before commit.”
+`create_version(...)` starts a SQLite `BEGIN IMMEDIATE` transaction, reloads the current canonical state, and compares it with `expected_previous`. A mismatch raises `ConcurrentKnowledgeUpdateError` before the new version/chunks/current-state update is committed.
 
-### Why not auto-merge?
+The same expected-state pattern is used when refreshing governance.
 
-**Candidate:** “Because knowledge conflicts can encode business meaning. If one update says ‘three remote days’ and another says ‘four’, blindly merging is unsafe. The system can mechanically detect the conflict; deciding which business state wins may require source-order policy or human/business rules.”
+### Interviewer follow-up: “Why not automatically merge B and C?”
 
-### Follow-ups
+> “Because the conflict can encode business meaning. If B changes a policy from two days to three and C changes it to four, the system can safely detect the conflict but cannot infer which policy is authoritative. Automatic text merge is not the same as business conflict resolution.”
 
-- Why optimistic rather than pessimistic locking?
-- Where should retry happen?
-- What if conflicts are frequent?
-- How would this change in a distributed database?
-- What if two different source systems claim authority?
+### Interviewer follow-up: “When would pessimistic locking be better?”
 
-</details>
-
-<details>
-<summary><strong>Try this question: “What if an older event arrives after a newer event?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “That is not a concurrent-write problem; it is an ordering problem. Optimistic concurrency can prevent stale writes based on state changes, but if the system accepts source events without understanding their ordering, a delayed older revision could still be reconciled as if it were fresh.”
-
-**Candidate:** “For an enterprise sync system I would preserve source-native ordering information—revision number, sequence, delta cursor, or source-updated timestamp—and validate that the incoming source state is not older than the accepted source state.”
-
-```text
-source v20 accepted
-      ↓
-delayed source v19 arrives
-      ↓
-source-order check
-      ↓
-reject / archive / mark stale
-```
-
-### Reusable principle
-
-> **Concurrency control protects simultaneous state transitions; ordering control protects time sequence.**
-
-</details>
+> “If contention is high and retries become expensive, or if a critical transition must be serialized before substantial work is done, pessimistic locking can be justified. For relatively rare conflicts and expensive pre-processing, optimistic concurrency keeps lock duration small and the normal path simple.”
 
 ---
 
-# 7. Transactions and consistency
+# 7. Out-of-order events and sync checkpoints
 
-<details open>
-<summary><strong>Try this question: “Why do you need a transaction when creating a new knowledge version?”</strong></summary>
+## Production scenario
 
-### Sample answer
+Revision 20 is accepted. Later, because of queue delay or a resumed sync, revision 19 arrives.
 
-**Candidate:** “A version creation is not one write. It usually means inserting the canonical version, inserting its chunks, and advancing the current-state pointer. Those operations represent one business state transition.”
+Optimistic concurrency alone does not define whether revision 19 is newer or older in source-system time.
+
+### Interviewer
+
+**“What if an older source revision arrives after a newer one?”**
+
+### Candidate
+
+> “That is an ordering problem, not just a concurrent-write problem. I preserve source-native ordering information such as revision number, sequence, delta token, or source-updated timestamp. Before allowing the candidate to become current, I validate that the incoming source state is not older than the latest accepted source state.
+>
+> “For large enterprise syncs I would also persist a checkpoint or delta cursor so a worker can resume from a known synchronization boundary rather than repeatedly full-scan the source.”
+
+```mermaid
+flowchart TD
+    A[Accept source revision 20] --> B[Persist accepted source ordering state]
+    C[Delayed revision 19 arrives] --> D{Is 19 newer than accepted state?}
+    D -->|No| E[Reject / archive as stale]
+    D -->|Yes| F[Continue reconciliation]
+```
+
+## Microsoft Graph connection
+
+Graph delta synchronization returns `@odata.nextLink` while more pages remain and eventually an `@odata.deltaLink` representing the synchronization state for the next round. The same item may appear more than once, so sync logic needs stable IDs, checkpointing, and idempotent application of changes.
+
+### Current Tropos limitation
+
+Tropos currently preserves source version metadata and protects canonical writes with optimistic concurrency, but it does **not yet implement a full enterprise source-ordering and durable sync engine**. Delta cursors, deletion/tombstone handling, large backfills, and out-of-order source validation belong in that future layer.
+
+---
+
+# 8. Transactions: what must succeed together?
+
+## Production scenario
+
+Creating a knowledge version requires several writes:
 
 ```text
 insert version       ✅
@@ -351,564 +583,524 @@ insert chunks        ✅
 advance current      ❌
 ```
 
-**Candidate:** “Without an atomic transaction, a partial failure could leave the database in an internally inconsistent state. So I define a transactional boundary around the writes that must succeed or fail together.”
+Without a transaction, a crash can leave an internally inconsistent system.
 
-**Candidate:** “That does not automatically make external indexes or downstream services strongly consistent. If the search index is separate, I then have a second design question: synchronous indexing, outbox/eventual consistency, or reconciliation.”
+### Interviewer
 
-### Follow-ups
+**“Where is your transaction boundary, and why?”**
 
-- What is atomicity?
-- What is eventual consistency?
-- How would you repair DB/index divergence?
-- Would you use the outbox pattern?
-- How would you rebuild the search index?
+### Candidate
 
-</details>
-
----
-
-# 8. Parsing, normalization, and chunking
-
-<details>
-<summary><strong>Try this question: “What is the difference between parsing and normalization?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “Parsing answers ‘what does this source format contain?’ A DOCX parser, HTML parser, and plain-text parser convert different source formats into a common extracted representation.”
-
-**Candidate:** “Normalization answers a different question: ‘what stable representation should we use for identity and downstream processing?’ It standardizes structure and text after parsing.”
-
-```text
-DOCX / HTML / TXT
-      ↓ parsing
-Extracted text + structure
-      ↓ normalization
-Canonical knowledge representation
-```
-
-**Candidate:** “Keeping the two separate prevents source-specific logic from leaking into versioning and allows multiple connectors to reuse the same format parser.”
-
-</details>
-
-<details>
-<summary><strong>Try this question: “Why chunk documents at all?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “The whole document is often the wrong retrieval unit. A 40-page policy can contain many unrelated topics, while the user usually needs one specific piece of evidence. Chunking defines the unit the retriever can rank and the LLM can cite.”
-
-**Candidate:** “The trade-off is context versus specificity. Very small chunks can lose surrounding meaning; very large chunks dilute the relevant passage and consume more context window. Structural boundaries—headings, paragraphs, lists, sections—are usually better starting points than arbitrary byte cuts.”
-
-### Important follow-ups
-
-- Why overlap chunks?
-- When can overlap hurt?
-- How do tables/images change the problem?
-- How do chunk IDs remain traceable to source offsets?
-- Does rechunking create a new knowledge version? Usually no: it is processing lineage.
-
-</details>
-
----
-
-# 9. Retrieval fundamentals
-
-<details open>
-<summary><strong>Try this question: “Why start with BM25 instead of vector search?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “I would start by asking what retrieval failures matter. Enterprise knowledge contains exact identifiers, error codes, policy names, product codes, and acronyms. Lexical retrieval is strong when exact terms matter, and BM25 gives a deterministic, inexpensive baseline.”
-
-**Candidate:** “The second reason is experimental discipline. If I immediately introduce embeddings, ANN indexing, and hybrid fusion, I cannot tell which added complexity is improving quality. A lexical baseline plus a labeled eval set gives me a reference point.”
+> “I define the transaction around the state transition that must be atomic. For version creation, the new version row, its chunks, and the current-state update represent one logical commit. Either all of them succeed, or none should become visible as the new canonical state.
+>
+> “That protects database consistency. It does not automatically solve consistency with an external vector index or another service; if indexing becomes external, I would need an outbox/event-driven propagation and a reconciliation strategy.”
 
 ```mermaid
 flowchart LR
-    B[BM25 baseline] --> E[Evaluate]
-    E --> G{Semantic gap?}
-    G -->|yes| V[Add vector retriever]
-    V --> C[Compare on same eval set]
-    C --> H{Complementary strengths?}
-    H -->|yes| Y[Try hybrid]
+    T[BEGIN TRANSACTION]
+    --> V[Insert version]
+    --> C[Insert chunks]
+    --> S[Advance knowledge_state]
+    --> M[COMMIT]
 ```
 
-**Candidate:** “So the decision is not ‘BM25 is better than vectors.’ It is ‘establish the simplest measurable baseline, then add semantic retrieval when the data shows a gap.’”
+### Interviewer follow-ups
 
-</details>
-
-<details>
-<summary><strong>Try this question: “What is an inverted index?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “Instead of scanning every document for every query, an inverted index maps terms to the documents or chunks containing them. It is conceptually the reverse of storing document → words; it stores word → documents.”
-
-```text
-refund  → chunk 2, chunk 17, chunk 91
-invoice → chunk 8, chunk 17
-MFA     → chunk 3, chunk 44
-```
-
-**Candidate:** “A lexical ranking function such as BM25 then scores candidate documents using factors such as term frequency, rarity, and document length.”
-
-</details>
+- What if embedding generation happens outside the transaction?
+- How do you repair DB/index divergence?
+- Would you use an outbox pattern?
+- What is your source of truth during recovery?
 
 ---
 
-# 10. Embeddings and vector search
+# 9. Access control: content state and governance state evolve independently
 
-<details open>
-<summary><strong>Try this question: “What is an embedding?”</strong></summary>
+## Production scenario
 
-### Sample answer
+The policy text is unchanged, but an employee loses access to the SharePoint folder.
 
-**Candidate:** “An embedding model maps an input such as a chunk of text into a numeric vector. The useful property is that inputs with similar semantic meaning tend to be positioned closer together in that learned vector space.”
+If the retrieval index still serves the old ACL, you have a security problem even though “content freshness” is perfect.
 
-```text
-"work from home policy"
-        ↓ embedding model
-[0.12, -0.38, 0.71, ...]
+### Interviewer
+
+**“Why do you model access separately from content version?”**
+
+### Candidate
+
+> “Because permissions can change without business content changing, and permission revocation often needs to take effect immediately. I therefore fingerprint access policy separately from content identity. If only the ACL changes, I update the governance state and the current chunks’ authorization metadata without manufacturing a new content version.”
+
+Tropos uses tenant, scope, and allowed groups as the canonical access-policy state.
+
+```mermaid
+flowchart TD
+    A[Content fingerprint unchanged] --> B{Access fingerprint changed?}
+    B -->|No| C[No-op]
+    B -->|Yes| D[Refresh version/chunk governance]
+    D --> E[Update current access fingerprint]
 ```
 
-**Candidate:** “For retrieval, I embed both the stored knowledge chunks and the user query using a compatible embedding strategy, then rank chunks by vector similarity.”
+### Interviewer follow-up: “Why not retrieve globally and filter unauthorized results afterward?”
 
-**Candidate:** “The embedding model is not the index. The model decides how meaning is represented; the index decides how those vectors are searched efficiently.”
+> “Post-filtering can under-return relevant authorized evidence because unauthorized candidates may occupy the top-K before filtering. More importantly, unauthorized evidence should not cross the governed retrieval boundary. Authorization needs to constrain the eligible search space as early as the retrieval technology allows.”
 
-</details>
+---
 
-<details>
-<summary><strong>Try this question: “Embedding strategy vs indexing strategy — what is the difference?”</strong></summary>
+# 10. Retrieval: lexical first, semantic second, hybrid only with evidence
 
-### Sample answer
+## Production scenario
 
-**Candidate:** “I separate three decisions: chunking decides the unit of evidence, embedding decides the numeric representation of meaning, and vector indexing decides how to search many vectors efficiently.”
+A support engineer searches for an exact error code such as `AADSTS50076`. BM25 works well because the identifier is explicit. Another user asks “Can I work from home?” while the policy says “Employees may perform duties away from company premises.” Exact lexical matching may miss it.
+
+### Interviewer
+
+**“Why did you start with BM25 instead of going directly to vector search?”**
+
+### Candidate
+
+> “I wanted a deterministic lexical baseline before adding another retrieval variable. BM25 is strong for exact names, identifiers, acronyms, product codes, and policy terminology. I then evaluate that baseline against labeled queries. If semantic/paraphrase cases systematically miss, I have evidence to justify vector retrieval rather than adding it because it is fashionable.”
+
+Tropos currently uses SQLite FTS5 with BM25 ranking over current authorized chunks.
+
+SQLite’s FTS5 documentation exposes a built-in `bm25()` ranking function; Tropos also weights title matches above body text.
+
+### Interviewer
+
+**“What is the difference between embeddings and vector indexing?”**
+
+### Candidate
+
+> “Embeddings decide how text is represented numerically in a semantic space. Vector indexing decides how those vectors are searched efficiently. They are separate concerns. I can evaluate an embedding model using exact flat similarity search on a small corpus before introducing HNSW or IVF. That isolates semantic quality from approximate-index behavior.”
 
 ```mermaid
 flowchart LR
-    D[Document] --> C[Chunking strategy]
-    C --> K[KnowledgeChunk]
-    K --> E[Embedding strategy]
-    E --> V[Vector]
-    V --> I[Index/search strategy]
-    I --> R[Nearest chunks]
+    C[KnowledgeChunk] --> EP[Embedding provider]
+    EP --> V[Embedding vector]
+    V --> X[Exact similarity baseline]
+    X --> R[Ranked chunks]
+
+    V -. later at scale .-> H[HNSW / IVFFlat]
 ```
 
-**Candidate:** “That separation lets me evaluate semantic quality using exact flat search before introducing ANN structures such as HNSW. Otherwise a miss could be caused either by a poor embedding or by approximate-index behavior.”
+### Why exact search first?
 
-### Reusable principle
-
-> **Representation quality and search scalability are different problems.**
-
-</details>
-
-<details>
-<summary><strong>Try this question: “What happens if you change the embedding model?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “Different embedding models create different coordinate spaces, so I cannot safely compare document vectors from model A with a query vector from model B. A model change therefore requires re-embedding the corpus.”
-
-**Candidate:** “But I would not create a new business-content version. The knowledge did not change; its processing representation changed. I would version the embedding strategy and allow old and new embedding generations to coexist during migration.”
+If a semantic result is poor after adding HNSW immediately, several variables could be responsible:
 
 ```text
-KnowledgeChunk 42
-   ├── embedding-v1
-   └── embedding-v2
+embedding model?
+chunk quality?
+distance metric?
+ANN approximation?
+index parameters?
 ```
 
-**Candidate:** “Then I can evaluate v2, switch retrieval traffic when it meets the quality bar, and retire v1 later.”
+Exact similarity removes the ANN approximation variable while the corpus is small.
 
-</details>
+### Later scale trade-off
+
+Vector systems such as pgvector expose both HNSW and IVFFlat. HNSW generally uses more memory and has slower builds but offers stronger query speed/recall trade-offs; IVFFlat uses less memory and builds faster but requires cluster/list/probe tuning.
+
+### Industry references
+
+- SQLite FTS5 / BM25: <https://www.sqlite.org/fts5.html>
+- pgvector HNSW / IVFFlat: <https://github.com/pgvector/pgvector>
 
 ---
 
-# 11. Access control and governance
+# 11. Embedding model changes are processing changes, not knowledge changes
 
-<details open>
-<summary><strong>Try this question: “Should you retrieve globally and filter unauthorized results afterward?”</strong></summary>
+## Production scenario
 
-### Sample answer
+The policy text has not changed, but the platform migrates from embedding model A to embedding model B.
 
-**Candidate:** “I would avoid post-filtering as the default. Authorization should constrain the retrieval candidate set where possible.”
+### Interviewer
 
-**Candidate:** “There are two problems with global top-K followed by filtering. First, unauthorized chunks can occupy top-K positions and push authorized relevant evidence out of the result set. Second, I want a clean security invariant: unauthorized evidence should never cross the governed retrieval boundary.”
+**“Do you create a new knowledge version when the embedding model changes?”**
+
+### Candidate
+
+> “No. The business content did not change. The embedding is derived processing state. I version the embedding strategy and model separately, re-embed the existing chunks, evaluate the new retrieval strategy, and cut over only when the new generation is ready.”
+
+```mermaid
+flowchart TD
+    K[KnowledgeDocument v7] --> C[Chunk]
+    C --> E1[embedding-model-v1]
+    C --> E2[embedding-model-v2]
+    E1 --> I1[vector generation 1]
+    E2 --> I2[vector generation 2]
+```
+
+### Migration shape
+
+```text
+current index = embedding-v1
+        ↓
+backfill embedding-v2 in parallel
+        ↓
+run same evaluation corpus against v1 and v2
+        ↓
+cut traffic when v2 is acceptable
+        ↓
+retire v1 later
+```
+
+This is an example of **processing lineage** being separate from **content lineage**.
+
+---
+
+# 12. Retrieval evaluation: “working” is not the same as “good”
+
+## Production scenario
+
+The search endpoint returns HTTP 200 and five results. None of the five answers the user’s question.
+
+Software correctness passed. Product quality failed.
+
+### Interviewer
+
+**“How do you know your retrieval system is actually good?”**
+
+### Candidate
+
+> “I maintain a versioned labeled dataset containing queries and the knowledge items expected to be relevant. I run the real ingestion and retrieval pipeline against it and compute ranking metrics such as Recall@K and MRR. I also include explicit no-answer and access-control cases.
+>
+> “That lets me compare retrieval strategies on the same corpus—for example BM25 versus vector—rather than relying on a few hand-picked demos.”
 
 ```mermaid
 flowchart LR
-    Q[Query + access context]
-    --> A[Authorized candidate space]
-    --> S[Search / rank]
-    --> R[Returned evidence]
+    G[Golden corpus\nqueries + labels] --> B[BM25]
+    G --> V[Vector]
+    B --> E[Evaluator]
+    V --> E
+    E --> M[Recall@K / MRR / no-answer / ACL]
 ```
 
-**Candidate:** “The exact implementation depends on the search engine, but tenant and group constraints are part of retrieval semantics, not merely a UI filter.”
+Tropos V1 deliberately includes semantic/paraphrase misses so that the baseline reveals a real reason to test semantic retrieval.
 
-### Follow-ups
-
-- How fast must permission revocation propagate?
-- What if source ACLs cannot be mapped?
-- How do you test cross-tenant leakage?
-- What if vector infrastructure only supports post-filtering?
-
-</details>
-
----
-
-# 12. Enterprise synchronization
-
-<details open>
-<summary><strong>Try this question: “What is the difference between a connector and a sync engine?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “A connector knows how to talk to one source and translate a source record into our ingestion contract. A sync engine coordinates large-scale change discovery over time.”
-
-```mermaid
-flowchart LR
-    S[Source API] --> C[Connector]
-    C --> R[SourceCapture]
-    R --> I[Ingestion]
-
-    X[Sync engine] --> P[Pagination]
-    X --> D[Delta discovery]
-    X --> K[Checkpoint]
-    X --> T[Retry / rate limit]
-    X --> Z[Deletion handling]
-    X --> C
-```
-
-**Candidate:** “So `capture(record_id)` is useful, but enterprise synchronization also needs discovery, pagination, checkpoints, resumability, deletion/tombstone handling, rate limits, and backfill.”
-
-</details>
-
-<details>
-<summary><strong>Try this question: “How would you resume a five-million-document sync after failure?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “I would avoid treating the whole sync as one transaction. I would process bounded pages or batches and persist a checkpoint only after the corresponding batch is durably accepted.”
+### Important distinction
 
 ```text
-page 1 → ingest → commit checkpoint 1
-page 2 → ingest → commit checkpoint 2
-page 3 → failure
-restart → resume from checkpoint 2
+CODE QUALITY
+unit tests / integration tests / typing / linting
+
+SYSTEM CORRECTNESS
+tenant leakage / stale leakage / idempotency / failure behavior
+
+RETRIEVAL QUALITY
+Recall@K / MRR / semantic misses / no-answer behavior
 ```
 
-**Candidate:** “The checkpoint might be a source delta token, cursor, page token, or sequence position depending on the source API. The key invariant is that the checkpoint cannot advance beyond durable work, otherwise a restart can skip data.”
-
-</details>
+High code coverage does not imply high retrieval recall, and high average recall cannot excuse an authorization leak.
 
 ---
 
-# 13. Retries and backoff
+# 13. Observability: how do you debug “this document cannot be found”?
 
-<details>
-<summary><strong>Try this question: “Which failures should you retry?”</strong></summary>
+### Interviewer
 
-### Sample answer
+**“A user says a document exists in SharePoint but Tropos cannot retrieve it. How would you debug it?”**
 
-**Candidate:** “I separate transient failures from terminal failures. A timeout, temporary 503, or explicit rate limit may succeed later, so those are candidates for bounded retry. Invalid credentials, malformed input, or a permanently missing resource usually require intervention rather than repeated calls.”
+### Candidate
 
-**Candidate:** “For transient failures I use bounded exponential backoff and honor `Retry-After` when the dependency provides it. In a larger distributed system I would usually add jitter so many workers do not retry in lockstep.”
-
-### Reusable principle
-
-> **Retry only when the failure mode is plausibly temporary, and make the underlying operation idempotent.**
-
-</details>
-
----
-
-# 14. Evaluation
-
-<details open>
-<summary><strong>Try this question: “How do you know your retriever is actually good?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “A passing API test only tells me the retriever executed correctly. It does not tell me whether it found the right evidence. I need a labeled evaluation set containing a corpus, representative queries, and known relevant knowledge.”
+> “I trace the item through each persisted boundary rather than jump directly to search. First, was the source item captured? Did parsing succeed? What normalized fingerprint was produced? Was a version created or no-op’d? Were chunks persisted? Is the expected version current? Is the user authorized? Is the chunk present in the retrieval index? Finally, how did the query rank it?”
 
 ```mermaid
-flowchart LR
-    G[Golden corpus + queries + labels]
-    --> R[Run retriever]
-    --> C[Compare actual vs expected]
-    --> M[Recall@K / MRR / precision / no-answer]
-    --> Q[CI regression gate]
+flowchart TD
+    A[Source item exists] --> B{Captured?}
+    B -->|No| B1[Connector / sync problem]
+    B -->|Yes| C{Parsed?}
+    C -->|No| C1[Format/parser failure]
+    C -->|Yes| D{Version/chunks persisted?}
+    D -->|No| D1[Normalization/version/persistence]
+    D -->|Yes| E{Current + authorized?}
+    E -->|No| E1[State/ACL problem]
+    E -->|Yes| F{Indexed/retrievable?}
+    F -->|No| F1[Index freshness problem]
+    F -->|Yes| G[Ranking / query-quality problem]
 ```
 
-**Candidate:** “Recall@K tells me whether expected evidence appears within the first K results. MRR tells me how high the first relevant result appears. I keep security cases separate: cross-tenant leakage is not something I average into a 92% score; it is a release blocker.”
+Useful operational metrics eventually include:
 
-### Follow-ups
-
-- What is a golden dataset?
-- Who labels relevance?
-- Why use a held-out set?
-- When would you use nDCG?
-- How do you avoid tuning only to the eval set?
-- How do you compare BM25 vs vector fairly?
-
-</details>
-
----
-
-# 15. Observability and operations
-
-<details>
-<summary><strong>Try this question: “A user says a document is missing from search. How do you debug it?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “I want the ingestion pipeline to expose enough lineage to trace one source record end-to-end. I would check the last source capture, ingestion run state, parser output, canonical version decision, chunk persistence, current-state pointer, index state, and finally retrieval authorization/ranking.”
-
-```text
-source capture
-→ ingestion run
-→ parse
-→ normalize
-→ version decision
-→ chunks
-→ current state
-→ index
-→ retrieval
-```
-
-**Candidate:** “This is why observability is a product capability rather than just logging. A multi-stage knowledge pipeline needs run IDs, stage transitions, errors, latency, and source/knowledge identifiers that can be correlated.”
-
-### Useful metrics
-
-- sync lag
-- ingestion success/failure rate
+- source sync lag
+- ingestion throughput and failures
 - retry count
-- records processed per minute
+- parsing failures by content type
+- version-create vs no-op ratio
+- stale/current-state inconsistencies
 - indexing lag
 - retrieval p50/p95 latency
-- Recall@K / MRR
-- cross-tenant leakage
-- stale-version leakage
-- embedding/model cost
-
-</details>
+- Recall@K / MRR regression
+- access-control violations: zero tolerance
+- embedding cost and throughput
 
 ---
 
-# 16. Migration and scale
+# 14. Source connector vs sync engine
 
-<details>
-<summary><strong>Try this question: “How would you move from flat vector search to HNSW?”</strong></summary>
+A connector that can fetch one record is not yet an enterprise synchronization system.
 
-### Sample answer
+```text
+CONNECTOR
+fetch one source record
+translate source metadata + ACL
+produce SourceCapture
 
-**Candidate:** “I would treat that as an indexing migration, not an embedding migration. I would keep the same embeddings and establish exact search as the quality reference. Then I would build HNSW in parallel and compare ANN recall and latency against exact search.”
+SYNC ENGINE
+discover records
+paginate
+track deltas
+persist checkpoints
+retry
+rate-limit
+handle deletions/tombstones
+resume after failure
+backfill millions of records
+```
 
-**Candidate:** “The trade-off is speed and memory versus approximation. I would not accept the index because it is fashionable; I would accept it when corpus size makes exact scan too expensive and the measured recall loss is within our quality bar.”
+### Interviewer
 
-### Metrics to compare
+**“How would you ingest 10 million SharePoint documents without scanning all 10 million every hour?”**
 
-| Quality | Operations |
-| --- | --- |
-| Recall@K | p50/p95 latency |
-| ANN recall vs exact | index build time |
-| MRR | memory |
-| security filter correctness | storage / cost |
+### Candidate
 
-</details>
-
-<details>
-<summary><strong>Try this question: “What changes when you go from 10,000 to 100 million chunks?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “I would revisit assumptions rather than just swap technologies. At small scale, one SQLite store and exact vector scan may be enough. At 100 million chunks, ingestion throughput, partitioning, index build time, vector-search latency, tenant isolation, re-embedding cost, and recovery all become first-class constraints.”
-
-**Candidate:** “Likely changes include horizontal partitioning, dedicated search infrastructure, batch/stream ingestion, durable queues, checkpointed backfills, ANN indexes, and clearer SLOs. I would choose those based on measured bottlenecks and workload shape rather than preemptively introducing them.”
-
-</details>
+> “I would separate initial backfill from incremental synchronization. The initial pass enumerates the corpus in pages and persists checkpoints so it can resume. After baseline synchronization, I use the source’s change-tracking capability—such as Microsoft Graph delta tokens—to fetch only incremental changes. Each item is applied idempotently, and deletions are modeled explicitly as tombstones or state transitions rather than silently disappearing.”
 
 ---
 
-# 17. RAG and model-assistance questions
+# 15. RAG comes after governed retrieval
 
-<details>
-<summary><strong>Try this question: “What new failure modes appear when an LLM is added after retrieval?”</strong></summary>
-
-### Sample answer
-
-**Candidate:** “Retrieval correctness and generation correctness are separate. Even with good evidence, the model can misstate it, omit qualifiers, merge conflicting passages, or answer when it should abstain.”
-
-**Candidate:** “So I would add generation-specific controls: versioned prompts, bounded authorized context, citation/provenance requirements, structured output validation where appropriate, prompt-injection defenses, and evaluation for groundedness, answer relevance, task correctness, and abstention.”
+A knowledge platform becomes RAG only when retrieved evidence is fed to a model for generation.
 
 ```mermaid
 flowchart LR
-    Q[Question] --> R[Governed retrieval]
-    R --> E[Authorized evidence]
-    E --> P[Versioned prompt]
-    P --> M[LLM]
-    M --> V[Validate + cite]
-    V --> H[Human / application policy]
+    Q[User question]
+    --> R[Governed retrieval]
+    --> C[Selected context]
+    --> P[Versioned prompt]
+    --> L[LLM]
+    --> A[Answer + citations]
+    --> E[Generation evaluation]
 ```
 
-</details>
+New failure modes now appear:
+
+- retrieval found the wrong evidence;
+- evidence was correct but the answer was unfaithful;
+- retrieved content contained prompt injection;
+- context exceeded the model window;
+- conflicting evidence was not surfaced;
+- the model answered despite insufficient evidence;
+- citations did not support the answer.
+
+### Interviewer
+
+**“How would you evaluate the generated answer separately from retrieval?”**
+
+### Candidate
+
+> “I keep retrieval evaluation and generation evaluation separate. Retrieval asks whether the right authorized evidence was found and ranked. Generation then measures whether the model used that evidence faithfully, answered the question, abstained when appropriate, and produced valid citations. Otherwise a strong LLM can hide a weak retriever, or a strong retriever can be blamed for an ungrounded generator.”
 
 ---
 
-# 18. Rapid-fire conceptual interview bank
+# 16. Code map: where these concepts exist in Tropos
 
-Use these for blank-page practice. Do not look at Tropos first; derive the answer from the problem.
+| Concept | Current implementation |
+| --- | --- |
+| source capture / ingestion orchestration | `core/application/ingestion/ingest_knowledge.py` |
+| raw record identity / fingerprints | `core/application/ingestion/raw_record.py` |
+| parsing contract | `core/application/ingestion/parsing.py` |
+| TXT / Markdown / HTML / DOCX parsing | `core/adapters/parsing/deterministic.py` |
+| normalized structure model | `core/application/ingestion/normalization.py` |
+| deterministic normalization + SHA-256 | `core/adapters/normalization/deterministic.py` |
+| version decision | `core/application/ingestion/versioning.py` |
+| optimistic concurrency + transactions | `core/adapters/persistence/sqlite.py` |
+| deterministic chunking | `core/adapters/chunking/deterministic.py` |
+| lexical retrieval | `core/adapters/retrieval/sqlite_fts.py` |
+| retrieval evaluation | `evals/retrieval.py` + `evals/retrieval/golden_v1.json` |
 
-## Identity and change
+---
 
-- What is the source of truth in a knowledge platform?
-- How do you know two records represent the same document?
-- How do you detect duplicate content across different source records?
-- When should a source revision create a canonical content version?
-- What should happen if only metadata changes?
-- What should happen if only permissions change?
-- What is the difference between content lineage and processing lineage?
-- What happens if the normalization algorithm changes?
+# 17. Interview drill set
 
-## Reliability
+The goal of these questions is to derive the mechanism, not recite a term.
 
-- What is idempotency?
-- What makes an API idempotent?
-- What happens if a timeout occurs after the server committed?
-- How do you prevent duplicate work from two workers?
-- What is optimistic concurrency?
-- What is pessimistic locking?
-- What is a lost update?
-- What is compare-and-swap?
-- How do you handle out-of-order events?
-- Where would you use a queue?
-- What is a dead-letter queue?
-- What is backpressure?
+## Identity and ingestion
 
-## Data and consistency
+1. A webhook delivers the same document update three times. What breaks if the consumer is not idempotent?
+2. What is the difference between source identity and content identity?
+3. What should go into an ingestion fingerprint?
+4. If the source system changes its record ID after a move, how would you preserve identity?
+5. When would content-based deduplication be dangerous?
 
-- What must be inside the same transaction?
-- What is strong consistency?
-- What is eventual consistency?
-- How do you reconcile a database and search index that disagree?
-- What is the outbox pattern?
-- How would you rebuild an index from source-of-truth storage?
-- How do schema migrations affect long-running workers?
+## Parsing and normalization
+
+6. What is parsing responsible for, and what must it not decide?
+7. How would you parse DOCX without an LLM?
+8. How would you support PDF and OCR later without rewriting versioning?
+9. Why is Unicode normalization relevant to deterministic fingerprints?
+10. What could go wrong if normalization is too aggressive?
+11. Why version the normalization strategy?
+
+## Hashing and versioning
+
+12. What is a cryptographic hash doing for us here?
+13. Why not hash raw DOCX bytes for knowledge identity?
+14. What is a hash collision, and how material is that risk compared with bad canonicalization?
+15. Source version changed but canonical fingerprint did not. What do you do?
+16. Content stayed the same but ACL changed. What do you do?
+17. Embedding model changed. Is that a knowledge version?
+18. Chunking strategy changed. Is that a knowledge version?
+
+## Concurrency and consistency
+
+19. Two workers read state A and derive B and C. Show the race.
+20. How does expected-state validation prevent a lost update?
+21. Why is this optimistic concurrency control?
+22. When would pessimistic locking be preferable?
+23. What happens after a concurrency conflict is detected?
+24. Why is automatic text merge not necessarily business conflict resolution?
+25. What exactly belongs inside the database transaction?
+26. How would you keep an external vector index consistent with the source-of-truth database?
+
+## Ordering and synchronization
+
+27. Revision 19 arrives after 20. Why does optimistic concurrency not fully solve this?
+28. What is a delta token or checkpoint?
+29. Why can the same source item legitimately appear multiple times in a delta feed?
+30. How do you resume a multi-million-record sync after a crash?
+31. How do you model source deletions?
+32. What happens when a checkpoint expires or becomes invalid?
 
 ## Retrieval
 
-- What is an inverted index?
-- How does BM25 differ from substring matching?
-- What is top-K retrieval?
-- What is semantic search?
-- What is cosine similarity?
-- Why can vector similarity scores not automatically be treated as probabilities?
-- What is exact nearest-neighbor search?
-- What is approximate nearest-neighbor search?
-- What is HNSW?
-- When would you use IVF or product quantization?
-- What is reranking?
-- What is reciprocal rank fusion?
+33. Why is BM25 useful even in an embedding-heavy RAG system?
+34. Where does BM25 fail?
+35. What exactly is an embedding?
+36. Why must query and document embeddings be compatible?
+37. Why test exact vector similarity before HNSW on a small corpus?
+38. What trade-off does ANN introduce?
+39. Why might hybrid retrieval outperform either lexical or semantic alone?
+40. Where should authorization filtering happen relative to ranking?
 
-## Enterprise governance
+## Evaluation and operations
 
-- Should authorization happen before or after retrieval?
-- How do source ACLs propagate to derived chunks?
-- What happens when access becomes more restrictive?
-- How do you prevent cross-tenant leakage?
-- How would you audit which evidence a user saw?
-- What do you do when a source permission model cannot be translated exactly?
-
-## Evaluation
-
-- What is Recall@K?
-- What is Precision@K?
-- What is MRR?
-- What is nDCG?
-- What is a golden dataset?
-- What is a held-out evaluation set?
-- Why can 100% test coverage coexist with poor retrieval quality?
-- How do you evaluate no-answer behavior?
-- Which metrics should be hard release blockers rather than averages?
-
-## Program / TPM follow-ups
-
-- What was the single most important system invariant?
-- Which design choice reduced the most risk?
-- Which trade-off did you knowingly accept?
-- What was deferred and why?
-- What would you change at 10x scale?
-- What is your migration path if the current storage choice stops scaling?
-- What metrics would you use to know the system is healthy?
-- Which dependency is most likely to become a bottleneck?
-- What is the rollback plan for a retrieval-strategy change?
-- What would you put behind a feature flag or staged rollout?
+41. What is Recall@K measuring?
+42. What is MRR measuring?
+43. Why keep no-answer cases separate?
+44. Why is code coverage not an AI-quality metric?
+45. What must remain zero-tolerance even if average recall improves?
+46. A document is in the database but not searchable. Walk the failure tree.
+47. Which metrics tell you the connector is healthy versus the retriever being healthy?
+48. How would you compare two embedding models without fooling yourself?
 
 ---
 
-# 19. The interview story to remember
+# 18. One end-to-end answer to rehearse
 
-Do not say:
+### Interviewer
 
-> “We built connectors, normalization, versioning, BM25, and evals.”
+**“Walk me through what happens when an enterprise document changes, including how you handle duplicates and conflicts.”**
 
-Say something closer to:
+### Candidate
 
-> “The core problem was making enterprise knowledge reliably consumable by downstream agents. We separated source identity from canonical knowledge identity because upstream revisions do not always represent meaningful content change. We used deterministic normalization and fingerprints to detect canonical changes, and kept access state independent because governance can change without content changing.
+> “I start with source identity rather than assuming every source revision is a new knowledge version. The connector captures the source-system namespace, stable source-record ID, source version, payload, permissions, and timestamps. I derive an ingestion fingerprint so replaying the exact capture is idempotent.
 >
-> We then addressed distributed-system failure modes. Ingestion fingerprints give us idempotency for duplicate delivery, while expected-state validation gives us optimistic concurrency for simultaneous writers. Historical versions remain immutable and a current-state projection determines what retrieval is allowed to serve.
+> “If it is new, I parse the source format into a common extracted representation. For DOCX that means reading the ZIP/XML structure; for HTML I walk semantic tags; for Markdown and text the path is simpler. I then deterministically normalize the result—Unicode NFC, line endings, whitespace, structural blocks—and serialize that canonical structure. SHA-256 of the canonical serialization becomes the content fingerprint.
 >
-> For retrieval we deliberately established BM25 as a measurable lexical baseline before adding semantic complexity. We built a labeled evaluation corpus, used it to expose semantic misses, and only then justified vector retrieval. We keep chunking, embedding, indexing, and retrieval strategy separate so each can evolve and be evaluated independently.”
+> “I compare the candidate fingerprint, access fingerprint, and normalization-strategy version with the persisted current state. Same content and same access is a no-op. ACL-only change refreshes governance. Content change creates a new immutable version and chunks. A normalization-strategy change requires a controlled rebaseline because the equality rules changed.
+>
+> “For concurrent writers, the version decision is tied to the state it was derived from. At commit time the repository re-reads current state inside the transaction and only commits if it still equals the expected previous state. If another worker already advanced it, we reject the stale write and reconcile again. That prevents lost updates through optimistic concurrency.
+>
+> “I keep historical versions for lineage, but retrieval joins against current state and enforces tenant/group authorization so stale or unauthorized chunks are not served. On top of that I have a lexical BM25 baseline and a labeled retrieval-evaluation set. Semantic retrieval is added only when measured paraphrase misses justify it.”
 
-That answer is useful because the underlying concepts transfer to many other systems:
+### If the interviewer says “go deeper”
+
+Choose the requested branch rather than repeat the summary:
 
 ```text
-canonicalization
-hashing
-versioning
-idempotency
-optimistic concurrency
-transactions
-state projections
-access control
-indexing
-evaluation
-migration
+“How do you parse DOCX?”
+→ ZIP / document.xml / XML tree / headings / lists / tables
+
+“How do you normalize?”
+→ Unicode NFC / line endings / whitespace / structural blocks / canonical JSON
+
+“How do you detect a change?”
+→ SHA-256 of canonical serialization vs current fingerprint
+
+“How do you resolve two writers?”
+→ expected_previous + transaction + re-read + reject stale write
+
+“What if old revision arrives late?”
+→ source ordering + delta/checkpoint state
+
+“What if permissions changed?”
+→ separate access fingerprint + governance refresh
+
+“What if embeddings change?”
+→ processing lineage + re-embedding, not content version
 ```
 
 ---
 
-# 20. Concept-foundation template for future feature PRs
+# 19. External reading tied to the problems above
 
-From now on, when a Tropos feature introduces a meaningful engineering concept, its learning note should answer:
+These are useful because each one demonstrates a production mechanism rather than just a definition.
 
-1. **Concept** — what is it?
-2. **Real-world problem** — what failure mode does it solve?
-3. **First-principles derivation** — how would we arrive at it from the problem?
-4. **Alternatives** — what other designs were available?
-5. **Trade-offs** — what did we gain and give up?
-6. **Tropos implementation** — where is it applied?
-7. **Failure cases** — how does it break?
-8. **Evaluation** — how do we know it works?
-9. **Interview probes** — what follow-up questions should we be ready for?
-10. **Scale / migration implication** — when would the choice need to change?
+| Topic | Reference | Why it matters |
+| --- | --- | --- |
+| incremental source sync | Microsoft Graph DriveItem delta | pagination, delta links, duplicate items, stable IDs |
+| duplicate delivery | Amazon SQS at-least-once delivery | why idempotent consumers are required |
+| multi-format extraction | Apache Tika | production-scale parsing abstraction |
+| lexical ranking | SQLite FTS5 | concrete BM25 implementation used by Tropos |
+| ANN vector indexing | pgvector | HNSW / IVFFlat speed-memory-recall trade-offs |
 
-This learning material should evolve in the same PR as the feature when the concept materially changes.
+Links:
+
+- <https://learn.microsoft.com/en-us/graph/api/driveitem-delta?view=graph-rest-1.0>
+- <https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues-at-least-once-delivery.html>
+- <https://tika.apache.org/docs/>
+- <https://www.sqlite.org/fts5.html>
+- <https://github.com/pgvector/pgvector>
 
 ---
 
-# References for interview structure
+# 20. The recurring design pattern
 
-These external resources informed the **answer structure and interview framing**, not the technical content of Tropos:
+When you meet an unfamiliar architecture question, reduce it to this chain:
 
-- IGotAnOffer — *How to answer system design interview questions*: clarify requirements, design at a high level, drill down, identify bottlenecks, and bring the solution together.
-- IGotAnOffer — *Technical Program Manager Interview Questions and Prep*: technical-explanation pattern of clarify → explain step-by-step → conclude/discuss.
-- Exponent/Aced — *Technical Program Manager Interview Prep*: clarify and scope, high-level architecture, deep dive, risks/trade-offs, and measurable success.
-- Exponent/Aced — TPM system-design question bank and company guides: architecture, end-to-end data flow, bottlenecks, scale, metrics, and trade-offs.
+```mermaid
+flowchart LR
+    P[Production problem]
+    --> F[Failure mode]
+    --> I[Invariant to protect]
+    --> O[Design options]
+    --> T[Trade-off]
+    --> M[Mechanism]
+    --> E[Evidence / metric]
+```
 
-## Related Tropos docs
+Example:
 
-- [Architecture overview](../architecture/ARCHITECTURE_OVERVIEW.md)
-- [Ingestion and normalization](../architecture/INGESTION_NORMALIZATION.md)
-- [Knowledge model](../architecture/KNOWLEDGE_MODEL.md)
-- [RAG architecture](../architecture/RAG_ARCHITECTURE.md)
-- [Evaluation strategy](../quality/EVAL_STRATEGY.md)
-- [Architecture decisions](../decisions/README.md)
+```text
+Problem:
+two workers update one document
+
+Failure mode:
+lost update
+
+Invariant:
+commit only if the state used to make the decision is still current
+
+Options:
+long-lived lock vs optimistic validation
+
+Trade-off:
+contention vs lock duration / retry cost
+
+Mechanism:
+expected_previous + transactional re-read
+
+Evidence:
+concurrency tests prove stale writes are rejected
+```
+
+That is the level at which Tropos becomes reusable engineering knowledge rather than something to memorize.
