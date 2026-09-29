@@ -16,9 +16,9 @@ flowchart LR
     --> Q[Interview questions]
 ```
 
-## Current guide
+## Current guides
 
-### [Enterprise Knowledge Systems — First-Principles Interview Guide](ENTERPRISE_KNOWLEDGE_SYSTEMS_INTERVIEW_GUIDE.md)
+### [Enterprise Knowledge Systems — Interview Playbook](ENTERPRISE_KNOWLEDGE_SYSTEMS_INTERVIEW_GUIDE.md)
 
 Use this for:
 
@@ -29,17 +29,32 @@ Use this for:
 - retrieval evaluation, migration, scale, and RAG failure modes;
 - interview-style questions and sample answers grounded in the Tropos architecture.
 
+### [Enterprise Knowledge Systems — Decision & Trade-off Matrix](DECISION_TRADEOFFS.md)
+
+Use this when the interviewer pushes beyond **what did you build?** into:
+
+- what alternatives did you consider?
+- why did you select this option at the current scale?
+- what did you give up by choosing it?
+- what production signal would make you revisit the decision?
+- how would the design migrate as scale, reliability, security, or product requirements change?
+
+The matrix covers the current and planned Tropos decisions around identity, idempotency, parsing, canonicalization, hashing, versioning, governance, concurrency, ordering, transactions, chunking, retrieval, authorization, evaluation, vector search, hybrid search, persistence, and enterprise synchronization.
+
 ## Working rule for future feature PRs
 
 When a feature introduces a meaningful reusable engineering concept, the same PR should update the relevant learning material with:
 
 1. the concept and vocabulary;
 2. the real-world failure mode it solves;
-3. the first-principles derivation;
-4. alternatives and trade-offs;
-5. the Tropos implementation;
-6. test/evaluation evidence;
-7. interview probes;
-8. scale, release, or migration implications.
+3. the invariant being protected;
+4. realistic alternatives considered;
+5. the selected decision and why it fits the current constraints;
+6. the downside / cost of the choice;
+7. the explicit revisit trigger;
+8. the Tropos implementation;
+9. test/evaluation evidence;
+10. interview probes;
+11. scale, release, or migration implications.
 
 Do not duplicate implementation reference material here. Link back to architecture docs and ADRs for the authoritative system state.
