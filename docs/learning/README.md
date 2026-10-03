@@ -58,3 +58,7 @@ When a feature introduces a meaningful reusable engineering concept, the same PR
 11. scale, release, or migration implications.
 
 Do not duplicate implementation reference material here. Link back to architecture docs and ADRs for the authoritative system state.
+
+## Local cleanup and external-operation consistency
+
+The [Katharo learning track](../../katharo/docs/learning/README.md) and [decision matrix](../../katharo/docs/learning/DECISION_TRADEOFFS.md) apply these concepts to exact file identity, document review, stale approvals, quarantine manifests, restore conflicts, and database/filesystem consistency.
