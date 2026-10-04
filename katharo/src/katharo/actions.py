@@ -3,6 +3,7 @@
 import json
 import os
 import shutil
+import tempfile
 import time
 from pathlib import Path
 from uuid import uuid4
@@ -33,6 +34,7 @@ class Actions:
             raise ReviewError("Quarantine must be outside the scanned folder and its parents.")
         if target.exists() and not target.is_dir():
             raise ReviewError("Quarantine destination must be a folder.")
+        self.check_destination(target)
         records = {f["id"]: f for f in scan["files"]}
         items = []
         for group in scan["groups"]:
@@ -63,6 +65,25 @@ class Actions:
         self.store.save("plan", plan)
         return plan
 
+    @staticmethod
+    def check_destination(target: Path) -> None:
+        """Exercise directory creation, writes and rename before requesting consent."""
+        try:
+            target.mkdir(parents=True, exist_ok=True)
+            guarded_path(target)
+            with tempfile.TemporaryDirectory(prefix=".katharo-check-", dir=target) as folder:
+                probe = Path(folder) / "write.tmp"
+                with probe.open("xb") as stream:
+                    stream.write(b"Katharo destination check")
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                probe.rename(probe.with_suffix(".verified"))
+        except OSError as exc:
+            raise ReviewError(
+                f"Cannot write to quarantine folder: {target}. "
+                "Choose another writable folder and validate again. No files were moved."
+            ) from exc
+
     def journal(self, plan: dict) -> None:
         self.store.save("plan", plan)
         manifest = Path(plan["destination"]) / plan["id"] / "manifest.json"
@@ -81,8 +102,18 @@ class Actions:
             raise ReviewError("This plan has already been attempted. Review history instead.")
         root = Path(plan["root"])
         target = guarded_path(Path(plan["destination"]))
+        self.check_destination(target)
         plan["status"] = "executing"
-        self.journal(plan)
+        try:
+            self.journal(plan)
+        except OSError as exc:
+            plan["status"] = "blocked"
+            plan["error"] = "Could not create quarantine manifest. No files were moved."
+            self.store.save("plan", plan)
+            raise ReviewError(
+                "Could not create quarantine manifest. No files were moved. "
+                "Choose a writable folder and validate a new plan."
+            ) from exc
         for item in plan["items"]:
             try:
                 source = revalidate(item["file"], root)
