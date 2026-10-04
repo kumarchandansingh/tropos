@@ -62,3 +62,7 @@ Do not duplicate implementation reference material here. Link back to architectu
 ## Local cleanup and external-operation consistency
 
 The [Katharo learning track](../../katharo/docs/learning/README.md) and [decision matrix](../../katharo/docs/learning/DECISION_TRADEOFFS.md) apply these concepts to exact file identity, document review, stale approvals, quarantine manifests, restore conflicts, and database/filesystem consistency.
+
+## Evaluation evidence
+
+[Evaluation evidence](EVALUATION_EVIDENCE.md) explains versioned test plans, immutable observations, errors versus relevance failures, independent evidence checks and the cost of isolated fixtures.

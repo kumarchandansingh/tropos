@@ -1,0 +1,440 @@
+{
+  "dataset_id": "tropos-retrieval-catalogue",
+  "label_scope": "knowledge_id",
+  "notes": "Synthetic baseline corpus. It is intentionally small and includes lexical wins, semantic misses, access-boundary cases, and no-answer cases. It is not a production accuracy claim.",
+  "documents": [
+    {
+      "knowledge_id": "refund-policy",
+      "text": "# Refund policy\n\nEligible purchases may be refunded within fourteen days of the transaction date.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "parental-leave",
+      "text": "# Parental leave\n\nEligible employees receive sixteen weeks of parental leave following birth or adoption.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "invoice-dispute",
+      "text": "# Invoice dispute\n\nRoute an invoice dispute to billing operations with the invoice number and disputed line items.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "travel-expense",
+      "text": "# Travel expense claim\n\nAttach the hotel receipt to the expense claim before submitting it for reimbursement.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "priority-incident",
+      "text": "# Priority incident runbook\n\nOpen the coordination bridge and notify the incident lead for a priority-one outage.",
+      "tenant_id": "tenant-a",
+      "scope": "restricted",
+      "allowed_groups": [
+        "support-leads"
+      ],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "subscription-cancel",
+      "text": "# Subscription cancellation\n\nCancel an annual subscription from the billing settings page before the renewal date.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "shipment-tracking",
+      "text": "# Shipment tracking\n\nUse the tracking number on the carrier page to view the current shipment location.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "purchase-order",
+      "text": "# Purchase order approval\n\nPurchase orders above the approval threshold require finance review before release.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "flexible-location-guidance",
+      "text": "# Flexible location guidance\n\nEmployees may perform their duties away from company premises for up to two days each week.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "late-delivery-trace",
+      "text": "# Delivery trace\n\nWhen a parcel remains undelivered beyond the promised date, open a carrier trace with logistics.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "expense-code",
+      "text": "# FIN-042\n\nFIN-042 covers expense approval and supporting receipts.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "lexical-refund",
+      "query": "refund fourteen days transaction",
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "relevant_knowledge_ids": [
+        "refund-policy"
+      ],
+      "tags": [
+        "answerable",
+        "lexical"
+      ],
+      "purpose": "Find the expected knowledge for this business question.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "lexical-parental-leave",
+      "query": "sixteen weeks parental leave",
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "relevant_knowledge_ids": [
+        "parental-leave"
+      ],
+      "tags": [
+        "answerable",
+        "lexical"
+      ],
+      "purpose": "Find the expected knowledge for this business question.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "lexical-invoice",
+      "query": "invoice dispute billing operations",
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "relevant_knowledge_ids": [
+        "invoice-dispute"
+      ],
+      "tags": [
+        "answerable",
+        "lexical"
+      ],
+      "purpose": "Find the expected knowledge for this business question.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "lexical-expense",
+      "query": "hotel receipt expense claim",
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "relevant_knowledge_ids": [
+        "travel-expense"
+      ],
+      "tags": [
+        "answerable",
+        "lexical"
+      ],
+      "purpose": "Find the expected knowledge for this business question.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "lexical-priority-incident",
+      "query": "priority-one coordination bridge",
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-leads"
+      ],
+      "relevant_knowledge_ids": [
+        "priority-incident"
+      ],
+      "tags": [
+        "answerable",
+        "lexical",
+        "restricted"
+      ],
+      "purpose": "Find the expected knowledge for this business question.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "lexical-subscription",
+      "query": "annual subscription renewal date",
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "relevant_knowledge_ids": [
+        "subscription-cancel"
+      ],
+      "tags": [
+        "answerable",
+        "lexical"
+      ],
+      "purpose": "Find the expected knowledge for this business question.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "lexical-shipment",
+      "query": "tracking number carrier shipment",
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "relevant_knowledge_ids": [
+        "shipment-tracking"
+      ],
+      "tags": [
+        "answerable",
+        "lexical"
+      ],
+      "purpose": "Find the expected knowledge for this business question.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "lexical-purchase-order",
+      "query": "purchase order finance approval",
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "relevant_knowledge_ids": [
+        "purchase-order"
+      ],
+      "tags": [
+        "answerable",
+        "lexical"
+      ],
+      "purpose": "Find the expected knowledge for this business question.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "semantic-remote-work",
+      "query": "remote work policy",
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "relevant_knowledge_ids": [
+        "flexible-location-guidance"
+      ],
+      "tags": [
+        "answerable",
+        "semantic-gap"
+      ],
+      "purpose": "Find the expected knowledge for this business question.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "semantic-late-package",
+      "query": "package arrived late",
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "relevant_knowledge_ids": [
+        "late-delivery-trace"
+      ],
+      "tags": [
+        "answerable",
+        "semantic-gap"
+      ],
+      "purpose": "Find the expected knowledge for this business question.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "no-answer-unrelated",
+      "query": "astronomy observatory telescope schedule",
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer"
+      ],
+      "purpose": "Return no evidence when the query is unsupported or access is denied.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "no-answer-restricted-denied",
+      "query": "priority-one coordination bridge",
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "access-boundary",
+        "no-answer",
+        "restricted"
+      ],
+      "purpose": "Return no evidence when the query is unsupported or access is denied.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "no-answer-cross-tenant",
+      "query": "refund fourteen days transaction",
+      "tenant_id": "tenant-b",
+      "groups": [],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "access-boundary",
+        "no-answer",
+        "tenant-isolation"
+      ],
+      "purpose": "Return no evidence when the query is unsupported or access is denied.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "no-answer-unrelated-two",
+      "query": "marine biology microscope calibration",
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer"
+      ],
+      "purpose": "Return no evidence when the query is unsupported or access is denied.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": []
+    },
+    {
+      "case_id": "exact-policy-code",
+      "query": "FIN-042",
+      "relevant_knowledge_ids": [
+        "expense-code"
+      ],
+      "tags": [
+        "identifier"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "purpose": "An exact policy identifier should rank first.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 1,
+      "updates": []
+    },
+    {
+      "case_id": "freshness-policy-change",
+      "query": "refund transaction",
+      "relevant_knowledge_ids": [
+        "refund-policy"
+      ],
+      "tags": [
+        "freshness"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "purpose": "Find current policy after text changes; exclude retained historical chunks.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": [
+        {
+          "knowledge_id": "refund-policy",
+          "text": "# Refund policy\n\nEligible purchases may be refunded within thirty days of the transaction date.",
+          "tenant_id": "tenant-a",
+          "scope": "tenant",
+          "allowed_groups": [],
+          "source_version": "2"
+        }
+      ]
+    },
+    {
+      "case_id": "access-revoked",
+      "query": "priority-one coordination bridge",
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "access-boundary",
+        "revocation"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-leads"
+      ],
+      "purpose": "Remove access without a content change and verify exclusion.",
+      "owner": "Tropos evaluation maintainers",
+      "status": "approved",
+      "max_rank": 5,
+      "updates": [
+        {
+          "knowledge_id": "priority-incident",
+          "text": "# Priority incident runbook\n\nOpen the coordination bridge and notify the incident lead for a priority-one outage.",
+          "tenant_id": "tenant-a",
+          "scope": "restricted",
+          "allowed_groups": [
+            "incident-commanders"
+          ],
+          "source_version": "2"
+        }
+      ]
+    },
+    {
+      "case_id": "planned-delete",
+      "query": "refund transaction",
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "planned",
+        "deletion"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [],
+      "purpose": "Verify removal from search after deleting knowledge (future scenario support).",
+      "owner": "Tropos evaluation maintainers",
+      "status": "draft",
+      "max_rank": 5,
+      "updates": []
+    }
+  ],
+  "schema_version": 2,
+  "version": "2.0",
+  "data_classification": "synthetic",
+  "split": "development"
+}

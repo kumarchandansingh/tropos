@@ -132,3 +132,7 @@ Critical security or decision failures remain case-level blockers even when aggr
 | Production workflow | Reviewer outcomes, latency/error telemetry, operational regressions |
 
 See [CI/CD](../delivery/CI_CD.md) and [RAG architecture](../architecture/RAG_ARCHITECTURE.md).
+
+## V2 catalogue and saved execution
+
+The V1 baseline above remains unchanged. `catalogue_v2.json` adds exact-identifier, content-version and access-revocation scenarios, plus a visible draft deletion case. Real BM25 currently yields 15 passes, 2 known semantic misses and 1 not-run draft. Execution completion does not imply a passing quality outcome. All observations, expectations, error states, invariants and metric denominators are saved. See [Evaluation runs](../architecture/EVALUATION_RUNS.md) for commands and scope.

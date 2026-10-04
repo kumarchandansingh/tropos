@@ -155,3 +155,7 @@ flowchart LR
 ```
 
 Canonical identity, access enforcement, and the core knowledge-action vocabulary remain deterministic unless a future ADR changes those boundaries.
+
+## Saved evaluation foundation
+
+The retrieval baseline now also has a versioned synthetic V2 catalogue, isolated lifecycle scenarios, durable run/case observations, independent returned-evidence assertions and JSON/Markdown reports. [Evaluation runs](EVALUATION_RUNS.md) documents this implemented extension. Embeddings, vector retrieval and an interactive evaluation dashboard remain planned.

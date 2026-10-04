@@ -78,3 +78,7 @@ State the conditions that should trigger reconsideration.
 ```
 
 Accepted ADRs remain part of the decision history. When a decision changes materially, add a superseding ADR or explicitly mark the existing record as superseded rather than removing the historical context.
+
+## Saved evaluation decision
+
+[ADR-012: versioned evaluation catalogues and saved runs](ADR-012-versioned-evaluation-catalogues-and-saved-runs.md).

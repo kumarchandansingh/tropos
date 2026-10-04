@@ -62,3 +62,7 @@ Architecture documents use these terms only when a capability boundary needs to 
 ## Katharo companion project
 
 See [Katharo documentation](../katharo/docs/README.md) for its product, architecture, quality gates, and learning material. Its local cleanup workflow is separate from Tropos ingestion.
+
+## Saved evaluation evidence
+
+[Evaluation runs](architecture/EVALUATION_RUNS.md) describes the versioned catalogue, isolated runner and expected-versus-actual exports. [Evaluation learning notes](learning/EVALUATION_EVIDENCE.md) explain the tradeoffs.

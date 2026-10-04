@@ -104,3 +104,7 @@ Examples and fixtures in this repository are synthetic. Secrets, real customer o
 ## Katharo local cleanup app
 
 The independent [Katharo project](katharo/README.md) provides a local file-review interface, exact-duplicate quarantine, and restoration. It shares Tropos's deterministic evidence and documentation discipline; it does not change the governed-knowledge API.
+
+## Inspect planned tests and saved evaluation results
+
+The [saved evaluation guide](docs/architecture/EVALUATION_RUNS.md) provides commands to list the synthetic test catalogue, execute real BM25 scenarios, and export expected-versus-actual JSON or readable Markdown. The interactive visualizer and vector retrieval are later stages.

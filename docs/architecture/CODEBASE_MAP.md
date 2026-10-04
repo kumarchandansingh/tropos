@@ -155,3 +155,7 @@ Resolve still owns a capability-specific retrieval contract because it starts fr
 Unit tests mirror code boundaries under `apps/api/tests/unit/`. Cross-boundary executable quality checks live under `apps/api/tests/integration/`.
 
 The retrieval golden-set integration test exercises the real ingestion and SQLite retrieval adapters together and measures the labeled corpus while preserving separate zero-tolerance assertions for tenant and restricted-group boundaries.
+
+## Saved evaluation modules
+
+`tropos/evals/catalogue.py` owns validated definitions; `execution.py` owns case evaluation; `fixtures.py` composes synthetic ingestion and BM25; `run_store.py` owns durable observations; `reporting.py` renders saved results; `__main__.py` exposes catalogue/run/report commands. See [Evaluation runs](EVALUATION_RUNS.md).
