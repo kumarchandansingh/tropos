@@ -1,5 +1,7 @@
+import gc
 import json
 import sqlite3
+import tempfile
 from dataclasses import replace
 from pathlib import Path
 
@@ -249,3 +251,55 @@ def test_catalogue_command_has_no_execution_side_effects(
     assert main() == 0
     assert "Not run by this command" in target.read_text()
     assert list(tmp_path.iterdir()) == [target]
+
+
+def test_run_command_exports_results_and_releases_temporary_databases(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from tropos.evals.__main__ import main
+
+    definition = json.loads(DATASET.read_text())
+    definition["cases"] = [
+        case
+        for case in definition["cases"]
+        if case["case_id"] in {"exact-policy-code", "semantic-remote-work", "planned-delete"}
+    ]
+    dataset = tmp_path / "catalogue.json"
+    dataset.write_text(json.dumps(definition))
+    target = tmp_path / "results.json"
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "evals",
+            "run",
+            "--dataset",
+            str(dataset),
+            "--database",
+            str(tmp_path / "runs.sqlite"),
+            "--lockfile",
+            str(DATASET.parents[2] / "uv.lock"),
+            "--output",
+            str(target),
+        ],
+    )
+    # SQLite's transaction context does not close a connection. On Windows,
+    # relying on garbage collection leaves temporary database files locked.
+    gc_was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        assert main() == 1  # A saved quality failure, not a command error.
+    finally:
+        if gc_was_enabled:
+            gc.enable()
+    result = json.loads(target.read_text())
+    assert result["status"] == "completed"
+    assert result["counts"] == {
+        "passed": 1,
+        "failed": 1,
+        "not_run": 1,
+        "running": 0,
+        "error": 0,
+    }
+    assert not list(tmp_path.glob("tropos-eval-*"))
