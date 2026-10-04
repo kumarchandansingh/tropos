@@ -1,0 +1,22 @@
+# Cleanup decisions and enterprise translation
+
+Use this alongside the [learning track](README.md) and [architecture reference](../architecture/ARCHITECTURE.md). These decisions follow Tropos's failure → invariant → alternatives → choice → cost → revisit → evidence discipline.
+
+| Concept | Failure and invariant | Alternatives | Decision and cost | Revisit trigger | Evidence and interview probe |
+| --- | --- | --- | --- | --- | --- |
+| Byte identity | Repeated names may contain unique content. Never move a merely similar file. | Names, size, sampled bytes, full digest | Size filter, full SHA-256 and final byte verification. Costs disk reads. | Hashing dominates measured latency; introduce safe cache invalidation and sampled rejection. | Different-name and same-size regression cases. Why does size fail as proof? |
+| Document identity | Formatting changes can change bytes; extracted equality may miss signatures. | Raw equality, normalized text, rendered pages, model judgment | Deterministic extracted text for review only. Loses layout and image distinctions. | Labeled corpus shows important omissions; add visual/structural evidence. | Raw-versus-canonical test. When is same text insufficient? |
+| Revision discovery | Resume targeting changes can be small but valuable. Never infer dispensability from overlap. | Full pairwise diffs, shingle overlap, embeddings | Five-word shingle Jaccard produces review candidates. Provisional threshold and quadratic bounded comparisons. | Candidate precision/recall or corpus size becomes inadequate. | Keep-both UI and exact-only selection test. Why isn't overlap a probability? |
+| Quarantine | Immediate disposal complicates recovery. Preserve originals' lineage and explicit approval. | Recycle Bin, copies, same-drive folder, other-drive folder | User-selected quarantine with manifest. Same-drive moves free no space; cross-drive copies cost time and temporary capacity. | Better OS integration or managed retention is required. | Quarantine/restore/conflict regressions. Why is copying not a cleanup? |
+| Stale review | A file may change after approval. Revalidate selected and retained content. | Timestamps only, hash again, OS handles/locks | Fresh identity, size, modification time, hashes and byte equality. Remaining path-operation race. | Multi-user or adversarial mutation requires stronger handle-based execution. | Stale-extra and stale-keeper tests. Where does time-of-check/time-of-use remain? |
+| External-operation journal | SQLite commits and file moves cannot be atomic together. Unfinished outcomes must remain visible. | Blind retries, transactions, intent/outcome journal | Persist each item before and after action, plus manifest. Recovery can require manual reconciliation. | Crash drills demonstrate unacceptable manual work. | Persisted manifest and one-shot-plan tests; interrupted-state recovery cases. Why can't a DB transaction roll back a rename? |
+| Local persistence | UI and background jobs need durable evidence. | JSON files, SQLite, PostgreSQL | SQLite with serialized writes and WAL. Generic JSON records simplify this initial schema but weaken typed query constraints. | Multi-machine writers, reporting or complex migrations require richer tables/service DB. | Server and workflow tests. Why can SQLite be production-appropriate here? |
+| Parser isolation | Malformed documents may stall parsing. Raw matching must remain separate from extraction failures. | Same-process library, subprocess, OS sandbox, managed extraction | Per-document process and timeout with input/output limits. No enforced memory quota. | Large/untrusted corpora justify OS resource controls and hardened extraction. | Empty and failed extraction remain unknown. What does a timeout not protect? |
+
+## Scale and release implications
+
+A single-user release proves local behavior, not fleet-scale policy compliance. An enterprise variant needs connectors, authorization boundaries, retention/legal-hold enforcement, ownership approvals, monitored workers, and disposition receipts. Those capabilities should be added behind explicit contracts rather than importing an enterprise framework into the first local workflow.
+
+## Interview exercise
+
+Explain an occupied-path restore conflict using: observed failure → no-overwrite invariant → exclusive file creation → retained quarantine → visible error → manual decision. Then explain why this pattern generalizes to idempotent external operations without implying that all filesystem operations are atomic.

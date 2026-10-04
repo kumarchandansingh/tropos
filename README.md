@@ -100,3 +100,7 @@ Key documents:
 ## Repository data boundary
 
 Examples and fixtures in this repository are synthetic. Secrets, real customer or support records, confidential employer/client material, and production configuration do not belong in the repository.
+
+## Katharo local cleanup app
+
+The independent [Katharo project](katharo/README.md) provides a local file-review interface, exact-duplicate quarantine, and restoration. It shares Tropos's deterministic evidence and documentation discipline; it does not change the governed-knowledge API.

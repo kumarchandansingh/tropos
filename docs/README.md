@@ -58,3 +58,7 @@ Architecture documents use these terms only when a capability boundary needs to 
 **Understand the repository:** Codebase map → CI/CD → Architecture decisions.
 
 **Build first-principles interview depth:** Learning track → Enterprise knowledge systems interview guide → relevant architecture doc → relevant ADR/test.
+
+## Katharo companion project
+
+See [Katharo documentation](../katharo/docs/README.md) for its product, architecture, quality gates, and learning material. Its local cleanup workflow is separate from Tropos ingestion.
