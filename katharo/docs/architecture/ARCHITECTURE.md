@@ -40,3 +40,6 @@ Before moving: revalidate selected and retained observations, hash contents agai
 SQLite records intent and outcomes. An atomically replaced manifest in the quarantine plan directory records original paths. Database and filesystem cannot share an atomic transaction; unfinished states require reconciliation. No automatic permanent deletion, overwrite, plan re-execution, or blind retry is permitted.
 
 Known limitation: there is a remaining race between revalidation and path-based file operations. Stronger handle-based Windows execution is planned. The app assumes a trusted single-user machine and does not claim adversarial filesystem safety.
+
+
+Batch review excludes Office `~$` owner records. Exact groups appear collapsed, largest recoverable bytes first. A single selection action proposes extras for groups sharing the same extension, retaining the suggested keeper (unnumbered name, then shortest path). Mixed extensions and document similarity stay outside batch selection. The final plan summarizes totals with expandable KEEP/QUARANTINE paths; validation and explicit confirmation remain required. Rescan to apply the new exclusion to existing inventories.

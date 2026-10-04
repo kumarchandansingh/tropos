@@ -47,6 +47,21 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(result["groups"][0]["kind"], "exact")
         self.assertEqual(result["recoverable"], len(b"Synthetic resume only."))
 
+    def test_office_owner_records_excluded(self):
+        (self.root / "~$one.docx").write_bytes(b"owner")
+        (self.root / "~$two.xlsx").write_bytes(b"owner")
+        result = self.scan(documents=True)
+        self.assertEqual(result["office_records_skipped"], 2)
+        self.assertEqual(result["groups"], [])
+        self.assertEqual(result["file_count"], 0)
+
+    def test_mixed_formats_require_individual_review(self):
+        (self.root / "one.txt").write_bytes(b"same bytes")
+        (self.root / "two.pdf").write_bytes(b"same bytes")
+        result = self.scan()
+        self.assertFalse(result["groups"][0]["batch_eligible"])
+        self.assertEqual(result["groups"][0]["kind"], "exact")
+
     def test_same_size_different_bytes_not_duplicate(self):
         (self.root / "one.bin").write_bytes(b"abc")
         (self.root / "one (1).bin").write_bytes(b"xyz")

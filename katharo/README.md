@@ -65,3 +65,6 @@ node --check src/katharo/web/app.js
 Tests use synthetic files. No real resumes, personal inventories, extracted content, credentials, or quarantine manifests belong in this repository.
 
 Start with [documentation](docs/README.md).
+
+
+Batch review excludes Office `~$` owner records. Exact groups appear collapsed, largest recoverable bytes first. A single selection action proposes extras for groups sharing the same extension, retaining the suggested keeper (unnumbered name, then shortest path). Mixed extensions and document similarity stay outside batch selection. The final plan summarizes totals with expandable KEEP/QUARANTINE paths; validation and explicit confirmation remain required. Rescan to apply the new exclusion to existing inventories.

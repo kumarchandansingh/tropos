@@ -27,6 +27,7 @@ def scan(
         "total_bytes": 0,
         "file_count": 0,
         "document_count": 0,
+        "office_records_skipped": 0,
         "by_type": {},
     }
     paths: list[Path] = []
@@ -52,6 +53,9 @@ def scan(
                             if recursive:
                                 stack.append(path)
                         elif entry.is_file(follow_symlinks=False):
+                            if path.name.startswith("~$"):
+                                result["office_records_skipped"] += 1
+                                continue
                             # DirEntry.stat() can return inode=0 on Windows; query the path.
                             info = path.stat(follow_symlinks=False)
                             identity = (info.st_dev, info.st_ino)
@@ -135,6 +139,7 @@ def scan(
                     "files": batch,
                     "evidence": "Same size and SHA-256. Byte equality is checked again before quarantine.",
                     "recoverable": sum(f["size"] for f in batch[1:]),
+                    "batch_eligible": len({Path(f["path"]).suffix.lower() for f in batch}) == 1,
                 }
             )
     extracted = []
