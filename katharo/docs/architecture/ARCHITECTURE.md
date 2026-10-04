@@ -43,3 +43,6 @@ Known limitation: there is a remaining race between revalidation and path-based 
 
 
 Batch review excludes Office `~$` owner records. Exact groups appear collapsed, largest recoverable bytes first. A single selection action proposes extras for groups sharing the same extension, retaining the suggested keeper (unnumbered name, then shortest path). Mixed extensions and document similarity stay outside batch selection. The final plan summarizes totals with expandable KEEP/QUARANTINE paths; validation and explicit confirmation remain required. Rescan to apply the new exclusion to existing inventories.
+
+
+Plan preparation now creates the destination if needed and probes temporary directory creation, exclusive write, flush, rename and cleanup before recording a prepared plan. No user files move during this probe. Execution repeats the check; an initial manifest-write failure records a blocked plan before entering the item loop. Write permission can still change later; preflight is not a guarantee. When running inside Codex, its filesystem permission profile must permit the scanned source and quarantine destination.

@@ -80,6 +80,23 @@ class WorkflowTests(unittest.TestCase):
         with self.assertRaises(ReviewError):
             validate_selection([{"kind": "content", "files": [{"id": "x"}, {"id": "y"}]}], {"x"})
 
+    def test_unwritable_destination_rejected_before_approval(self):
+        result = self.fixture()
+        with patch("katharo.actions.tempfile.TemporaryDirectory", side_effect=PermissionError):
+            with self.assertRaisesRegex(ReviewError, "No files were moved"):
+                self.plan(result)
+        self.assertEqual(self.store.list("plan"), [])
+        self.assertTrue(all(Path(f["path"]).exists() for f in result["files"]))
+
+    def test_initial_manifest_failure_moves_nothing(self):
+        result = self.fixture()
+        plan = self.plan(result)
+        with patch.object(self.actions, "journal", side_effect=PermissionError):
+            with self.assertRaisesRegex(ReviewError, "No files were moved"):
+                self.actions.execute(plan["id"])
+        self.assertEqual(self.store.get("plan", plan["id"])["status"], "blocked")
+        self.assertTrue(all(Path(f["path"]).exists() for f in result["files"]))
+
     def test_same_drive_quarantine_and_restore(self):
         plan = self.plan(self.fixture())
         original = Path(plan["items"][0]["file"]["path"])
