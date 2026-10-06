@@ -92,7 +92,7 @@ The versioned V1 corpus at `apps/api/evals/retrieval/golden_v1.json` measures bo
 flowchart LR
     BM25[sqlite-fts5-bm25-v1]
     --> Golden[Golden retrieval corpus]
-    --> Metrics[Recall@K / MRR / no-answer checks]
+    --> Metrics["Recall@K / MRR / no-answer checks"]
     --> Gap{Material semantic gap?}
     Gap -- no --> Keep[Keep simpler lexical baseline]
     Gap -- yes --> Vector[Add vector retriever]

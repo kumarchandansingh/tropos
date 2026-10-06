@@ -130,7 +130,7 @@ flowchart LR
     --> Ingest[Governed ingestion]
     --> Retriever[Versioned retriever]
     --> Eval[Retrieval evaluator]
-    --> Metrics[Recall@1/3/5, Precision@5, MRR, no-answer]
+    --> Metrics["Recall@1 / Recall@3 / Recall@5 / Precision@5 / MRR / no-answer"]
 ```
 
 Evaluation labels are knowledge-level in V1 and the corpus is synthetic. The integration test establishes a reproducible development/regression baseline, not a production benchmark.

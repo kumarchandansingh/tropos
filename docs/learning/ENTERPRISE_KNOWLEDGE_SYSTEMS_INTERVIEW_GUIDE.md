@@ -773,7 +773,7 @@ flowchart LR
     G --> V[Vector]
     B --> E[Evaluator]
     V --> E
-    E --> M[Recall@K / mean reciprocal rank / no-answer / access control]
+    E --> M["Recall@K / mean reciprocal rank / no-answer / access control"]
 ```
 
 Tropos V1 deliberately includes semantic/paraphrase misses so that the baseline reveals a real reason to test semantic retrieval.
