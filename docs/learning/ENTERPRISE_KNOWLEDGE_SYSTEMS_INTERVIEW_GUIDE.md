@@ -2,7 +2,7 @@
 
 You are building a platform that takes knowledge from enterprise systems such as SharePoint, Jira, Confluence, files, email, and support tools, then makes that knowledge safe and useful for search, retrieval-augmented generation (RAG), and downstream agents.
 
-> **Terminology note:** Technical abbreviations are expanded on first use. For quick reference, see the [Technical glossary](GLOSSARY.md).
+> **Terminology note:** Technical abbreviations are expanded on first use. For quick reference, see the [Technical glossary](../GLOSSARY.md).
 
 The difficult part is not “put documents in a vector database.” The difficult part is preserving identity, meaning, permissions, history, freshness, and reliability while the source systems keep changing.
 
