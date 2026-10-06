@@ -1,0 +1,24 @@
+name: Hybrid real-model evaluation
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/scripts/evaluate_hybrid_sentence_transformers.py"
+      - ".github/workflows/hybrid-real-eval.yml"
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install Python
+        run: uv python install 3.14
+      - name: Sync project
+        run: uv sync --dev --locked
+      - name: Run real-model hybrid evaluation
+        run: uv run --with sentence-transformers python scripts/evaluate_hybrid_sentence_transformers.py
