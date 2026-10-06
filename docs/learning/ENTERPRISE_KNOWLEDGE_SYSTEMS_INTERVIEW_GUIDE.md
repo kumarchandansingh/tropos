@@ -1,6 +1,8 @@
 # Enterprise Knowledge Systems — Interview Playbook
 
-You are building a platform that takes knowledge from enterprise systems such as SharePoint, Jira, Confluence, files, email, and support tools, then makes that knowledge safe and useful for search, RAG, and downstream agents.
+You are building a platform that takes knowledge from enterprise systems such as SharePoint, Jira, Confluence, files, email, and support tools, then makes that knowledge safe and useful for search, retrieval-augmented generation (RAG), and downstream agents.
+
+> **Terminology note:** Technical abbreviations are expanded on first use. For quick reference, see the [Technical glossary](GLOSSARY.md).
 
 The difficult part is not “put documents in a vector database.” The difficult part is preserving identity, meaning, permissions, history, freshness, and reliability while the source systems keep changing.
 
@@ -13,11 +15,11 @@ flowchart LR
     --> V[Reconcile versions]
     --> K[Chunk]
     --> D[(Canonical storage)]
-    D --> L[Lexical retrieval\nFTS / BM25]
+    D --> L[Lexical retrieval\nFull-text search / BM25]
     D --> E[Semantic retrieval\nEmbeddings / vectors]
     L --> R[Governed retrieval]
     E --> R
-    R --> A[Search / RAG / agents / Resolve]
+    R --> A[Search / retrieval-augmented generation / agents / Resolve]
     A --> Q[Evaluation + observability]
 ```
 
@@ -45,7 +47,7 @@ The interview story is therefore a sequence of engineering problems:
 
 A SharePoint synchronization job is reading changes using Microsoft Graph delta queries. The same `DriveItem` can appear more than once in a delta feed, and a worker can also see the same item again after retries or a restart. Microsoft recommends tracking items by ID and following `@odata.nextLink` until a `@odata.deltaLink` is returned.
 
-This is not unusual distributed-system behavior. At-least-once delivery systems such as standard Amazon SQS can also deliver the same message more than once, so consumers are expected to be idempotent.
+This is not unusual distributed-system behavior. At-least-once delivery systems such as standard Amazon Simple Queue Service (SQS) can also deliver the same message more than once, so consumers are expected to be idempotent.
 
 ### Interviewer
 
@@ -99,7 +101,7 @@ duplicate version / duplicate chunks / duplicate embedding cost
 
 ### Transferable pattern
 
-Use the same reasoning for payment APIs, file uploads, webhook consumers, job queues, or batch pipelines: retries are normal; repeated execution must not create unintended extra effects.
+Use the same reasoning for payment application programming interfaces (APIs), file uploads, webhook consumers, job queues, or batch pipelines: retries are normal; repeated execution must not create unintended extra effects.
 
 ### Industry references
 
@@ -112,7 +114,7 @@ Use the same reasoning for payment APIs, file uploads, webhook consumers, job qu
 
 ## Production scenario
 
-SharePoint can give you DOCX, HTML, Markdown, or plain text. A versioning system cannot compare those formats meaningfully if each downstream component understands files differently.
+SharePoint can give you Office Open XML Word documents (DOCX), HyperText Markup Language (HTML), Markdown, or plain text. A versioning system cannot compare those formats meaningfully if each downstream component understands files differently.
 
 The first problem is therefore not “is this a new version?” It is:
 
@@ -126,7 +128,7 @@ The first problem is therefore not “is this a new version?” It is:
 
 > “I keep source acquisition and file-format parsing separate. The connector is responsible for fetching the source item and its metadata. A parser then converts the source bytes into a common extracted-text structure.
 >
-> “For DOCX, I treat the file as an Open Packaging Convention ZIP. I read `word/document.xml`, parse the XML, walk paragraph and table nodes, and preserve useful structure such as headings, lists, paragraphs, and tables. For HTML, I parse tags, skip non-content elements such as script and style, and map headings, paragraphs, and list items into the same markdown-like intermediate representation. Plain text and Markdown take simpler paths.
+> “For DOCX, I treat the file as an Open Packaging Convention ZIP archive. I read `word/document.xml`, parse the Extensible Markup Language (XML), walk paragraph and table nodes, and preserve useful structure such as headings, lists, paragraphs, and tables. For HTML, I parse tags, skip non-content elements such as script and style, and map headings, paragraphs, and list items into the same markdown-like intermediate representation. Plain text and Markdown take simpler paths.
 >
 > “The output of parsing is not yet the canonical version. It is simply a format-independent extracted representation that the normalizer can process deterministically.”
 
@@ -134,8 +136,8 @@ The first problem is therefore not “is this a new version?” It is:
 flowchart LR
     D[DOCX] --> DP[ZIP + XML parser]
     H[HTML] --> HP[HTML parser]
-    M[Markdown] --> MP[UTF-8 + heading parsing]
-    T[TXT] --> TP[UTF-8 decoding]
+    M[Markdown] --> MP[Unicode UTF-8 + heading parsing]
+    T[Plain text] --> TP[Unicode UTF-8 decoding]
     DP --> X[ExtractedKnowledgeText]
     HP --> X
     MP --> X
@@ -180,7 +182,7 @@ Now HTML, DOCX, and Markdown can converge onto a common downstream model.
 
 ### Interviewer follow-up: “Would you keep writing parsers yourself in production?”
 
-> “Not indefinitely. The current parser is intentionally small and deterministic because the supported formats are bounded. If the platform expands to PDF, PowerPoint, Excel, email attachments, OCR, and hundreds of enterprise formats, I would evaluate a mature extraction layer such as Apache Tika or a managed document-extraction service. The architecture boundary should stay the same even if the implementation changes.”
+> “Not indefinitely. The current parser is intentionally small and deterministic because the supported formats are bounded. If the platform expands to Portable Document Format (PDF), PowerPoint, Excel, email attachments, optical character recognition (OCR), and hundreds of enterprise formats, I would evaluate a mature extraction layer such as Apache Tika or a managed document-extraction service. The architecture boundary should stay the same even if the implementation changes.”
 
 Apache Tika exposes text and metadata extraction across more than a thousand file types through a common interface, which is the kind of capability a broader enterprise ingestion layer eventually needs.
 
@@ -210,7 +212,7 @@ but versioning needs to answer:
 
 ### Candidate
 
-> “After parsing, I normalize deterministically. I do not ask an LLM to rewrite the text because version identity has to be reproducible. In our baseline I normalize Unicode to NFC, remove a BOM if present, standardize CRLF and CR line endings to LF, trim trailing spaces and tabs, collapse repeated blank lines, normalize inline whitespace, and then extract explicit structural blocks such as headings, paragraphs, and list items.
+> “After parsing, I normalize deterministically. I do not ask a large language model (LLM) to rewrite the text because version identity has to be reproducible. In our baseline I normalize Unicode to Normalization Form C (NFC), remove a byte order mark (BOM) if present, standardize carriage-return/line-feed (CRLF) and carriage-return (CR) line endings to line-feed (LF), trim trailing spaces and tabs, collapse repeated blank lines, normalize inline whitespace, and then extract explicit structural blocks such as headings, paragraphs, and list items.
 >
 > “I then render those blocks into a canonical representation and serialize the structure deterministically. That canonical serialization is what I fingerprint for content identity.”
 
@@ -261,7 +263,7 @@ PARAGRAPH(text="Employees may work remotely two days per week.")
 - repeated blank-line compaction
 - regex-based heading and list recognition
 - explicit `StructuralBlock` objects
-- stable JSON serialization with sorted keys
+- stable JavaScript Object Notation (JSON) serialization with sorted keys
 
 A simplified canonical payload looks like:
 
@@ -305,7 +307,7 @@ Once two large documents have been converted into deterministic canonical repres
 
 ### Candidate
 
-> “A hash gives me a fixed-size deterministic digest for arbitrary input. In this design I use SHA-256 as a fingerprint of the canonical serialization. If the canonical input is identical, the fingerprint is identical. If the canonical input changes, the fingerprint will overwhelmingly likely change as well.
+> “A hash gives me a fixed-size deterministic digest for arbitrary input. In this design I use Secure Hash Algorithm 256-bit (SHA-256) as a fingerprint of the canonical serialization. If the canonical input is identical, the fingerprint is identical. If the canonical input changes, the fingerprint will overwhelmingly likely change as well.
 >
 > “I could compare the entire canonical text directly, but a fingerprint is compact to persist and cheap to compare. The important point is that the hash is not deciding semantic sameness. The normalization policy decides the canonical representation; the hash only fingerprints it.”
 
@@ -486,7 +488,7 @@ When an interviewer says **“How do you resolve conflicts?”**, do not jump im
 | concurrent write | two workers both derive updates from state A | optimistic concurrency |
 | out-of-order source state | revision 19 arrives after 20 | ordering / source revision / checkpoint |
 | conflicting authorities | SharePoint and Jira disagree on same policy | ownership / precedence / human policy |
-| content + ACL change together | both content and governance moved | reconcile dimensions independently |
+| content + Access Control List (ACL) change together | both content and governance moved | reconcile dimensions independently |
 
 ## 6.1 Two workers update the same knowledge concurrently
 
@@ -507,21 +509,21 @@ sequenceDiagram
     participant W1 as Worker 1
     participant DB as Knowledge state
     participant W2 as Worker 2
-    W1->>DB: Read current = A
-    W2->>DB: Read current = A
+    W1->>DB: Read current state A
+    W2->>DB: Read current state A
     W1->>W1: Build candidate B
     W2->>W2: Build candidate C
-    W1->>DB: Commit B if current == A
-    DB-->>W1: Success; current = B
-    W2->>DB: Commit C if current == A
-    DB-->>W2: Reject; expected A, found B
-    W2->>DB: Re-read current = B
+    W1->>DB: Commit B, expecting A
+    DB-->>W1: Success, current state is B
+    W2->>DB: Commit C, expecting A
+    DB-->>W2: Reject, expected A but found B
+    W2->>DB: Re-read current state B
     W2->>W2: Reconcile C against B
 ```
 
 ## What Tropos actually does
 
-`create_version(...)` starts a SQLite `BEGIN IMMEDIATE` transaction, reloads the current canonical state, and compares it with `expected_previous`. A mismatch raises `ConcurrentKnowledgeUpdateError` before the new version/chunks/current-state update is committed.
+`create_version(...)` starts a SQLite database `BEGIN IMMEDIATE` transaction, reloads the current canonical state, and compares it with `expected_previous`. A mismatch raises `ConcurrentKnowledgeUpdateError` before the new version/chunks/current-state update is committed.
 
 The same expected-state pattern is used when refreshing governance.
 
@@ -619,7 +621,7 @@ flowchart LR
 
 The policy text is unchanged, but an employee loses access to the SharePoint folder.
 
-If the retrieval index still serves the old ACL, you have a security problem even though “content freshness” is perfect.
+If the retrieval index still serves the old Access Control List (ACL), you have a security problem even though “content freshness” is perfect.
 
 ### Interviewer
 
@@ -649,7 +651,7 @@ flowchart TD
 
 ## Production scenario
 
-A support engineer searches for an exact error code such as `AADSTS50076`. BM25 works well because the identifier is explicit. Another user asks “Can I work from home?” while the policy says “Employees may perform duties away from company premises.” Exact lexical matching may miss it.
+A support engineer searches for an exact error code such as `AADSTS50076`. Best Matching 25 (BM25) works well because the identifier is explicit. Another user asks “Can I work from home?” while the policy says “Employees may perform duties away from company premises.” Exact lexical matching may miss it.
 
 ### Interviewer
 
@@ -659,7 +661,7 @@ A support engineer searches for an exact error code such as `AADSTS50076`. BM25 
 
 > “I wanted a deterministic lexical baseline before adding another retrieval variable. BM25 is strong for exact names, identifiers, acronyms, product codes, and policy terminology. I then evaluate that baseline against labeled queries. If semantic/paraphrase cases systematically miss, I have evidence to justify vector retrieval rather than adding it because it is fashionable.”
 
-Tropos currently uses SQLite FTS5 with BM25 ranking over current authorized chunks.
+Tropos currently uses SQLite Full-Text Search version 5 (FTS5) with BM25 ranking over current authorized chunks.
 
 SQLite’s FTS5 documentation exposes a built-in `bm25()` ranking function; Tropos also weights title matches above body text.
 
@@ -669,7 +671,7 @@ SQLite’s FTS5 documentation exposes a built-in `bm25()` ranking function; Trop
 
 ### Candidate
 
-> “Embeddings decide how text is represented numerically in a semantic space. Vector indexing decides how those vectors are searched efficiently. They are separate concerns. I can evaluate an embedding model using exact flat similarity search on a small corpus before introducing HNSW or IVF. That isolates semantic quality from approximate-index behavior.”
+> “Embeddings decide how text is represented numerically in a semantic space. Vector indexing decides how those vectors are searched efficiently. They are separate concerns. I can evaluate an embedding model using exact flat similarity search on a small corpus before introducing Hierarchical Navigable Small World (HNSW) or Inverted File (IVF) indexing. That isolates semantic quality from approximate-index behavior.”
 
 ```mermaid
 flowchart LR
@@ -689,7 +691,7 @@ If a semantic result is poor after adding HNSW immediately, several variables co
 embedding model?
 chunk quality?
 distance metric?
-ANN approximation?
+approximate nearest-neighbor (ANN) behavior?
 index parameters?
 ```
 
@@ -697,7 +699,7 @@ Exact similarity removes the ANN approximation variable while the corpus is smal
 
 ### Later scale trade-off
 
-Vector systems such as pgvector expose both HNSW and IVFFlat. HNSW generally uses more memory and has slower builds but offers stronger query speed/recall trade-offs; IVFFlat uses less memory and builds faster but requires cluster/list/probe tuning.
+Vector systems such as pgvector expose both HNSW and Inverted File with flat vectors (IVFFlat). HNSW generally uses more memory and has slower builds but offers stronger query speed/recall trade-offs; IVFFlat uses less memory and builds faster but requires cluster/list/probe tuning.
 
 ### Industry references
 
@@ -761,7 +763,7 @@ Software correctness passed. Product quality failed.
 
 ### Candidate
 
-> “I maintain a versioned labeled dataset containing queries and the knowledge items expected to be relevant. I run the real ingestion and retrieval pipeline against it and compute ranking metrics such as Recall@K and MRR. I also include explicit no-answer and access-control cases.
+> “I maintain a versioned labeled dataset containing queries and the knowledge items expected to be relevant. I run the real ingestion and retrieval pipeline against it and compute ranking metrics such as Recall@K and Mean Reciprocal Rank (MRR). I also include explicit no-answer and access-control cases.
 >
 > “That lets me compare retrieval strategies on the same corpus—for example BM25 versus vector—rather than relying on a few hand-picked demos.”
 
@@ -771,7 +773,7 @@ flowchart LR
     G --> V[Vector]
     B --> E[Evaluator]
     V --> E
-    E --> M[Recall@K / MRR / no-answer / ACL]
+    E --> M[Recall@K / mean reciprocal rank / no-answer / access control]
 ```
 
 Tropos V1 deliberately includes semantic/paraphrase misses so that the baseline reveals a real reason to test semantic retrieval.
@@ -812,7 +814,7 @@ flowchart TD
     C -->|Yes| D{Version/chunks persisted?}
     D -->|No| D1[Normalization/version/persistence]
     D -->|Yes| E{Current + authorized?}
-    E -->|No| E1[State/ACL problem]
+    E -->|No| E1[State/access-control problem]
     E -->|Yes| F{Indexed/retrievable?}
     F -->|No| F1[Index freshness problem]
     F -->|Yes| G[Ranking / query-quality problem]
@@ -827,7 +829,7 @@ Useful operational metrics eventually include:
 - version-create vs no-op ratio
 - stale/current-state inconsistencies
 - indexing lag
-- retrieval p50/p95 latency
+- retrieval 50th-percentile (p50) and 95th-percentile (p95) latency
 - Recall@K / MRR regression
 - access-control violations: zero tolerance
 - embedding cost and throughput
@@ -866,7 +868,7 @@ backfill millions of records
 
 ---
 
-# 15. RAG comes after governed retrieval
+# 15. Retrieval-augmented generation (RAG) comes after governed retrieval
 
 A knowledge platform becomes RAG only when retrieved evidence is fed to a model for generation.
 
@@ -876,7 +878,7 @@ flowchart LR
     --> R[Governed retrieval]
     --> C[Selected context]
     --> P[Versioned prompt]
-    --> L[LLM]
+    --> L[Large language model]
     --> A[Answer + citations]
     --> E[Generation evaluation]
 ```
@@ -897,7 +899,7 @@ New failure modes now appear:
 
 ### Candidate
 
-> “I keep retrieval evaluation and generation evaluation separate. Retrieval asks whether the right authorized evidence was found and ranked. Generation then measures whether the model used that evidence faithfully, answered the question, abstained when appropriate, and produced valid citations. Otherwise a strong LLM can hide a weak retriever, or a strong retriever can be blamed for an ungrounded generator.”
+> “I keep retrieval evaluation and generation evaluation separate. Retrieval asks whether the right authorized evidence was found and ranked. Generation then measures whether the model used that evidence faithfully, answered the question, abstained when appropriate, and produced valid citations. Otherwise a strong large language model can hide a weak retriever, or a strong retriever can be blamed for an ungrounded generator.”
 
 ---
 
@@ -908,7 +910,7 @@ New failure modes now appear:
 | source capture / ingestion orchestration | `core/application/ingestion/ingest_knowledge.py` |
 | raw record identity / fingerprints | `core/application/ingestion/raw_record.py` |
 | parsing contract | `core/application/ingestion/parsing.py` |
-| TXT / Markdown / HTML / DOCX parsing | `core/adapters/parsing/deterministic.py` |
+| plain text / Markdown / HTML / DOCX parsing | `core/adapters/parsing/deterministic.py` |
 | normalized structure model | `core/application/ingestion/normalization.py` |
 | deterministic normalization + SHA-256 | `core/adapters/normalization/deterministic.py` |
 | version decision | `core/application/ingestion/versioning.py` |
@@ -946,7 +948,7 @@ The goal of these questions is to derive the mechanism, not recite a term.
 13. Why not hash raw DOCX bytes for knowledge identity?
 14. What is a hash collision, and how material is that risk compared with bad canonicalization?
 15. Source version changed but canonical fingerprint did not. What do you do?
-16. Content stayed the same but ACL changed. What do you do?
+16. Content stayed the same but the Access Control List (ACL) changed. What do you do?
 17. Embedding model changed. Is that a knowledge version?
 18. Chunking strategy changed. Is that a knowledge version?
 
@@ -972,12 +974,12 @@ The goal of these questions is to derive the mechanism, not recite a term.
 
 ## Retrieval
 
-33. Why is BM25 useful even in an embedding-heavy RAG system?
+33. Why is BM25 useful even in an embedding-heavy retrieval-augmented generation system?
 34. Where does BM25 fail?
 35. What exactly is an embedding?
 36. Why must query and document embeddings be compatible?
 37. Why test exact vector similarity before HNSW on a small corpus?
-38. What trade-off does ANN introduce?
+38. What trade-off does approximate nearest-neighbor (ANN) search introduce?
 39. Why might hybrid retrieval outperform either lexical or semantic alone?
 40. Where should authorization filtering happen relative to ranking?
 
@@ -1051,7 +1053,7 @@ These are useful because each one demonstrates a production mechanism rather tha
 | duplicate delivery | Amazon SQS at-least-once delivery | why idempotent consumers are required |
 | multi-format extraction | Apache Tika | production-scale parsing abstraction |
 | lexical ranking | SQLite FTS5 | concrete BM25 implementation used by Tropos |
-| ANN vector indexing | pgvector | HNSW / IVFFlat speed-memory-recall trade-offs |
+| Approximate nearest-neighbor (ANN) vector indexing | pgvector | HNSW / IVFFlat speed-memory-recall trade-offs |
 
 Links:
 
