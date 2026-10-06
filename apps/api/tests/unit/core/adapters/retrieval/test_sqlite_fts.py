@@ -6,11 +6,11 @@ from tropos.core.adapters.normalization.deterministic import DeterministicKnowle
 from tropos.core.adapters.parsing.deterministic import DeterministicKnowledgeParser
 from tropos.core.adapters.persistence.sqlite import SQLiteIngestionStore
 from tropos.core.adapters.retrieval.sqlite_fts import SQLiteFtsKnowledgeRetriever
-from tropos.core.application.ingestion.lifecycle import RetireKnowledge, RetireKnowledgeCommand
 from tropos.core.application.ingestion.ingest_knowledge import (
     IngestKnowledge,
     IngestKnowledgeCommand,
 )
+from tropos.core.application.ingestion.lifecycle import RetireKnowledge, RetireKnowledgeCommand
 from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
 from tropos.core.application.retrieval.models import (
     KnowledgeSearchRequest,
