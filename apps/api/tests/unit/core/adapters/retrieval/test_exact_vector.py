@@ -81,11 +81,12 @@ def _ingest(
     knowledge_id: str,
     text: str,
     access_policy: AccessPolicy,
+    source_version: str = "1",
 ) -> None:
     raw = RawKnowledgeRecord(
         source_system="test-kb",
         source_record_id=f"{knowledge_id}.md",
-        source_version="1",
+        source_version=source_version,
         content_type="text/markdown",
         payload=text.encode("utf-8"),
         access_policy=access_policy,
@@ -236,3 +237,89 @@ def test_dense_retrieval_excludes_deleted_knowledge_without_deleting_embedding(
         )
         == ()
     )
+
+
+def test_content_revision_materializes_new_vector_and_excludes_old_chunk(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "tropos.db"
+    store = SQLiteIngestionStore(database)
+    orchestrator = _orchestrator(store)
+    access = AccessPolicy(tenant_id="tenant-a", scope=AccessScope.TENANT)
+    repository = SQLiteEmbeddingRepository(database)
+    provider = _FakeEmbeddingProvider()
+
+    _ingest(
+        orchestrator,
+        knowledge_id="policy",
+        text="# Policy\n\nEmployees may perform duties away from company premises.",
+        access_policy=access,
+        source_version="1",
+    )
+    first = MaterializeEmbeddings(provider=provider, repository=repository).execute()
+    old_candidates = repository.eligible_embeddings(
+        access=RetrievalAccessContext(tenant_id="tenant-a"),
+        embedding_strategy_version=provider.strategy_version,
+    )
+    assert first.embedded_count == 1
+    assert len(old_candidates) == 1
+    old_chunk_id = old_candidates[0].chunk.chunk_id
+
+    _ingest(
+        orchestrator,
+        knowledge_id="policy",
+        text="# Policy\n\nEmployees must work from the office three days each week.",
+        access_policy=access,
+        source_version="2",
+    )
+    second = MaterializeEmbeddings(provider=provider, repository=repository).execute()
+    current_candidates = repository.eligible_embeddings(
+        access=RetrievalAccessContext(tenant_id="tenant-a"),
+        embedding_strategy_version=provider.strategy_version,
+    )
+
+    assert second.embedded_count == 1
+    assert len(current_candidates) == 1
+    assert current_candidates[0].chunk.source_version == "2"
+    assert current_candidates[0].chunk.chunk_id != old_chunk_id
+
+
+def test_acl_only_change_reuses_existing_embedding(tmp_path: Path) -> None:
+    database = tmp_path / "tropos.db"
+    store = SQLiteIngestionStore(database)
+    orchestrator = _orchestrator(store)
+    repository = SQLiteEmbeddingRepository(database)
+    provider = _FakeEmbeddingProvider()
+    text = "# Incident\n\nOpen the coordination bridge for a priority-one outage."
+
+    _ingest(
+        orchestrator,
+        knowledge_id="incident",
+        text=text,
+        access_policy=AccessPolicy(tenant_id="tenant-a", scope=AccessScope.TENANT),
+        source_version="1",
+    )
+    first = MaterializeEmbeddings(provider=provider, repository=repository).execute()
+
+    _ingest(
+        orchestrator,
+        knowledge_id="incident",
+        text=text,
+        access_policy=AccessPolicy(
+            tenant_id="tenant-a",
+            scope=AccessScope.RESTRICTED,
+            allowed_groups=("support-leads",),
+        ),
+        source_version="2",
+    )
+    second = MaterializeEmbeddings(provider=provider, repository=repository).execute()
+
+    assert first.embedded_count == 1
+    assert second.embedded_count == 0
+    retriever = ExactVectorKnowledgeRetriever(provider=provider, repository=repository)
+    assert _search(retriever, "priority-one coordination bridge") == ()
+    assert _search(
+        retriever,
+        "priority-one coordination bridge",
+        groups=("support-leads",),
+    ) == ("incident",)
