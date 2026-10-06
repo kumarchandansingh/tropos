@@ -2,6 +2,8 @@
 
 Tropos documentation is organized by purpose so architecture, reference material, delivery guidance, decision history, and learning material do not compete on the same page.
 
+Technical shorthand is expanded on first use where practical. The shared [technical glossary](GLOSSARY.md) defines abbreviations and compact notation used across architecture, delivery, quality, and learning documents.
+
 ## Product and architecture
 
 | Document | Purpose |
@@ -18,6 +20,7 @@ Tropos documentation is organized by purpose so architecture, reference material
 
 | Document | Purpose |
 | --- | --- |
+| [Technical glossary](GLOSSARY.md) | Expansions and plain-English meanings for abbreviations used across the documentation |
 | [Codebase map](architecture/CODEBASE_MAP.md) | Source layout and module ownership |
 | [Evaluation strategy](quality/EVAL_STRATEGY.md) | Software, retrieval, AI, and product-quality evaluation |
 | [CI/CD](delivery/CI_CD.md) | Pull-request integration, quality gates, and deployment boundary |
