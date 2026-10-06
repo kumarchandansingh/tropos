@@ -10,6 +10,7 @@ from tropos.core.application.ingestion.ingest_knowledge import (
     IngestKnowledge,
     IngestKnowledgeCommand,
 )
+from tropos.core.application.ingestion.lifecycle import RetireKnowledge, RetireKnowledgeCommand
 from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
 from tropos.core.application.retrieval.models import (
     KnowledgeSearchRequest,
@@ -170,3 +171,46 @@ def test_fts_triggers_index_chunks_created_after_retriever_initialization(tmp_pa
     )
 
     assert _search(retriever, "orchid synchronization") == ("after-startup",)
+
+
+def test_deleted_knowledge_remains_stored_but_is_not_retrieved(tmp_path: Path) -> None:
+    database = tmp_path / "tropos.db"
+    store = SQLiteIngestionStore(database)
+    orchestrator = _orchestrator(store)
+    access = AccessPolicy(tenant_id="tenant-a", scope=AccessScope.TENANT)
+
+    _ingest(
+        orchestrator,
+        knowledge_id="obsolete-runbook",
+        text="# Obsolete runbook\n\nThe lavender procedure handles legacy recovery.",
+        source_version="1",
+        access_policy=access,
+    )
+    retriever = SQLiteFtsKnowledgeRetriever(database)
+    assert _search(retriever, "lavender procedure") == ("obsolete-runbook",)
+
+    RetireKnowledge(store).execute(
+        RetireKnowledgeCommand(
+            knowledge_id="obsolete-runbook",
+            source_system="test-kb",
+            source_record_id="obsolete-runbook.md",
+            observed_at=datetime(2026, 9, 27, tzinfo=UTC),
+        )
+    )
+
+    assert _search(retriever, "lavender procedure") == ()
+
+    import sqlite3
+
+    with sqlite3.connect(database) as connection:
+        chunk_count = connection.execute(
+            "SELECT COUNT(*) FROM knowledge_chunks WHERE knowledge_id = ?",
+            ("obsolete-runbook",),
+        ).fetchone()
+        version_count = connection.execute(
+            "SELECT COUNT(*) FROM knowledge_versions WHERE knowledge_id = ?",
+            ("obsolete-runbook",),
+        ).fetchone()
+
+    assert chunk_count is not None and chunk_count[0] > 0
+    assert version_count == (1,)

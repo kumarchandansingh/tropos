@@ -30,6 +30,13 @@ def access_policy_fingerprint(policy: AccessPolicy) -> str:
     return sha256(canonical.encode("utf-8")).hexdigest()
 
 
+class KnowledgeLifecycleStatus(StrEnum):
+    """Whether the current canonical knowledge is eligible for retrieval."""
+
+    ACTIVE = "ACTIVE"
+    DELETED = "DELETED"
+
+
 class VersionAction(StrEnum):
     """Primary content-processing action after comparing canonical state."""
 
@@ -56,6 +63,7 @@ class CanonicalKnowledgeState:
     content_fingerprint: str
     normalization_strategy_version: str
     access_fingerprint: str
+    lifecycle_status: KnowledgeLifecycleStatus = KnowledgeLifecycleStatus.ACTIVE
 
     def __post_init__(self) -> None:
         if not _is_sha256(self.content_fingerprint):
@@ -64,6 +72,8 @@ class CanonicalKnowledgeState:
             raise ValueError("normalization_strategy_version must not be blank")
         if not _is_sha256(self.access_fingerprint):
             raise ValueError("access_fingerprint must be a SHA-256 digest")
+        if not isinstance(self.lifecycle_status, KnowledgeLifecycleStatus):
+            raise TypeError("lifecycle_status must be a KnowledgeLifecycleStatus")
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,6 +92,7 @@ def state_from_candidate(normalized: NormalizedKnowledge) -> CanonicalKnowledgeS
         content_fingerprint=normalized.content_fingerprint,
         normalization_strategy_version=normalized.strategy_version,
         access_fingerprint=access_policy_fingerprint(normalized.source.raw_record.access_policy),
+        lifecycle_status=KnowledgeLifecycleStatus.ACTIVE,
     )
 
 

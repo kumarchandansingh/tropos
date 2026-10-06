@@ -162,6 +162,7 @@ class SQLiteFtsKnowledgeRetriever:
                       ON state.knowledge_id = c.knowledge_id
                     WHERE knowledge_chunks_fts MATCH ?
                       AND c.tenant_id = ?
+                      AND state.lifecycle_status = 'ACTIVE'
                       AND c.normalized_content_fingerprint = state.content_fingerprint
                       AND c.normalization_strategy_version = state.normalization_strategy_version
                       AND {access_clause}
