@@ -35,6 +35,15 @@ class KnowledgeStateRepository(Protocol):
         expected_state: CanonicalKnowledgeState,
     ) -> CanonicalKnowledgeState: ...
 
+    def retire(
+        self,
+        *,
+        knowledge_id: str,
+        source_system: str,
+        source_record_id: str,
+        observed_at: str,
+    ) -> CanonicalKnowledgeState: ...
+
     def create_version(
         self,
         *,
