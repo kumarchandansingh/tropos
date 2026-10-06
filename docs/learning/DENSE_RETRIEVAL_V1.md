@@ -1,6 +1,6 @@
 # Dense Retrieval V1 — System Design, Decisions, and Evidence Plan
 
-> **Terminology note:** Technical abbreviations are expanded on first use. See the [Technical glossary](GLOSSARY.md) for quick reference.
+> **Terminology note:** Technical abbreviations are expanded on first use. See the [Technical glossary](../GLOSSARY.md) for quick reference.
 
 Dense retrieval is being added because the lexical baseline has two measured semantic-gap failures: conceptually relevant evidence can use different vocabulary from the query.
 
