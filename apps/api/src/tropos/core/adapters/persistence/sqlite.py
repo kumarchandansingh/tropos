@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
+from tropos.core.application.ingestion.lifecycle import KnowledgeSourceIdentityMismatchError
 from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
 from tropos.core.application.ingestion.run_state import (
     IngestionOutcome,
@@ -12,6 +13,7 @@ from tropos.core.application.ingestion.run_state import (
 )
 from tropos.core.application.ingestion.versioning import (
     CanonicalKnowledgeState,
+    KnowledgeLifecycleStatus,
     VersionAction,
     VersionReason,
     access_policy_fingerprint,
@@ -59,7 +61,9 @@ class SQLiteIngestionStore:
                     knowledge_id TEXT PRIMARY KEY,
                     content_fingerprint TEXT NOT NULL,
                     normalization_strategy_version TEXT NOT NULL,
-                    access_fingerprint TEXT NOT NULL
+                    access_fingerprint TEXT NOT NULL,
+                    lifecycle_status TEXT NOT NULL DEFAULT 'ACTIVE',
+                    lifecycle_changed_at TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS knowledge_versions (
@@ -242,6 +246,62 @@ class SQLiteIngestionStore:
             content_fingerprint=expected_state.content_fingerprint,
             normalization_strategy_version=expected_state.normalization_strategy_version,
             access_fingerprint=new_access_fingerprint,
+            lifecycle_status=expected_state.lifecycle_status,
+        )
+
+    def retire(
+        self,
+        *,
+        knowledge_id: str,
+        source_system: str,
+        source_record_id: str,
+        observed_at: str,
+    ) -> CanonicalKnowledgeState:
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            current = self._load_state(connection, knowledge_id)
+            if current is None:
+                raise KeyError(f"knowledge state not found: {knowledge_id}")
+
+            source_row = connection.execute(
+                """
+                SELECT source_system, source_record_id
+                FROM knowledge_versions
+                WHERE knowledge_id = ?
+                  AND content_fingerprint = ?
+                  AND normalization_strategy_version = ?
+                """,
+                (
+                    knowledge_id,
+                    current.content_fingerprint,
+                    current.normalization_strategy_version,
+                ),
+            ).fetchone()
+            if source_row is None:
+                raise RuntimeError("current knowledge version is missing")
+            if (str(source_row[0]), str(source_row[1])) != (source_system, source_record_id):
+                raise KnowledgeSourceIdentityMismatchError(
+                    f"lifecycle source identity does not match current knowledge: {knowledge_id}"
+                )
+
+            if current.lifecycle_status is KnowledgeLifecycleStatus.DELETED:
+                return current
+
+            connection.execute(
+                """
+                UPDATE knowledge_state
+                SET lifecycle_status = 'DELETED',
+                    lifecycle_changed_at = ?
+                WHERE knowledge_id = ?
+                """,
+                (observed_at, knowledge_id),
+            )
+
+        return CanonicalKnowledgeState(
+            content_fingerprint=current.content_fingerprint,
+            normalization_strategy_version=current.normalization_strategy_version,
+            access_fingerprint=current.access_fingerprint,
+            lifecycle_status=KnowledgeLifecycleStatus.DELETED,
         )
 
     def create_version(
@@ -370,12 +430,16 @@ class SQLiteIngestionStore:
                     knowledge_id,
                     content_fingerprint,
                     normalization_strategy_version,
-                    access_fingerprint
-                ) VALUES (?, ?, ?, ?)
+                    access_fingerprint,
+                    lifecycle_status,
+                    lifecycle_changed_at
+                ) VALUES (?, ?, ?, ?, 'ACTIVE', NULL)
                 ON CONFLICT(knowledge_id) DO UPDATE SET
                     content_fingerprint = excluded.content_fingerprint,
                     normalization_strategy_version = excluded.normalization_strategy_version,
-                    access_fingerprint = excluded.access_fingerprint
+                    access_fingerprint = excluded.access_fingerprint,
+                    lifecycle_status = 'ACTIVE',
+                    lifecycle_changed_at = NULL
                 """,
                 (
                     document.knowledge_id,
@@ -544,13 +608,14 @@ class SQLiteIngestionStore:
         knowledge_id: str,
     ) -> CanonicalKnowledgeState | None:
         row = cast(
-            tuple[str, str, str] | None,
+            tuple[str, str, str, str] | None,
             connection.execute(
                 """
                 SELECT
                     content_fingerprint,
                     normalization_strategy_version,
-                    access_fingerprint
+                    access_fingerprint,
+                    lifecycle_status
                 FROM knowledge_state
                 WHERE knowledge_id = ?
                 """,
@@ -563,4 +628,5 @@ class SQLiteIngestionStore:
             content_fingerprint=row[0],
             normalization_strategy_version=row[1],
             access_fingerprint=row[2],
+            lifecycle_status=KnowledgeLifecycleStatus(row[3]),
         )
