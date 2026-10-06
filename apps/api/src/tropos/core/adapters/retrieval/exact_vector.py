@@ -1,6 +1,10 @@
 from math import sqrt
 
-from tropos.core.application.embeddings.models import EmbeddingVector, SimilarityMetric
+from tropos.core.application.embeddings.models import (
+    EmbeddedKnowledgeChunk,
+    EmbeddingVector,
+    SimilarityMetric,
+)
 from tropos.core.application.ports.embeddings import EmbeddingProvider, EmbeddingRepository
 from tropos.core.application.retrieval.models import (
     KnowledgeSearchRequest,
@@ -39,7 +43,7 @@ class ExactVectorKnowledgeRetriever:
             embedding_strategy_version=self._provider.strategy_version,
         )
 
-        scored: list[tuple[float, str, int, object]] = []
+        scored: list[tuple[float, str, int, EmbeddedKnowledgeChunk]] = []
         for candidate in candidates:
             embedding = candidate.embedding
             if embedding.model_identifier != self._provider.model_identifier:
