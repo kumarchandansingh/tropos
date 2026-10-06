@@ -1,5 +1,7 @@
 # Enterprise Knowledge Systems — Decision & Trade-off Matrix
 
+> **Terminology note:** Technical abbreviations are expanded on first use where practical. See the [Technical glossary](../GLOSSARY.md) for a single reference covering ACL, ANN, BM25, HNSW, IVF, Maximum Marginal Relevance (MMR), MRR, RAG, RRF, and related terms.
+
 This companion to the [Enterprise Knowledge Systems — Interview Playbook](ENTERPRISE_KNOWLEDGE_SYSTEMS_INTERVIEW_GUIDE.md) focuses on one question senior interviewers keep asking:
 
 > **Why did you choose this design, what alternatives did you consider, what did you give up, and when would you change the decision?**
@@ -572,8 +574,8 @@ Semantic quality and vector-index scalability are two different experiments.
 | Option | Benefit | Problem |
 | --- | --- | --- |
 | Flat exact similarity | exact baseline and simple | O(N) query cost |
-| HNSW | fast high-recall ANN | memory/index tuning/approximation |
-| IVF/PQ | scalable/compressible | training/tuning/approximation complexity |
+| Hierarchical Navigable Small World (HNSW) | fast high-recall ANN | memory/index tuning/approximation |
+| Inverted File (IVF) / Product Quantization (PQ) | scalable/compressible | training/tuning/approximation complexity |
 | Managed vector DB | operational features | vendor/service cost and another dependency |
 
 ## Decision
