@@ -21,6 +21,7 @@ from tropos.core.adapters.normalization.deterministic import DeterministicKnowle
 from tropos.core.adapters.parsing.deterministic import DeterministicKnowledgeParser
 from tropos.core.adapters.persistence.sqlite import SQLiteIngestionStore
 from tropos.core.adapters.retrieval.exact_vector import ExactVectorKnowledgeRetriever
+from tropos.core.adapters.retrieval.hybrid_rrf import HybridRrfKnowledgeRetriever
 from tropos.core.adapters.retrieval.sqlite_fts import SQLiteFtsKnowledgeRetriever
 from tropos.core.application.embeddings.materialize import MaterializeEmbeddings
 from tropos.core.application.ingestion.ingest_knowledge import (
@@ -128,17 +129,23 @@ def main() -> None:
             repository=embedding_repository,
         ).execute()
 
-        lexical_report = evaluate_retrieval(SQLiteFtsKnowledgeRetriever(database), cases)
-        dense_report = evaluate_retrieval(
-            ExactVectorKnowledgeRetriever(
-                provider=provider,
-                repository=embedding_repository,
-            ),
-            cases,
+        lexical_retriever = SQLiteFtsKnowledgeRetriever(database)
+        dense_retriever = ExactVectorKnowledgeRetriever(
+            provider=provider,
+            repository=embedding_repository,
         )
+        hybrid_retriever = HybridRrfKnowledgeRetriever(
+            lexical=lexical_retriever,
+            dense=dense_retriever,
+        )
+
+        lexical_report = evaluate_retrieval(lexical_retriever, cases)
+        dense_report = evaluate_retrieval(dense_retriever, cases)
+        hybrid_report = evaluate_retrieval(hybrid_retriever, cases)
 
         lexical_by_id = {case.case_id: case for case in lexical_report.case_results}
         dense_by_id = {case.case_id: case for case in dense_report.case_results}
+        hybrid_by_id = {case.case_id: case for case in hybrid_report.case_results}
 
         comparison = {
             "dataset_id": dataset["dataset_id"],
@@ -149,12 +156,14 @@ def main() -> None:
             },
             "bm25": lexical_report.as_dict(),
             "dense": dense_report.as_dict(),
+            "hybrid": hybrid_report.as_dict(),
             "case_comparison": [
                 {
                     "case_id": case.case_id,
                     "tags": case.tags,
                     "bm25": lexical_by_id[case.case_id].retrieved_knowledge_ids,
                     "dense": dense_by_id[case.case_id].retrieved_knowledge_ids,
+                    "hybrid": hybrid_by_id[case.case_id].retrieved_knowledge_ids,
                 }
                 for case in cases
             ],

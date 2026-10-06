@@ -45,6 +45,17 @@ Use this for the semantic-retrieval design exercise and implementation boundary:
 - exact cosine search before approximate nearest-neighbor (ANN) indexing;
 - no-answer trade-offs, hybrid/reranking/Maximum Marginal Relevance (MMR) deferrals, and real-model evaluation evidence.
 
+### [Hybrid Retrieval V1 — Reciprocal Rank Fusion](HYBRID_RETRIEVAL_V1.md)
+
+Use this for the next measured retrieval experiment:
+
+- sparse/lexical BM25 versus dense/semantic retrieval;
+- why raw BM25 and cosine scores are not directly comparable;
+- Reciprocal Rank Fusion (RRF) mechanics;
+- candidate-depth trade-offs;
+- the distinction between hybrid ranking and no-answer/abstention policy;
+- the evidence required before adding reranking or thresholds.
+
 ### [Enterprise Knowledge Systems — Decision & Trade-off Matrix](DECISION_TRADEOFFS.md)
 
 Use this when the interviewer pushes beyond **what did you build?** into:
