@@ -1,7 +1,9 @@
 # Learning: a test plan is not a test result
 
+> **Terminology note:** See the [Technical glossary](GLOSSARY.md) for abbreviations used across the learning track.
+
 Authoritative behavior: [Saved evaluation architecture](../architecture/EVALUATION_RUNS.md).
-Decision: [ADR-012](../decisions/ADR-012-versioned-evaluation-catalogues-and-saved-runs.md).
+Decision: [Architecture Decision Record (ADR) 012](../decisions/ADR-012-versioned-evaluation-catalogues-and-saved-runs.md).
 
 ## Failure and invariant
 
@@ -11,7 +13,7 @@ An average can improve when the hardest cases silently fail to execute. A dashbo
 
 An expectation is an input to evaluation. An observation is what the retriever actually returned. An assertion compares evidence with an expectation or invariant. A run outcome summarizes those assertions without overwriting them. Execution completion and quality success are different facts.
 
-Content-addressed snapshots freeze inputs. Business IDs/version labels keep them readable. Both are needed: a version label alone can be reused accidentally, while a hash alone does not explain the business scenario.
+Content-addressed snapshots freeze inputs. Business identifiers (IDs)/version labels keep them readable. Both are needed: a version label alone can be reused accidentally, while a hash alone does not explain the business scenario.
 
 ## Alternatives, decision and cost
 
@@ -23,7 +25,7 @@ Isolated per-case ingestion costs execution time but prevents one access-revocat
 
 The standalone Windows command exposed a resource-lifecycle bug: SQLite's connection context commits or rolls back a transaction but does not close the connection. Temporary fixture cleanup could therefore fail after an otherwise completed run. Both ingestion and retrieval adapters now close connections explicitly after transaction completion, including exception paths. The command regression disables garbage collection and verifies saved results plus immediate temporary-directory cleanup, preventing success that depends on incidental collection timing.
 
-`test_saved_runs.py` covers changed-definition rejection, lifecycle scenarios, unauthorized/old/forged returned evidence, error continuation, interruption, terminal-state protection and read-only reporting. The unchanged V1 test preserves the earlier lexical baseline. V2 records 15 expected BM25 passes, two semantic misses and one unexecuted draft; honest failure data is the input to the future vector comparison.
+`test_saved_runs.py` covers changed-definition rejection, lifecycle scenarios, unauthorized/old/forged returned evidence, error continuation, interruption, terminal-state protection and read-only reporting. The unchanged V1 test preserves the earlier lexical baseline. V2 records 15 expected Best Matching 25 (BM25) lexical-retrieval passes, two semantic misses and one unexecuted draft; honest failure data is the input to the future vector comparison.
 
 ## Interview probes
 
