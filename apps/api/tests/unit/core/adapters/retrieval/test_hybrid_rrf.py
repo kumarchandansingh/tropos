@@ -5,7 +5,7 @@ from tropos.core.application.retrieval.models import (
     RetrievedKnowledgeChunk,
 )
 from tropos.core.domain.access import AccessPolicy, AccessScope
-from tropos.core.domain.knowledge_chunk import KnowledgeChunk
+from tropos.core.domain.knowledge_chunk import KnowledgeChunk, text_fingerprint
 
 
 class _FakeRetriever:
@@ -41,9 +41,9 @@ def _chunk(knowledge_id: str) -> KnowledgeChunk:
         text=text,
         start_offset=0,
         end_offset=len(text),
-        content_fingerprint=f"content-{knowledge_id}",
-        ingestion_fingerprint=f"ingestion-{knowledge_id}",
-        normalized_content_fingerprint=f"normalized-{knowledge_id}",
+        content_fingerprint=text_fingerprint(text),
+        ingestion_fingerprint="0" * 64,
+        normalized_content_fingerprint="1" * 64,
         normalization_strategy_version="normalize-v1",
         access_policy=AccessPolicy(
             tenant_id="tenant-a",
