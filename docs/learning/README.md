@@ -2,7 +2,7 @@
 
 This folder turns Tropos implementation work into reusable engineering understanding.
 
-The learning track is **not** product documentation and does not replace architecture docs or ADRs. Product docs explain what Tropos is; ADRs explain durable decisions; this folder teaches the engineering concepts behind those decisions and translates them into interview-ready reasoning.
+The learning track is **not** product documentation and does not replace architecture docs or Architecture Decision Records (ADRs). Product docs explain what Tropos is; ADRs explain durable decisions; this folder teaches the engineering concepts behind those decisions and translates them into interview-ready reasoning.
 
 ```mermaid
 flowchart LR
@@ -18,6 +18,11 @@ flowchart LR
 
 ## Current guides
 
+### [Technical glossary](GLOSSARY.md)
+
+Use this whenever a document introduces shorthand such as Access Control List (ACL), Approximate Nearest Neighbor (ANN), Reciprocal Rank Fusion (RRF), Mean Reciprocal Rank (MRR), or Hierarchical Navigable Small World (HNSW). Guides should expand technical abbreviations on first use and use the shorthand only after the meaning is established.
+
+
 ### [Enterprise Knowledge Systems — Interview Playbook](ENTERPRISE_KNOWLEDGE_SYSTEMS_INTERVIEW_GUIDE.md)
 
 Use this for:
@@ -26,7 +31,7 @@ Use this for:
 - idempotency, concurrency, ordering, transactions, and consistency;
 - parsing, chunking, lexical retrieval, embeddings, and vector indexing;
 - access control, enterprise synchronization, retries, checkpoints, and observability;
-- retrieval evaluation, migration, scale, and RAG failure modes;
+- retrieval evaluation, migration, scale, and retrieval-augmented generation (RAG) failure modes;
 - interview-style questions and sample answers grounded in the Tropos architecture.
 
 ### [Dense Retrieval V1 — System Design, Decisions, and Evidence Plan](DENSE_RETRIEVAL_V1.md)
@@ -35,10 +40,10 @@ Use this for the semantic-retrieval design exercise and implementation boundary:
 
 - why embeddings are derived from canonical chunks rather than part of canonical identity;
 - embedding model/version lineage and idempotent materialization;
-- revised/deleted/ACL-changed document behavior;
+- revised/deleted/access-control-changed document behavior;
 - governed candidate filtering before similarity ranking;
-- exact cosine search before ANN;
-- no-answer trade-offs, hybrid/reranking/MMR deferrals, and real-model evaluation evidence.
+- exact cosine search before approximate nearest-neighbor (ANN) indexing;
+- no-answer trade-offs, hybrid/reranking/Maximum Marginal Relevance (MMR) deferrals, and real-model evaluation evidence.
 
 ### [Enterprise Knowledge Systems — Decision & Trade-off Matrix](DECISION_TRADEOFFS.md)
 
