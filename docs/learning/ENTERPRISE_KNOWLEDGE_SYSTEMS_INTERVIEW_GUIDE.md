@@ -15,7 +15,7 @@ flowchart LR
     --> V[Reconcile versions]
     --> K[Chunk]
     --> D[(Canonical storage)]
-    D --> L[Lexical retrieval\nFull-text search / BM25]
+    D --> L[Lexical retrieval\nFull-text search / Best Matching 25]
     D --> E[Semantic retrieval\nEmbeddings / vectors]
     L --> R[Governed retrieval]
     E --> R
@@ -28,7 +28,7 @@ The interview story is therefore a sequence of engineering problems:
 | Production problem | Engineering concept |
 | --- | --- |
 | The same SharePoint item is seen twice during sync | idempotency, stable identity |
-| A DOCX is re-saved but business content did not change | parsing, canonicalization, hashing |
+| An Office Open XML Word document (DOCX) is re-saved but business content did not change | parsing, canonicalization, hashing |
 | The text changes but permissions do not | content versioning |
 | Permissions change but text does not | governance state |
 | Two workers update the same knowledge concurrently | optimistic concurrency control |
@@ -45,7 +45,7 @@ The interview story is therefore a sequence of engineering problems:
 
 ## Production scenario
 
-A SharePoint synchronization job is reading changes using Microsoft Graph delta queries. The same `DriveItem` can appear more than once in a delta feed, and a worker can also see the same item again after retries or a restart. Microsoft recommends tracking items by ID and following `@odata.nextLink` until a `@odata.deltaLink` is returned.
+A SharePoint synchronization job is reading changes using Microsoft Graph delta queries. The same `DriveItem` can appear more than once in a delta feed, and a worker can also see the same item again after retries or a restart. Microsoft recommends tracking items by identifier (ID) and following `@odata.nextLink` until a `@odata.deltaLink` is returned.
 
 This is not unusual distributed-system behavior. At-least-once delivery systems such as standard Amazon Simple Queue Service (SQS) can also deliver the same message more than once, so consumers are expected to be idempotent.
 
@@ -753,7 +753,7 @@ This is an example of **processing lineage** being separate from **content linea
 
 ## Production scenario
 
-The search endpoint returns HTTP 200 and five results. None of the five answers the user’s question.
+The search endpoint returns Hypertext Transfer Protocol (HTTP) status 200 and five results. None of the five answers the user’s question.
 
 Software correctness passed. Product quality failed.
 
@@ -763,7 +763,7 @@ Software correctness passed. Product quality failed.
 
 ### Candidate
 
-> “I maintain a versioned labeled dataset containing queries and the knowledge items expected to be relevant. I run the real ingestion and retrieval pipeline against it and compute ranking metrics such as Recall@K and Mean Reciprocal Rank (MRR). I also include explicit no-answer and access-control cases.
+> “I maintain a versioned labeled dataset containing queries and the knowledge items expected to be relevant. I run the real ingestion and retrieval pipeline against it and compute ranking metrics such as Recall@K (recall within the first K ranked results) and Mean Reciprocal Rank (MRR). I also include explicit no-answer and access-control cases.
 >
 > “That lets me compare retrieval strategies on the same corpus—for example BM25 versus vector—rather than relying on a few hand-picked demos.”
 
