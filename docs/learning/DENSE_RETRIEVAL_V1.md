@@ -348,3 +348,43 @@ V1 deliberately does not implement:
 - asynchronous worker infrastructure.
 
 Each becomes eligible only after the current experiment produces evidence for the corresponding failure mode or scale requirement.
+
+
+---
+
+## Real-model evaluation evidence
+
+A one-off GitHub Actions evaluation was run against the unchanged `tropos-retrieval-golden-v1` corpus using the real `sentence-transformers/all-mpnet-base-v2` model with normalized embeddings and cosine similarity.
+
+This was a real-model quality experiment, not a fake-vector unit test and not an evaluation of the OpenAI adapter specifically.
+
+| Metric | BM25 baseline | Dense real model |
+| --- | ---: | ---: |
+| Recall@1 | 0.80 | 1.00 |
+| Recall@3 | 0.80 | 1.00 |
+| Recall@5 | 0.80 | 1.00 |
+| Precision@5 | 0.16 | 0.20 |
+| MRR | 0.80 | 1.00 |
+| No-answer accuracy | 1.00 | 0.25 |
+
+The two intentionally semantic-gap cases were both recovered at rank 1:
+
+- `semantic-remote-work` → `flexible-location-guidance`
+- `semantic-late-package` → `late-delivery-trace`
+
+The experiment also confirmed the expected dense-retrieval abstention problem. With no calibrated threshold or reranker, unrelated queries still received nearest neighbors. Only the cross-tenant no-answer case returned an empty result set; the other three no-answer cases returned authorized but irrelevant candidates.
+
+### Interpretation
+
+The experiment supports the hypothesis that dense retrieval fixes the measured semantic-recall gap on this corpus. It also shows that dense retrieval cannot replace the current lexical/no-answer behavior as-is.
+
+The next design decision should therefore be based on two measured facts:
+
+1. Dense retrieval adds semantic recall.
+2. Raw dense top-K materially regresses no-answer behavior.
+
+This is evidence for evaluating hybrid retrieval and/or an evidence-backed abstention policy next, not for adding an arbitrary similarity threshold.
+
+### Limitations
+
+The V1 golden corpus is intentionally small and synthetic. A perfect answerable-case score is not a production accuracy claim. Before promoting any threshold, hybrid policy, or reranker, Tropos still needs larger held-out and production-like retrieval sets.
