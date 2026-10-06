@@ -18,7 +18,7 @@ flowchart LR
 
 ## Current guides
 
-### [Technical glossary](GLOSSARY.md)
+### [Technical glossary](../GLOSSARY.md)
 
 Use this whenever a document introduces shorthand such as Access Control List (ACL), Approximate Nearest Neighbor (ANN), Reciprocal Rank Fusion (RRF), Mean Reciprocal Rank (MRR), or Hierarchical Navigable Small World (HNSW). Guides should expand technical abbreviations on first use and use the shorthand only after the meaning is established.
 
