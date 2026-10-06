@@ -29,6 +29,17 @@ Use this for:
 - retrieval evaluation, migration, scale, and RAG failure modes;
 - interview-style questions and sample answers grounded in the Tropos architecture.
 
+### [Dense Retrieval V1 — System Design, Decisions, and Evidence Plan](DENSE_RETRIEVAL_V1.md)
+
+Use this for the semantic-retrieval design exercise and implementation boundary:
+
+- why embeddings are derived from canonical chunks rather than part of canonical identity;
+- embedding model/version lineage and idempotent materialization;
+- revised/deleted/ACL-changed document behavior;
+- governed candidate filtering before similarity ranking;
+- exact cosine search before ANN;
+- no-answer trade-offs, hybrid/reranking/MMR deferrals, and real-model evaluation evidence.
+
 ### [Enterprise Knowledge Systems — Decision & Trade-off Matrix](DECISION_TRADEOFFS.md)
 
 Use this when the interviewer pushes beyond **what did you build?** into:

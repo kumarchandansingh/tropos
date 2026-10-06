@@ -36,8 +36,8 @@ flowchart LR
 | Lexical retrieval | SQL LIKE, FTS/BM25, vector-only | SQLite FTS5 + BM25 | strong exact-term/identifier retrieval with low operational complexity | weak paraphrase/semantic recall | semantic misses are measured | **Implemented** |
 | Retrieval authorization | retrieve then filter, post-filter and refill, pre-filter authorized candidates | current-version + tenant/group authorization during retrieval | unauthorized evidence should not cross retrieval boundary | complicates vector/ANN design and may reduce index choices | never relax security invariant; implementation may change | **Implemented invariant** |
 | Retrieval evaluation | manual spot checks, online-only metrics, versioned offline golden set | labeled golden corpus + Recall@K/MRR/Precision/no-answer checks | makes retrieval changes comparable and regressions visible in CI | synthetic corpus can overfit and is not production truth | held-out/production-like data becomes available | **Implemented baseline** |
-| Semantic retrieval | skip vectors, vector-only replacement, additive vector path | build vector retrieval as a second strategy behind the same retrieval contract | measured BM25 semantic misses justify an evidence-based comparison | embedding cost, model lifecycle, vector storage complexity | after BM25-vs-vector evaluation | **Planned next** |
-| Vector search | exact flat scan, HNSW, IVF, managed vector DB | exact/flat search first for V1 | isolates embedding quality from ANN approximation and infrastructure | does not scale to large corpora | corpus/latency makes exact scan materially slow | **Planned V1 / ANN deferred** |
+| Semantic retrieval | skip vectors, vector-only replacement, additive vector path | exact dense retrieval as a second strategy behind the same retrieval contract | measured BM25 semantic misses justify an evidence-based comparison | embedding cost, model lifecycle, vector storage complexity | after BM25-vs-vector evaluation | **Implemented V1; real-model quality evidence pending** |
+| Vector search | exact flat scan, HNSW, IVF, managed vector DB | exact/flat cosine search for V1 | isolates embedding quality from ANN approximation and infrastructure | does not scale to large corpora | corpus/latency makes exact scan materially slow | **Implemented V1 / ANN deferred** |
 | Hybrid retrieval | replace BM25 with vector, fixed weighted score, rank fusion/reranking | defer until BM25-vs-vector evidence exists | avoids solving fusion before proving complementary value | delays best-possible retrieval quality | vector adds semantic recall while BM25 remains stronger on exact terms | **Deferred** |
 | Persistence | SQLite, Postgres/pgvector, dedicated search/vector stack | SQLite while service/runtime scale is local | simplest durable baseline for correctness and evaluation | limited concurrency/operations/scale | shared hosted service, multi-tenant runtime, or scale requires it | **Implemented baseline** |
 | Enterprise sync | single-record capture, periodic full scan, delta/cursor sync engine | single-record connector + retry boundary today | isolates acquisition contract before adding operational sync complexity | no backfill/deletion/checkpoint/resume engine yet | enterprise connector rollout begins | **Deferred / planned** |
@@ -557,7 +557,7 @@ After comparative metrics exist; only then decide whether vector is additive, re
 
 ### Status
 
-**Planned next — not yet implemented.**
+**Implemented in Vector Retrieval V1.** The mechanism is implemented behind the existing retrieval contract. Real-model semantic-quality claims remain pending until the credentialed golden-set comparison is captured.
 
 ---
 
@@ -594,7 +594,7 @@ Benchmark corpus size and p95 latency; introduce ANN only when exact search beco
 
 ### Status
 
-**Planned V1; ANN deferred.**
+**Implemented V1; ANN deferred.**
 
 ---
 
@@ -723,3 +723,175 @@ high sustained write contention
 ```
 
 The same pattern should be applied to future Tropos feature PRs. A new technical mechanism is not fully documented until the associated alternative, downside, and revisit condition are also recorded.
+
+---
+
+# 20. Embeddings are derived processing, not part of the canonical transaction
+
+## Problem
+
+Embedding generation can fail because of provider latency, credentials, quota, model outages, or model migration. None of those failures means the authoritative business knowledge failed to ingest.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Generate embeddings inside canonical commit | immediate search readiness | external/probabilistic failure can block source-of-truth persistence |
+| Embed raw source before normalization | early semantic index | weak lineage and representation mismatch |
+| Commit chunks first, materialize embeddings afterwards | preserves authoritative transaction and enables retry | temporary partial dense coverage |
+
+## Decision
+
+Persist canonical chunks first. Materialize embeddings as a derived processing step after canonical state commits.
+
+### Why
+
+`AUTHORITATIVE KNOWLEDGE ≠ DERIVED RETRIEVAL REPRESENTATION`.
+
+### Cost / downside
+
+Dense retrieval can temporarily lag ingestion. The current implementation is synchronous when invoked; durable background execution is not yet implemented.
+
+### Revisit trigger
+
+When materialization runs across services or queues, introduce durable job/outbox/reconciliation semantics and coverage observability.
+
+### Status
+
+**Implemented V1.**
+
+---
+
+# 21. Embedding identity is chunk + embedding strategy
+
+## Problem
+
+The same immutable chunk can be embedded with multiple models or model configurations over time.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Key only by chunk ID | simplest storage | model migration overwrites prior vector space |
+| Key by chunk + model name | supports model changes | dimensions/adapter behavior can still change under the same model family |
+| Key by chunk + embedding strategy version | explicit processing lineage | retains more derived history |
+
+## Decision
+
+Use `(chunk_id, embedding_strategy_version)` as embedding identity and persist model identifier, dimensions, similarity metric, and creation time.
+
+### Why
+
+Changing the embedding model is a processing migration, not a business-content version.
+
+### Cost / downside
+
+Historical vectors accumulate until a retention policy is introduced.
+
+### Revisit trigger
+
+When vector-history storage becomes material, define explicit retention and migration cleanup rules rather than deleting old representations opportunistically.
+
+### Status
+
+**Implemented V1.**
+
+---
+
+# 22. Durable embedding records double as the cache
+
+## Problem
+
+Repeated source deliveries, process retries, or re-runs should not pay for the same embedding again.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Always call provider | simple | unnecessary model cost and latency |
+| Separate generic embedding cache | reusable | another subsystem and weaker lineage semantics |
+| Treat persisted chunk+strategy embedding as cache hit | no duplicate subsystem and lineage-aware | requires durable lookup before provider call |
+
+## Decision
+
+Materialization first checks whether the current chunk already has the selected embedding strategy. Existing records are reused.
+
+### Cost / downside
+
+Cache invalidation becomes strategy-version design: incorrect versioning could accidentally reuse incompatible vectors.
+
+### Revisit trigger
+
+If identical text across distinct chunks becomes common enough that cross-chunk reuse materially reduces cost, evaluate a secondary content-hash cache without weakening chunk-level provenance.
+
+### Status
+
+**Implemented V1.**
+
+---
+
+# 23. No arbitrary dense-retrieval relevance threshold in V1
+
+## Problem
+
+A vector search always has a nearest neighbor, so unrelated queries may still return apparently plausible evidence.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Hard-coded cosine threshold | easy abstention | score ranges are model/corpus/query dependent |
+| Always return top-K | exposes raw retriever behavior | weak no-answer behavior |
+| Calibrated threshold/reranker/abstention model | stronger decision boundary | requires labeled evidence and extra tuning/model work |
+
+## Decision
+
+V1 returns raw top-K exact similarities and lets the existing no-answer evaluation expose the failure mode.
+
+### Why
+
+A threshold should be an evidence-backed policy, not a magic constant.
+
+### Cost / downside
+
+Dense V1 may regress no-answer accuracy.
+
+### Revisit trigger
+
+Use real-model score distributions and labeled no-answer cases to decide whether threshold calibration, reranking, hybrid evidence, or an abstention classifier is justified.
+
+### Status
+
+**Implemented V1 behavior; calibration deferred.**
+
+---
+
+# 24. Framework patterns are borrowed; framework ownership is not
+
+## Problem
+
+Libraries such as LangChain provide useful embedding/vector abstractions, caching and retriever patterns, but Tropos also owns enterprise-specific identity, lifecycle and governance semantics.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Make LangChain the core domain boundary | fast ecosystem adoption | framework semantics leak into identity/governance architecture |
+| Ignore ecosystem patterns | full control | needless reinvention |
+| Borrow proven abstractions behind Tropos-owned ports | ecosystem alignment without domain lock-in | adapters must be maintained |
+
+## Decision
+
+Keep Tropos-owned `EmbeddingProvider`, `EmbeddingRepository`, and `KnowledgeChunkRetriever` ports. Provider/framework libraries remain replaceable adapters.
+
+### Cost / downside
+
+Tropos owns a small amount of adapter and orchestration code that a framework could otherwise hide.
+
+### Revisit trigger
+
+Adopt a framework adapter when it materially reduces integration cost without taking ownership of canonical identity, ACL, lifecycle, or evaluation semantics.
+
+### Status
+
+**Implemented architectural boundary.**
