@@ -139,6 +139,19 @@ class SQLiteIngestionStore:
                 );
                 """
             )
+            state_columns = {
+                str(row[1])
+                for row in connection.execute("PRAGMA table_info(knowledge_state)").fetchall()
+            }
+            if "lifecycle_status" not in state_columns:
+                connection.execute(
+                    "ALTER TABLE knowledge_state "
+                    "ADD COLUMN lifecycle_status TEXT NOT NULL DEFAULT 'ACTIVE'"
+                )
+            if "lifecycle_changed_at" not in state_columns:
+                connection.execute(
+                    "ALTER TABLE knowledge_state ADD COLUMN lifecycle_changed_at TEXT"
+                )
 
     def record(self, raw_record: RawKnowledgeRecord) -> None:
         policy = raw_record.access_policy
