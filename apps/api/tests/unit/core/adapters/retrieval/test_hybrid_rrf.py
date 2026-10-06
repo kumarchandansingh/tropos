@@ -105,15 +105,11 @@ def test_rrf_promotes_evidence_supported_by_both_retrievers() -> None:
 def test_hybrid_uses_rank_not_incomparable_raw_scores() -> None:
     lexical = _FakeRetriever(
         strategy_version="bm25-test",
-        results=(
-            _result("lexical", rank=1, score=10_000.0, strategy_version="bm25-test"),
-        ),
+        results=(_result("lexical", rank=1, score=10_000.0, strategy_version="bm25-test"),),
     )
     dense = _FakeRetriever(
         strategy_version="dense-test",
-        results=(
-            _result("dense", rank=1, score=0.01, strategy_version="dense-test"),
-        ),
+        results=(_result("dense", rank=1, score=0.01, strategy_version="dense-test"),),
     )
 
     retriever = HybridRrfKnowledgeRetriever(lexical=lexical, dense=dense)
