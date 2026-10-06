@@ -1,8 +1,10 @@
 # Dense Retrieval V1 — System Design, Decisions, and Evidence Plan
 
+> **Terminology note:** Technical abbreviations are expanded on first use. See the [Technical glossary](GLOSSARY.md) for quick reference.
+
 Dense retrieval is being added because the lexical baseline has two measured semantic-gap failures: conceptually relevant evidence can use different vocabulary from the query.
 
-The build is intentionally an additive retrieval strategy, not a replacement for BM25.
+The build is intentionally an additive retrieval strategy, not a replacement for Best Matching 25 (BM25) lexical retrieval.
 
 ## Production problem
 
@@ -165,7 +167,7 @@ flowchart TD
 
     CS[Canonical current state] --> EL
     LC[ACTIVE lifecycle] --> EL
-    ACL[Tenant + group ACL] --> EL
+    ACL[Tenant + group access control] --> EL
     ES[Embedding strategy] --> EL
 ```
 
@@ -175,11 +177,11 @@ Tropos selects eligible candidates before semantic ranking in V1.
 
 A globally top-ranked unauthorized set can crowd authorized evidence out of the initial K. Post-filtering can therefore under-return relevant authorized evidence, in addition to weakening the retrieval security boundary.
 
-Future ANN implementations may use filtered traversal, partitions, partial indexes, or iterative scans, but the security invariant does not change.
+Future approximate nearest-neighbor (ANN) implementations may use filtered traversal, partitions, partial indexes, or iterative scans, but the security invariant does not change.
 
 ---
 
-## Exact similarity before ANN
+## Exact similarity before approximate nearest-neighbor (ANN) indexing
 
 V1 performs an exact scan over eligible vectors.
 
@@ -187,9 +189,9 @@ V1 performs an exact scan over eligible vectors.
 
 | Option | Benefit | Problem |
 | --- | --- | --- |
-| Exact cosine scan | deterministic, exact nearest-neighbor baseline | O(N) query work |
-| HNSW | strong latency/recall at scale | approximate, memory/index tuning |
-| IVF/PQ | scalable/compressible | training/tuning and approximation complexity |
+| Exact cosine scan | deterministic, exact nearest-neighbor baseline | O(N), meaning linear work across N eligible vectors |
+| Hierarchical Navigable Small World (HNSW) | strong latency/recall at scale | approximate, memory/index tuning |
+| Inverted File (IVF) / Product Quantization (PQ) | scalable/compressible | training/tuning and approximation complexity |
 | Managed vector service | operational features | external service, cost, vendor dependency |
 
 ### Decision
@@ -201,7 +203,7 @@ This isolates two separate questions:
 1. Does the embedding representation improve retrieval quality?
 2. How should millions of vectors be searched efficiently?
 
-ANN is deferred until corpus size and latency justify it.
+Approximate nearest-neighbor indexing is deferred until corpus size and latency justify it.
 
 ---
 
@@ -231,7 +233,7 @@ A future threshold, reranker, hybrid policy, or abstention classifier must be ju
 
 ---
 
-## BM25, dense, hybrid, and reranking
+## BM25 lexical retrieval, dense retrieval, hybrid retrieval, and reranking
 
 The current experiment is:
 
@@ -252,9 +254,9 @@ Expected strengths are hypotheses, not proof:
 - BM25 should remain strong for exact identifiers, rare terms, policy names, and codes.
 - dense retrieval should recover paraphrases and low-overlap semantic matches.
 
-If the two strategies prove complementary, the next design candidate is rank fusion such as RRF. A reranker can then operate on a bounded candidate set.
+If the two strategies prove complementary, the next design candidate is rank fusion such as Reciprocal Rank Fusion (RRF). A reranker can then operate on a bounded candidate set.
 
-MMR/diversity selection is also a later option when top results become redundant, but it is not part of V1.
+Maximum Marginal Relevance (MMR) diversity selection is also a later option when top results become redundant, but it is not part of V1.
 
 ---
 
@@ -269,7 +271,7 @@ Tropos must continue to own:
 - canonical identity;
 - source/content/processing lineage;
 - ACTIVE/DELETED lifecycle;
-- tenant and ACL semantics;
+- tenant and Access Control List (ACL) semantics;
 - embedding migration rules;
 - retrieval eligibility;
 - evaluation evidence.
@@ -310,7 +312,7 @@ The existing `KnowledgeChunkRetriever` contract remains unchanged.
 
 ## Evidence plan
 
-CI uses deterministic fake embeddings only to prove mechanics:
+Continuous Integration (CI) uses deterministic fake embeddings only to prove mechanics:
 
 - idempotent materialization;
 - separate embedding-strategy lineage;
@@ -326,7 +328,7 @@ A separate real-model evaluation runner uses the same versioned golden corpus an
 OPENAI_API_KEY=... uv run python scripts/evaluate_dense_retrieval.py
 ```
 
-It reports the same Recall@K, Precision@5, MRR, and no-answer metrics for BM25 and dense retrieval, plus case-level retrieved knowledge IDs.
+It reports the same Recall@K, Precision@5, Mean Reciprocal Rank (MRR), and no-answer metrics for BM25 and dense retrieval, plus case-level retrieved knowledge IDs.
 
 No semantic-quality claim should be made until that real-model run is captured.
 
@@ -337,11 +339,11 @@ No semantic-quality claim should be made until that real-model run is captured.
 V1 deliberately does not implement:
 
 - BM25 + dense fusion;
-- RRF;
+- Reciprocal Rank Fusion (RRF);
 - reranking;
-- MMR;
+- Maximum Marginal Relevance (MMR);
 - similarity-threshold abstention;
-- HNSW / IVF / PQ;
+- Hierarchical Navigable Small World (HNSW) / Inverted File (IVF) / Product Quantization (PQ);
 - vector database;
 - multimodal or multilingual embeddings;
 - domain fine-tuning;
@@ -364,7 +366,7 @@ This was a real-model quality experiment, not a fake-vector unit test and not an
 | Recall@3 | 0.80 | 1.00 |
 | Recall@5 | 0.80 | 1.00 |
 | Precision@5 | 0.16 | 0.20 |
-| MRR | 0.80 | 1.00 |
+| Mean Reciprocal Rank (MRR) | 0.80 | 1.00 |
 | No-answer accuracy | 1.00 | 0.25 |
 
 The two intentionally semantic-gap cases were both recovered at rank 1:
