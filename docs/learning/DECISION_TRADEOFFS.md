@@ -1,6 +1,6 @@
 # Enterprise Knowledge Systems — Decision & Trade-off Matrix
 
-> **Terminology note:** Technical abbreviations are expanded on first use where practical. See the [Technical glossary](GLOSSARY.md) for a single reference covering ACL, ANN, BM25, HNSW, IVF, Maximum Marginal Relevance (MMR), MRR, RAG, RRF, and related terms.
+> **Terminology note:** Technical abbreviations are expanded on first use where practical. See the [Technical glossary](../GLOSSARY.md) for a single reference covering ACL, ANN, BM25, HNSW, IVF, Maximum Marginal Relevance (MMR), MRR, RAG, RRF, and related terms.
 
 This companion to the [Enterprise Knowledge Systems — Interview Playbook](ENTERPRISE_KNOWLEDGE_SYSTEMS_INTERVIEW_GUIDE.md) focuses on one question senior interviewers keep asking:
 
