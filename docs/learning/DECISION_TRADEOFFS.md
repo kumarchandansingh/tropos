@@ -309,12 +309,12 @@ sequenceDiagram
     participant W1 as Worker 1
     participant DB as Current state
     participant W2 as Worker 2
-    W1->>DB: Read A
-    W2->>DB: Read A
-    W1->>DB: Commit B if current == A
-    DB-->>W1: Success; current = B
-    W2->>DB: Commit C if current == A
-    DB-->>W2: Reject; expected A, found B
+    W1->>DB: Read state A
+    W2->>DB: Read state A
+    W1->>DB: Commit B, expecting A
+    DB-->>W1: Success, current state is B
+    W2->>DB: Commit C, expecting A
+    DB-->>W2: Reject, expected A but found B
 ```
 
 ### Why
