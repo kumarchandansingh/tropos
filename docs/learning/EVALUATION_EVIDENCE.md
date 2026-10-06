@@ -1,6 +1,6 @@
 # Learning: a test plan is not a test result
 
-> **Terminology note:** See the [Technical glossary](GLOSSARY.md) for abbreviations used across the learning track.
+> **Terminology note:** See the [Technical glossary](../GLOSSARY.md) for abbreviations used across the learning track.
 
 Authoritative behavior: [Saved evaluation architecture](../architecture/EVALUATION_RUNS.md).
 Decision: [Architecture Decision Record (ADR) 012](../decisions/ADR-012-versioned-evaluation-catalogues-and-saved-runs.md).
