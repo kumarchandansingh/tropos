@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from tropos.capabilities.training.procedure import ProcedureDraft
+from tropos.capabilities.training.procedure import GapKind, ProcedureDraft
 from tropos.core.domain.evidence import EvidenceRef
 
 
@@ -22,12 +22,17 @@ class ExpectedStep(ExpectedClaim):
 
 
 @dataclass(frozen=True, slots=True)
+class ExpectedGap(ExpectedClaim):
+    kind: GapKind = GapKind.MISSING_INFORMATION
+
+
+@dataclass(frozen=True, slots=True)
 class TrainingEvalCase:
     case_id: str
     expected_steps: tuple[ExpectedStep, ...]
     forbidden_step_terms: tuple[str, ...] = ()
     expected_exceptions: tuple[ExpectedClaim, ...] = ()
-    expected_gaps: tuple[ExpectedClaim, ...] = ()
+    expected_gaps: tuple[ExpectedGap, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,7 +89,7 @@ def evaluate_procedure(case: TrainingEvalCase, draft: ProcedureDraft) -> Trainin
         matching = [
             item
             for item, text in zip(draft.gaps, normalized_gaps, strict=True)
-            if expected_text in text
+            if expected_text in text and item.kind is expected.kind
         ]
         if matching:
             matched_gaps += 1
