@@ -13,7 +13,7 @@
     },
     "viewBox": [
       940,
-      720
+      530
     ]
   },
   "stages": [
@@ -37,7 +37,7 @@
       "label": "Source connector",
       "sublabel": "identity + exact payload",
       "stage": 0,
-      "row": 2,
+      "row": 1,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/application/ingestion/ingest_from_source.py",
@@ -52,7 +52,7 @@
       "label": "Raw capture",
       "sublabel": "immutable evidence + replay",
       "stage": 1,
-      "row": 1,
+      "row": 0,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/application/ingestion/ingest_knowledge.py",
@@ -67,7 +67,7 @@
       "label": "Format parser",
       "sublabel": "text / MD / HTML / DOCX",
       "stage": 1,
-      "row": 3,
+      "row": 2,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/adapters/parsing/deterministic.py",
@@ -82,7 +82,7 @@
       "label": "Normalize",
       "sublabel": "canonical text + fingerprint",
       "stage": 2,
-      "row": 1,
+      "row": 0,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/adapters/normalization/deterministic.py",
@@ -97,7 +97,7 @@
       "label": "Version resolver",
       "sublabel": "content and access checked",
       "stage": 2,
-      "row": 3,
+      "row": 2,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/application/ingestion/versioning.py",
@@ -127,7 +127,7 @@
       "label": "SQLite persistence",
       "sublabel": "versions + governed chunks",
       "stage": 3,
-      "row": 2,
+      "row": 1,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/adapters/persistence/sqlite.py",
@@ -142,7 +142,7 @@
       "label": "Access refresh",
       "sublabel": "access-only refresh",
       "stage": 3,
-      "row": 4,
+      "row": 2,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/adapters/persistence/sqlite.py",
