@@ -7,9 +7,9 @@ from tropos.capabilities.training.langchain_extractor import (
 )
 from tropos.capabilities.training.procedure import EvidenceExcerpt
 from tropos.evals.training import (
-    evaluate_procedure,
     ExpectedStep,
     TrainingEvalCase,
+    evaluate_procedure,
 )
 
 
