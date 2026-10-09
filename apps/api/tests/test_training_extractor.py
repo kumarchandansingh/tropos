@@ -32,12 +32,14 @@ def evidence() -> tuple[EvidenceExcerpt, ...]:
 
 
 def test_extracts_cited_procedure() -> None:
-    model = FakeModel({
-        "title": "Create requisition",
-        "steps": [{"instruction": "Submit eligible item", "evidence_ids": ["1"]}],
-        "exceptions": ["Restricted item cannot be submitted"],
-        "gaps": ["Navigation is not documented"],
-    })
+    model = FakeModel(
+        {
+            "title": "Create requisition",
+            "steps": [{"instruction": "Submit eligible item", "evidence_ids": ["1"]}],
+            "exceptions": ["Restricted item cannot be submitted"],
+            "gaps": ["Navigation is not documented"],
+        }
+    )
     result = LangChainProcedureExtractor(model).extract(evidence())
     assert result.steps[0].evidence_ids == ("1",)
     assert result.gaps == ("Navigation is not documented",)
@@ -45,12 +47,14 @@ def test_extracts_cited_procedure() -> None:
 
 
 def test_rejects_fabricated_citation() -> None:
-    model = FakeModel({
-        "title": "Create requisition",
-        "steps": [{"instruction": "Submit", "evidence_ids": ["999"]}],
-        "exceptions": [],
-        "gaps": [],
-    })
+    model = FakeModel(
+        {
+            "title": "Create requisition",
+            "steps": [{"instruction": "Submit", "evidence_ids": ["999"]}],
+            "exceptions": [],
+            "gaps": [],
+        }
+    )
     with pytest.raises(ValueError, match="unknown evidence"):
         LangChainProcedureExtractor(model).extract(evidence())
 

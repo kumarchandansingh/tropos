@@ -4,7 +4,10 @@ from hashlib import sha256
 
 import pytest
 
-from tropos.capabilities.training.generate_procedure import GenerateProcedure, GenerateProcedureRequest
+from tropos.capabilities.training.generate_procedure import (
+    GenerateProcedure,
+    GenerateProcedureRequest,
+)
 from tropos.capabilities.training.procedure import EvidenceExcerpt, ProcedureDraft
 from tropos.core.application.retrieval.models import RetrievedKnowledgeChunk
 from tropos.core.domain.access import AccessPolicy, AccessScope
