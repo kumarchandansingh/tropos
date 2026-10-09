@@ -67,7 +67,9 @@ def evaluate_procedure(case: TrainingEvalCase, draft: ProcedureDraft) -> Trainin
         ]
         if matching_steps:
             matched_steps += 1
-            if _citation_ids(matching_steps[0].evidence_refs) == set(expected_step.evidence_chunk_ids):
+            if _citation_ids(matching_steps[0].evidence_refs) == set(
+                expected_step.evidence_chunk_ids
+            ):
                 aligned_citations += 1
 
     matched_exceptions = 0
@@ -95,7 +97,9 @@ def evaluate_procedure(case: TrainingEvalCase, draft: ProcedureDraft) -> Trainin
         ]
         if matching_gaps:
             matched_gaps += 1
-            if _citation_ids(matching_gaps[0].evidence_refs) == set(expected_gap.evidence_chunk_ids):
+            if _citation_ids(matching_gaps[0].evidence_refs) == set(
+                expected_gap.evidence_chunk_ids
+            ):
                 aligned_citations += 1
 
     step_coverage = (
