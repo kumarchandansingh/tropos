@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from tropos.capabilities.training.procedure import ProcedureDraft
+from tropos.core.domain.evidence import EvidenceRef
 
 
 def _norm(value: str) -> str:
@@ -39,8 +40,8 @@ class TrainingEvalResult:
     passed: bool
 
 
-def _citation_ids(evidence_refs: tuple[object, ...]) -> set[str]:
-    return {getattr(ref, "chunk_id") for ref in evidence_refs}
+def _citation_ids(evidence_refs: tuple[EvidenceRef, ...]) -> set[str]:
+    return {ref.chunk_id for ref in evidence_refs}
 
 
 def evaluate_procedure(case: TrainingEvalCase, draft: ProcedureDraft) -> TrainingEvalResult:
