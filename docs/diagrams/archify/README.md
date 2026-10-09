@@ -10,7 +10,7 @@ A source-backed documentation pilot for the synchronous ingestion path at Tropos
 
 ## Learning and review in the viewer
 
-Use the four guided views to inspect **Source evidence**, **Content versioning**, **Access governance**, and **Persistence and replay**. The cards explain the distinction between exact source bytes, normalized content identity, access policy, and durability. Open the linked source references to verify each component.
+Use the three guided views — **Source to evidence**, **When to create a version**, and **Independent access update** — to explore the implementation. The cards provide detailed context about exact captured bytes, content identity, access governance, and run outcomes. The cards explain the distinction between exact source bytes, normalized content identity, access policy, and durability. Open the linked source references to verify each component.
 
 Keep the diagram itself compact; put detailed examples and trade-offs in cards or linked architecture documentation. Every description must be grounded in implementation or explicitly labeled planned/unknown. Do not add invented APIs, cloud services or LLM calls.
 
