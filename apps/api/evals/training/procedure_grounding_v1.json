@@ -1,6 +1,6 @@
 {
   "dataset_id": "tropos-training-procedure-grounding-v1",
-  "notes": "Synthetic, human-authored evidence cases for validating procedure extraction behavior before live-model promotion.",
+  "notes": "Synthetic, human-authored evidence cases for validating grounded procedure extraction behavior before live-model promotion.",
   "cases": [
     {
       "case_id": "happy-path-requisition",
@@ -9,12 +9,12 @@
         {"source_id": "uat-1", "locator": "uat:TC-04", "text": "Given valid requisition data, when the requester selects Submit, the requisition is created and routed for approval."}
       ],
       "expected_steps": [
-        {"contains": "enter", "evidence_ids": ["1"]},
-        {"contains": "submit", "evidence_ids": ["2"]}
+        {"contains": "enter", "evidence_chunk_ids": ["req-1"]},
+        {"contains": "submit", "evidence_chunk_ids": ["uat-1"]}
       ],
       "forbidden_step_terms": [],
-      "expected_exception_terms": [],
-      "expected_gap_terms": []
+      "expected_exceptions": [],
+      "expected_gaps": []
     },
     {
       "case_id": "negative-uat-is-exception",
@@ -23,11 +23,13 @@
         {"source_id": "uat-2", "locator": "uat:NEG-07", "text": "If the supplier is inactive, submission is blocked and the user sees Supplier inactive."}
       ],
       "expected_steps": [
-        {"contains": "submit", "evidence_ids": ["1"]}
+        {"contains": "submit", "evidence_chunk_ids": ["req-2"]}
       ],
       "forbidden_step_terms": ["inactive supplier"],
-      "expected_exception_terms": ["inactive"],
-      "expected_gap_terms": []
+      "expected_exceptions": [
+        {"contains": "inactive", "evidence_chunk_ids": ["uat-2"]}
+      ],
+      "expected_gaps": []
     },
     {
       "case_id": "missing-navigation-becomes-gap",
@@ -35,12 +37,14 @@
         {"source_id": "uat-3", "locator": "uat:TC-09", "text": "Enter the project code and select Save. The record is stored successfully."}
       ],
       "expected_steps": [
-        {"contains": "project code", "evidence_ids": ["1"]},
-        {"contains": "save", "evidence_ids": ["1"]}
+        {"contains": "project code", "evidence_chunk_ids": ["uat-3"]},
+        {"contains": "save", "evidence_chunk_ids": ["uat-3"]}
       ],
       "forbidden_step_terms": [],
-      "expected_exception_terms": [],
-      "expected_gap_terms": ["navigation"]
+      "expected_exceptions": [],
+      "expected_gaps": [
+        {"contains": "navigation", "kind": "missing_information", "evidence_chunk_ids": ["uat-3"]}
+      ]
     },
     {
       "case_id": "conflicting-evidence-becomes-gap",
@@ -50,8 +54,10 @@
       ],
       "expected_steps": [],
       "forbidden_step_terms": ["edit"],
-      "expected_exception_terms": [],
-      "expected_gap_terms": ["conflict"]
+      "expected_exceptions": [],
+      "expected_gaps": [
+        {"contains": "conflict", "kind": "conflict", "evidence_chunk_ids": ["req-4", "uat-4"]}
+      ]
     }
   ]
 }

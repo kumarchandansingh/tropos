@@ -84,9 +84,16 @@ def test_retrieves_authorized_evidence_and_preserves_provenance() -> None:
     assert retriever.request.access.groups == ("buyers",)
     assert retriever.request.limit == 4
     assert extractor.evidence is not None
-    assert extractor.evidence[0].source_id == "chunk-1"
-    assert extractor.evidence[0].locator == "local-file:uat.xlsx@v2#chars=20-50"
-    assert extractor.evidence[0].text == "Submit an eligible requisition"
+
+    excerpt = extractor.evidence[0]
+    assert excerpt.reference.chunk_id == "chunk-1"
+    assert excerpt.reference.knowledge_id == "knowledge-1"
+    assert excerpt.reference.source_system == "local-file"
+    assert excerpt.reference.source_record_id == "uat.xlsx"
+    assert excerpt.reference.source_version == "2"
+    assert excerpt.reference.locator == "local-file:uat.xlsx@v2#chars=20-50"
+    assert excerpt.reference.content_fingerprint == text_fingerprint(excerpt.text)
+    assert excerpt.text == "Submit an eligible requisition"
 
 
 def test_does_not_call_extractor_without_authorized_evidence() -> None:
