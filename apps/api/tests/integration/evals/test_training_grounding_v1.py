@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from tropos.capabilities.training.langchain_extractor import LangChainProcedureExtractor
 from tropos.capabilities.training.procedure import EvidenceExcerpt
@@ -27,7 +27,7 @@ class FakeModel:
 
 
 def _load() -> dict[str, Any]:
-    return json.loads(DATASET.read_text(encoding="utf-8"))
+    return cast(dict[str, Any], json.loads(DATASET.read_text(encoding="utf-8")))
 
 
 def _case(raw: dict[str, Any]) -> TrainingEvalCase:
