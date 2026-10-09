@@ -9,7 +9,10 @@ from tropos.capabilities.training.generate_procedure import (
     GenerateProcedureRequest,
 )
 from tropos.capabilities.training.procedure import EvidenceExcerpt, ProcedureDraft
-from tropos.core.application.retrieval.models import RetrievedKnowledgeChunk
+from tropos.core.application.retrieval.models import (
+    KnowledgeSearchRequest,
+    RetrievedKnowledgeChunk,
+)
 from tropos.core.domain.access import AccessPolicy, AccessScope
 from tropos.core.domain.knowledge_chunk import KnowledgeChunk, text_fingerprint
 
@@ -19,9 +22,9 @@ class FakeRetriever:
 
     def __init__(self, results: tuple[RetrievedKnowledgeChunk, ...]) -> None:
         self.results = results
-        self.request = None
+        self.request: KnowledgeSearchRequest | None = None
 
-    def search(self, request):
+    def search(self, request: KnowledgeSearchRequest) -> tuple[RetrievedKnowledgeChunk, ...]:
         self.request = request
         return self.results
 
@@ -76,6 +79,7 @@ def test_retrieves_authorized_evidence_and_preserves_provenance() -> None:
     )
 
     assert result.title == "Draft"
+    assert retriever.request is not None
     assert retriever.request.access.tenant_id == "tenant-a"
     assert retriever.request.access.groups == ("buyers",)
     assert retriever.request.limit == 4
