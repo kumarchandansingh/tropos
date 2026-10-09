@@ -10,7 +10,11 @@
       "revision": "8cbad1f6261bb11f16a40cfe7f77a1887d29e5ab",
       "provider": "github",
       "link_mode": "web"
-    }
+    },
+    "viewBox": [
+      1200,
+      720
+    ]
   },
   "stages": [
     {
@@ -139,7 +143,7 @@
       "id": "governance",
       "type": "security",
       "label": "Access refresh",
-      "sublabel": "independent of content change",
+      "sublabel": "access-only refresh",
       "stage": 4,
       "row": 4,
       "sources": [
@@ -160,7 +164,11 @@
     {
       "from": "capture",
       "to": "parser",
-      "label": "raw bytes"
+      "label": "raw bytes",
+      "labelAt": [
+        315,
+        315
+      ]
     },
     {
       "from": "parser",
@@ -182,7 +190,11 @@
     {
       "from": "chunk",
       "to": "storage",
-      "label": "document + chunks"
+      "label": "document + chunks",
+      "labelAt": [
+        892,
+        201
+      ]
     },
     {
       "from": "version",
@@ -194,7 +206,11 @@
       "from": "governance",
       "to": "storage",
       "label": "governance update",
-      "variant": "security"
+      "variant": "security",
+      "labelAt": [
+        892,
+        599
+      ]
     }
   ],
   "cards": [
