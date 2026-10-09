@@ -14,6 +14,49 @@
     "viewBox": [
       940,
       530
+    ],
+    "views": [
+      {
+        "id": "source-evidence",
+        "label": "Source evidence",
+        "focus": [
+          "source",
+          "capture",
+          "parser"
+        ],
+        "note": "Capture preserves exact source evidence; parsing interprets content without rewriting its raw identity."
+      },
+      {
+        "id": "canonical-version",
+        "label": "Content versioning",
+        "focus": [
+          "parser",
+          "canonical",
+          "version",
+          "chunk"
+        ],
+        "note": "Deterministic normalization produces the canonical fingerprint; only CREATE_VERSION writes a new version and chunks."
+      },
+      {
+        "id": "access-governance",
+        "label": "Access governance",
+        "focus": [
+          "version",
+          "governance",
+          "storage"
+        ],
+        "note": "Access changes may refresh current permissions independently, including before new content is persisted."
+      },
+      {
+        "id": "durability",
+        "label": "Persistence and replay",
+        "focus": [
+          "capture",
+          "version",
+          "storage"
+        ],
+        "note": "SQLite records source captures, ingestion runs, state and evidence; completed identical captures are replay-safe."
+      }
     ]
   },
   "stages": [
@@ -217,29 +260,39 @@
   "cards": [
     {
       "dot": "emerald",
-      "title": "Canonical content identity",
+      "title": "Why canonical identity matters",
       "items": [
-        "Source payload integrity and content identity are separate",
-        "Normalization happens before version resolution",
-        "Only CREATE_VERSION materializes and chunks a new document"
+        "Raw payload fingerprint: tracks exact captured bytes. Canonical fingerprint: tracks normalized knowledge content.",
+        "Normalization removes specified presentation noise such as line-ending and whitespace differences.",
+        "Meaning-bearing content changes create a new canonical identity; harmless formatting changes need not."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Version resolution: four possible outcomes",
+      "items": [
+        "CREATE_VERSION: first content or a changed canonical fingerprint; materialize the document and deterministic chunks.",
+        "NO_CONTENT_VERSION: identical canonical content and access; preserve the existing version.",
+        "REFRESH_GOVERNANCE: same content but changed access; update permissions without new chunks.",
+        "REBASELINE_REQUIRED: normalization strategy changed; pause automatic content versioning for explicit rebaseline."
       ]
     },
     {
       "dot": "amber",
-      "title": "Access changes are separate",
+      "title": "The independent governance path",
       "items": [
-        "An access-policy change can trigger refresh without new content",
-        "Governance refresh can also precede creating a new version",
-        "Unchanged content and changed normalization strategy do not automatically create versions"
+        "Content fingerprints and access-policy fingerprints are evaluated separately.",
+        "If access changes alongside content, refresh governance on existing persisted evidence before later version work.",
+        "Access-only changes must not masquerade as a content revision."
       ]
     },
     {
       "dot": "slate",
-      "title": "Orchestration and replay",
+      "title": "Provenance, replay, and durability",
       "items": [
-        "Repeated completed captures return the prior result",
-        "Ingestion stages, outcomes and failures are recorded separately",
-        "NO_CONTENT_VERSION and REBASELINE_REQUIRED do not write new chunks"
+        "Immutable source capture preserves source identity, source version, exact bytes and access context.",
+        "A completed capture with the same ingestion fingerprint returns its prior result (idempotent replay).",
+        "SQLite retains ingestion runs, current canonical state, document versions, chunks and failure outcomes."
       ]
     }
   ]

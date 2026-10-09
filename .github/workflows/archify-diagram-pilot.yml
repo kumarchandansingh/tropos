@@ -8,24 +8,27 @@ on:
       - '.github/workflows/archify-diagram-pilot.yml'
   workflow_dispatch:
 
+# Read-only token; the renderer receives neither a persisted token nor secrets.
 permissions:
   contents: read
 
 jobs:
   render-and-validate:
-    # Do not execute modified vendored JS from fork-authored PRs.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # PRs from external forks are deliberately not executed: they could modify
+    # vendored JavaScript before this workflow runs.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       ARCHIFY_UPDATE_CHECK_DISABLED: '1'
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-          # Prevent the checkout token from remaining in .git/config when Archify executes.
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - name: Install Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
       - name: Report renderer version
@@ -41,7 +44,7 @@ jobs:
           --json
       - name: Upload generated diagram and receipts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: tropos-archify-ingestion
           retention-days: 7
