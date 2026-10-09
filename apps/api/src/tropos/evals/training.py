@@ -65,9 +65,7 @@ def evaluate_procedure(case: TrainingEvalCase, draft: ProcedureDraft) -> Trainin
     )
 
     exception_separation = all(
-        _norm(term) not in step
-        for term in case.forbidden_step_terms
-        for step in normalized_steps
+        _norm(term) not in step for term in case.forbidden_step_terms for step in normalized_steps
     ) and all(
         any(_norm(term) in exception for exception in normalized_exceptions)
         for term in case.expected_exception_terms
