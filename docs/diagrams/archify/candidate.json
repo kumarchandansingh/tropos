@@ -12,7 +12,7 @@
       "link_mode": "web"
     },
     "viewBox": [
-      1200,
+      940,
       720
     ]
   },
@@ -21,13 +21,10 @@
       "label": "Source"
     },
     {
-      "label": "Capture and parse"
+      "label": "Capture / parse"
     },
     {
-      "label": "Canonicalize"
-    },
-    {
-      "label": "Decide"
+      "label": "Canonicalize / decide"
     },
     {
       "label": "Persist / govern"
@@ -85,7 +82,7 @@
       "label": "Normalize",
       "sublabel": "canonical text + fingerprint",
       "stage": 2,
-      "row": 2,
+      "row": 1,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/adapters/normalization/deterministic.py",
@@ -99,8 +96,8 @@
       "type": "backend",
       "label": "Version resolver",
       "sublabel": "content and access checked",
-      "stage": 3,
-      "row": 2,
+      "stage": 2,
+      "row": 3,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/application/ingestion/versioning.py",
@@ -114,7 +111,7 @@
       "type": "backend",
       "label": "Chunk document",
       "sublabel": "only when version created",
-      "stage": 4,
+      "stage": 3,
       "row": 0,
       "sources": [
         {
@@ -129,7 +126,7 @@
       "type": "database",
       "label": "SQLite persistence",
       "sublabel": "versions + governed chunks",
-      "stage": 4,
+      "stage": 3,
       "row": 2,
       "sources": [
         {
@@ -144,7 +141,7 @@
       "type": "security",
       "label": "Access refresh",
       "sublabel": "access-only refresh",
-      "stage": 4,
+      "stage": 3,
       "row": 4,
       "sources": [
         {
@@ -190,11 +187,7 @@
     {
       "from": "chunk",
       "to": "storage",
-      "label": "document + chunks",
-      "labelAt": [
-        1040,
-        201
-      ]
+      "label": "document + chunks"
     },
     {
       "from": "version",
@@ -206,11 +199,7 @@
       "from": "governance",
       "to": "storage",
       "label": "governance update",
-      "variant": "security",
-      "labelAt": [
-        1040,
-        657
-      ]
+      "variant": "security"
     }
   ],
   "cards": [
