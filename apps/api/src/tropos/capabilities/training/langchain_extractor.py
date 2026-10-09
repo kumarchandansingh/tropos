@@ -69,9 +69,7 @@ class LangChainProcedureExtractor:
 
         from langchain_core.messages import HumanMessage, SystemMessage
 
-        aliases = {
-            f"E{index}": item.reference for index, item in enumerate(evidence, start=1)
-        }
+        aliases = {f"E{index}": item.reference for index, item in enumerate(evidence, start=1)}
         payload = "\n\n".join(
             (
                 f"[E{index}] source={item.reference.source_system}:"
