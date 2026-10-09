@@ -1,4 +1,4 @@
-"""Deterministic evaluation for training procedure extraction."""
+"""Deterministic evaluation for grounded training procedure extraction."""
 
 from dataclasses import dataclass
 
@@ -10,9 +10,14 @@ def _norm(value: str) -> str:
 
 
 @dataclass(frozen=True, slots=True)
-class ExpectedStep:
+class ExpectedClaim:
     contains: str
-    evidence_ids: tuple[str, ...]
+    evidence_chunk_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ExpectedStep(ExpectedClaim):
+    pass
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,8 +25,8 @@ class TrainingEvalCase:
     case_id: str
     expected_steps: tuple[ExpectedStep, ...]
     forbidden_step_terms: tuple[str, ...] = ()
-    expected_exception_terms: tuple[str, ...] = ()
-    expected_gap_terms: tuple[str, ...] = ()
+    expected_exceptions: tuple[ExpectedClaim, ...] = ()
+    expected_gaps: tuple[ExpectedClaim, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,12 +39,16 @@ class TrainingEvalResult:
     passed: bool
 
 
+def _citation_ids(evidence_refs: tuple[object, ...]) -> set[str]:
+    return {getattr(ref, "chunk_id") for ref in evidence_refs}
+
+
 def evaluate_procedure(case: TrainingEvalCase, draft: ProcedureDraft) -> TrainingEvalResult:
-    """Score one draft against explicit, human-authored expectations."""
+    """Score one draft against explicit, human-authored grounded expectations."""
 
     normalized_steps = tuple(_norm(step.instruction) for step in draft.steps)
-    normalized_exceptions = tuple(_norm(item) for item in draft.exceptions)
-    normalized_gaps = tuple(_norm(item) for item in draft.gaps)
+    normalized_exceptions = tuple(_norm(item.description) for item in draft.exceptions)
+    normalized_gaps = tuple(_norm(item.description) for item in draft.gaps)
 
     matched_steps = 0
     aligned_citations = 0
@@ -52,31 +61,52 @@ def evaluate_procedure(case: TrainingEvalCase, draft: ProcedureDraft) -> Trainin
         ]
         if matching:
             matched_steps += 1
-            if set(matching[0].evidence_ids) == set(expected.evidence_ids):
+            if _citation_ids(matching[0].evidence_refs) == set(expected.evidence_chunk_ids):
+                aligned_citations += 1
+
+    matched_exceptions = 0
+    for expected in case.expected_exceptions:
+        expected_text = _norm(expected.contains)
+        matching = [
+            item
+            for item, text in zip(draft.exceptions, normalized_exceptions, strict=True)
+            if expected_text in text
+        ]
+        if matching:
+            matched_exceptions += 1
+            if _citation_ids(matching[0].evidence_refs) == set(expected.evidence_chunk_ids):
+                aligned_citations += 1
+
+    matched_gaps = 0
+    for expected in case.expected_gaps:
+        expected_text = _norm(expected.contains)
+        matching = [
+            item
+            for item, text in zip(draft.gaps, normalized_gaps, strict=True)
+            if expected_text in text
+        ]
+        if matching:
+            matched_gaps += 1
+            if _citation_ids(matching[0].evidence_refs) == set(expected.evidence_chunk_ids):
                 aligned_citations += 1
 
     step_coverage = (
         matched_steps / len(case.expected_steps) if case.expected_steps else float(not draft.steps)
     )
-    citation_alignment = (
-        aligned_citations / len(case.expected_steps)
-        if case.expected_steps
-        else float(not draft.steps)
+    expected_claim_count = (
+        len(case.expected_steps) + len(case.expected_exceptions) + len(case.expected_gaps)
     )
-
+    citation_alignment = (
+        aligned_citations / expected_claim_count
+        if expected_claim_count
+        else float(not draft.steps and not draft.exceptions and not draft.gaps)
+    )
     exception_separation = all(
         _norm(term) not in step for term in case.forbidden_step_terms for step in normalized_steps
-    ) and all(
-        any(_norm(term) in exception for exception in normalized_exceptions)
-        for term in case.expected_exception_terms
-    )
-
-    matched_gaps = sum(
-        any(_norm(term) in gap for gap in normalized_gaps) for term in case.expected_gap_terms
-    )
+    ) and matched_exceptions == len(case.expected_exceptions)
     gap_coverage = (
-        matched_gaps / len(case.expected_gap_terms)
-        if case.expected_gap_terms
+        matched_gaps / len(case.expected_gaps)
+        if case.expected_gaps
         else float(not draft.gaps)
     )
 
