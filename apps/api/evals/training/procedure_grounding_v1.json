@@ -1,0 +1,57 @@
+{
+  "dataset_id": "tropos-training-procedure-grounding-v1",
+  "notes": "Synthetic, human-authored evidence cases for validating procedure extraction behavior before live-model promotion.",
+  "cases": [
+    {
+      "case_id": "happy-path-requisition",
+      "evidence": [
+        {"source_id": "req-1", "locator": "requirements:FR-12", "text": "A requester may submit a requisition after entering supplier, item, quantity and cost centre."},
+        {"source_id": "uat-1", "locator": "uat:TC-04", "text": "Given valid requisition data, when the requester selects Submit, the requisition is created and routed for approval."}
+      ],
+      "expected_steps": [
+        {"contains": "enter", "evidence_ids": ["1"]},
+        {"contains": "submit", "evidence_ids": ["2"]}
+      ],
+      "forbidden_step_terms": [],
+      "expected_exception_terms": [],
+      "expected_gap_terms": []
+    },
+    {
+      "case_id": "negative-uat-is-exception",
+      "evidence": [
+        {"source_id": "req-2", "locator": "requirements:FR-20", "text": "A requester can submit a requisition for an active supplier."},
+        {"source_id": "uat-2", "locator": "uat:NEG-07", "text": "If the supplier is inactive, submission is blocked and the user sees Supplier inactive."}
+      ],
+      "expected_steps": [
+        {"contains": "submit", "evidence_ids": ["1"]}
+      ],
+      "forbidden_step_terms": ["inactive supplier"],
+      "expected_exception_terms": ["inactive"],
+      "expected_gap_terms": []
+    },
+    {
+      "case_id": "missing-navigation-becomes-gap",
+      "evidence": [
+        {"source_id": "uat-3", "locator": "uat:TC-09", "text": "Enter the project code and select Save. The record is stored successfully."}
+      ],
+      "expected_steps": [
+        {"contains": "project code", "evidence_ids": ["1"]},
+        {"contains": "save", "evidence_ids": ["1"]}
+      ],
+      "forbidden_step_terms": [],
+      "expected_exception_terms": [],
+      "expected_gap_terms": ["navigation"]
+    },
+    {
+      "case_id": "conflicting-evidence-becomes-gap",
+      "evidence": [
+        {"source_id": "req-4", "locator": "requirements:FR-33", "text": "Requesters may edit a requisition until final approval."},
+        {"source_id": "uat-4", "locator": "uat:TC-14", "text": "After first-level approval the Edit action is disabled for the requester."}
+      ],
+      "expected_steps": [],
+      "forbidden_step_terms": ["edit"],
+      "expected_exception_terms": [],
+      "expected_gap_terms": ["conflict"]
+    }
+  ]
+}
