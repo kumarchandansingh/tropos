@@ -9,6 +9,7 @@ from tropos.capabilities.training.procedure import (
 )
 from tropos.core.application.ports.retrieval import KnowledgeChunkRetriever
 from tropos.core.application.retrieval.models import KnowledgeSearchRequest, RetrievalAccessContext
+from tropos.core.domain.evidence import EvidenceRef
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,11 +54,18 @@ class GenerateProcedure:
 
         evidence = tuple(
             EvidenceExcerpt(
-                source_id=result.chunk.chunk_id,
-                locator=(
-                    f"{result.chunk.source_system}:{result.chunk.source_record_id}"
-                    f"@v{result.chunk.source_version}"
-                    f"#chars={result.chunk.start_offset}-{result.chunk.end_offset}"
+                reference=EvidenceRef(
+                    chunk_id=result.chunk.chunk_id,
+                    knowledge_id=result.chunk.knowledge_id,
+                    source_system=result.chunk.source_system,
+                    source_record_id=result.chunk.source_record_id,
+                    source_version=result.chunk.source_version,
+                    locator=(
+                        f"{result.chunk.source_system}:{result.chunk.source_record_id}"
+                        f"@v{result.chunk.source_version}"
+                        f"#chars={result.chunk.start_offset}-{result.chunk.end_offset}"
+                    ),
+                    content_fingerprint=result.chunk.content_fingerprint,
                 ),
                 text=result.chunk.text,
             )
