@@ -1,0 +1,49 @@
+name: Archify diagram pilot
+
+on:
+  pull_request:
+    paths:
+      - '.agents/skills/archify/**'
+      - 'docs/diagrams/archify/**'
+      - '.github/workflows/archify-diagram-pilot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ARCHIFY_UPDATE_CHECK_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Report renderer version
+        run: node --version && node .agents/skills/archify/bin/archify.mjs doctor
+      - name: Generate and finalize source-backed dataflow
+        run: >
+          node .agents/skills/archify/bin/archify.mjs
+          finalize dataflow
+          docs/diagrams/archify/candidate.json
+          docs/diagrams/archify/tropos-ingestion.html
+          --repo-root .
+          --quality showcase
+          --json
+      - name: Upload generated diagram and receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tropos-archify-ingestion
+          path: |
+            docs/diagrams/archify/candidate.json
+            docs/diagrams/archify/tropos-ingestion.html
+            docs/diagrams/archify/*finalize*.json
+            docs/diagrams/archify/*delivery*.json
+            docs/diagrams/archify/*browser-check*.json
+          if-no-files-found: warn

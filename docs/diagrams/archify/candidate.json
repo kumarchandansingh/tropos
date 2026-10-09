@@ -1,0 +1,229 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Tropos | Governed Knowledge Ingestion",
+    "output": "docs/diagrams/archify/tropos-ingestion.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/kumarchandansingh/tropos",
+      "revision": "8cbad1f6261bb11f16a40cfe7f77a1887d29e5ab",
+      "provider": "github",
+      "link_mode": "web"
+    }
+  },
+  "stages": [
+    {
+      "label": "Source"
+    },
+    {
+      "label": "Capture and parse"
+    },
+    {
+      "label": "Canonicalize"
+    },
+    {
+      "label": "Decide"
+    },
+    {
+      "label": "Persist / govern"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "source",
+      "type": "external",
+      "label": "Source connector",
+      "sublabel": "identity + exact payload",
+      "stage": 0,
+      "row": 2,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/application/ingestion/ingest_from_source.py",
+          "line": 28,
+          "end_line": 58
+        }
+      ]
+    },
+    {
+      "id": "capture",
+      "type": "backend",
+      "label": "Raw capture",
+      "sublabel": "immutable evidence + replay",
+      "stage": 1,
+      "row": 1,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/application/ingestion/ingest_knowledge.py",
+          "line": 72,
+          "end_line": 95
+        }
+      ]
+    },
+    {
+      "id": "parser",
+      "type": "backend",
+      "label": "Format parser",
+      "sublabel": "text / MD / HTML / DOCX",
+      "stage": 1,
+      "row": 3,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/adapters/parsing/deterministic.py",
+          "line": 292,
+          "end_line": 310
+        }
+      ]
+    },
+    {
+      "id": "canonical",
+      "type": "backend",
+      "label": "Normalize",
+      "sublabel": "canonical text + fingerprint",
+      "stage": 2,
+      "row": 2,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/adapters/normalization/deterministic.py",
+          "line": 19,
+          "end_line": 64
+        }
+      ]
+    },
+    {
+      "id": "version",
+      "type": "backend",
+      "label": "Version resolver",
+      "sublabel": "content and access checked",
+      "stage": 3,
+      "row": 2,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/application/ingestion/versioning.py",
+          "line": 99,
+          "end_line": 145
+        }
+      ]
+    },
+    {
+      "id": "chunk",
+      "type": "backend",
+      "label": "Chunk document",
+      "sublabel": "only when version created",
+      "stage": 4,
+      "row": 0,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/adapters/chunking/deterministic.py",
+          "line": 11,
+          "end_line": 39
+        }
+      ]
+    },
+    {
+      "id": "storage",
+      "type": "database",
+      "label": "SQLite persistence",
+      "sublabel": "versions + governed chunks",
+      "stage": 4,
+      "row": 2,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/adapters/persistence/sqlite.py",
+          "line": 327,
+          "end_line": 371
+        }
+      ]
+    },
+    {
+      "id": "governance",
+      "type": "security",
+      "label": "Access refresh",
+      "sublabel": "independent of content change",
+      "stage": 4,
+      "row": 4,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/adapters/persistence/sqlite.py",
+          "line": 201,
+          "end_line": 240
+        }
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "from": "source",
+      "to": "capture",
+      "label": "captured source"
+    },
+    {
+      "from": "capture",
+      "to": "parser",
+      "label": "raw bytes"
+    },
+    {
+      "from": "parser",
+      "to": "canonical",
+      "label": "extracted text"
+    },
+    {
+      "from": "canonical",
+      "to": "version",
+      "label": "canonical state",
+      "variant": "emphasis"
+    },
+    {
+      "from": "version",
+      "to": "chunk",
+      "label": "CREATE_VERSION",
+      "variant": "emphasis"
+    },
+    {
+      "from": "chunk",
+      "to": "storage",
+      "label": "document + chunks"
+    },
+    {
+      "from": "version",
+      "to": "governance",
+      "label": "access changed",
+      "variant": "security"
+    },
+    {
+      "from": "governance",
+      "to": "storage",
+      "label": "governance update",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Canonical content identity",
+      "items": [
+        "Source payload integrity and content identity are separate",
+        "Normalization happens before version resolution",
+        "Only CREATE_VERSION materializes and chunks a new document"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Access changes are separate",
+      "items": [
+        "An access-policy change can trigger refresh without new content",
+        "Governance refresh can also precede creating a new version",
+        "Unchanged content and changed normalization strategy do not automatically create versions"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Orchestration and replay",
+      "items": [
+        "Repeated completed captures return the prior result",
+        "Ingestion stages, outcomes and failures are recorded separately",
+        "NO_CONTENT_VERSION and REBASELINE_REQUIRED do not write new chunks"
+      ]
+    }
+  ]
+}
