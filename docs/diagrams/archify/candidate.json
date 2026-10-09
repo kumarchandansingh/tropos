@@ -192,7 +192,7 @@
       "to": "storage",
       "label": "document + chunks",
       "labelAt": [
-        892,
+        1040,
         201
       ]
     },
@@ -208,8 +208,8 @@
       "label": "governance update",
       "variant": "security",
       "labelAt": [
-        892,
-        599
+        1040,
+        657
       ]
     }
   ],
