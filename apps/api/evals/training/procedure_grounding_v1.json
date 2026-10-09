@@ -43,7 +43,7 @@
       "forbidden_step_terms": [],
       "expected_exceptions": [],
       "expected_gaps": [
-        {"contains": "navigation", "evidence_chunk_ids": ["uat-3"]}
+        {"contains": "navigation", "kind": "missing_information", "evidence_chunk_ids": ["uat-3"]}
       ]
     },
     {
@@ -56,7 +56,7 @@
       "forbidden_step_terms": ["edit"],
       "expected_exceptions": [],
       "expected_gaps": [
-        {"contains": "conflict", "evidence_chunk_ids": ["req-4", "uat-4"]}
+        {"contains": "conflict", "kind": "conflict", "evidence_chunk_ids": ["req-4", "uat-4"]}
       ]
     }
   ]
