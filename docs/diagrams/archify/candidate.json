@@ -176,7 +176,11 @@
       "from": "canonical",
       "to": "version",
       "label": "canonical state",
-      "variant": "emphasis"
+      "variant": "emphasis",
+      "labelAt": [
+        530,
+        315
+      ]
     },
     {
       "from": "version",
@@ -187,7 +191,11 @@
     {
       "from": "chunk",
       "to": "storage",
-      "label": "document + chunks"
+      "label": "document + chunks",
+      "labelAt": [
+        745,
+        201
+      ]
     },
     {
       "from": "version",
