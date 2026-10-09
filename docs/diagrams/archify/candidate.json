@@ -17,45 +17,35 @@
     ],
     "views": [
       {
-        "id": "source-evidence",
-        "label": "Source evidence",
+        "id": "captureJourney",
+        "label": "Source to evidence",
         "focus": [
           "source",
           "capture",
           "parser"
         ],
-        "note": "Capture preserves exact source evidence; parsing interprets content without rewriting its raw identity."
+        "note": "Capture exact source bytes, retain native identity, and parse supported document formats before canonicalization."
       },
       {
-        "id": "canonical-version",
-        "label": "Content versioning",
+        "id": "versionDecision",
+        "label": "When to create a version",
         "focus": [
-          "parser",
           "canonical",
           "version",
-          "chunk"
+          "chunk",
+          "storage"
         ],
-        "note": "Deterministic normalization produces the canonical fingerprint; only CREATE_VERSION writes a new version and chunks."
+        "note": "A first-seen or changed canonical fingerprint creates a version; unchanged content does not create new chunks."
       },
       {
-        "id": "access-governance",
-        "label": "Access governance",
+        "id": "accessChange",
+        "label": "Independent access update",
         "focus": [
           "version",
           "governance",
           "storage"
         ],
-        "note": "Access changes may refresh current permissions independently, including before new content is persisted."
-      },
-      {
-        "id": "durability",
-        "label": "Persistence and replay",
-        "focus": [
-          "capture",
-          "version",
-          "storage"
-        ],
-        "note": "SQLite records source captures, ingestion runs, state and evidence; completed identical captures are replay-safe."
+        "note": "Tenant, scope, or allowed-group changes can refresh access without a new content version."
       }
     ]
   },
@@ -259,40 +249,32 @@
   ],
   "cards": [
     {
-      "dot": "emerald",
-      "title": "Why canonical identity matters",
+      "dot": "cyan",
+      "title": "1 · Preserve source evidence",
       "items": [
-        "Raw payload fingerprint: tracks exact captured bytes. Canonical fingerprint: tracks normalized knowledge content.",
-        "Normalization removes specified presentation noise such as line-ending and whitespace differences.",
-        "Meaning-bearing content changes create a new canonical identity; harmless formatting changes need not."
+        "Source identity, source version, exact bytes, capture timestamp and access policy are retained as provenance; source_version alone does not define a content version.",
+        "Supported parsers handle UTF-8 text, Markdown, HTML and DOCX deterministically; PDF/OCR and model-assisted parsing are not part of this implemented path.",
+        "A previously completed (knowledge_id, ingestion_fingerprint) capture is replayed rather than re-ingested."
       ]
     },
     {
-      "dot": "violet",
-      "title": "Version resolution: four possible outcomes",
+      "dot": "emerald",
+      "title": "2 · Decide whether content changed",
       "items": [
-        "CREATE_VERSION: first content or a changed canonical fingerprint; materialize the document and deterministic chunks.",
-        "NO_CONTENT_VERSION: identical canonical content and access; preserve the existing version.",
-        "REFRESH_GOVERNANCE: same content but changed access; update permissions without new chunks.",
-        "REBASELINE_REQUIRED: normalization strategy changed; pause automatic content versioning for explicit rebaseline."
+        "Normalize presentation noise (for example line endings, trailing spaces and repeated blank lines) before fingerprinting the canonical title and ordered blocks.",
+        "First-seen content or a different canonical fingerprint => CREATE_VERSION: materialize a KnowledgeDocument, chunk it and persist the new version.",
+        "Same canonical content and unchanged access => NO_CONTENT_VERSION: no new content version or chunks.",
+        "Normalization strategy changed => REBASELINE_REQUIRED: require deliberate rebaselining rather than treating a new algorithm as a content edit."
       ]
     },
     {
       "dot": "amber",
-      "title": "The independent governance path",
+      "title": "3 · Update access independently",
       "items": [
-        "Content fingerprints and access-policy fingerprints are evaluated separately.",
-        "If access changes alongside content, refresh governance on existing persisted evidence before later version work.",
-        "Access-only changes must not masquerade as a content revision."
-      ]
-    },
-    {
-      "dot": "slate",
-      "title": "Provenance, replay, and durability",
-      "items": [
-        "Immutable source capture preserves source identity, source version, exact bytes and access context.",
-        "A completed capture with the same ingestion fingerprint returns its prior result (idempotent replay).",
-        "SQLite retains ingestion runs, current canonical state, document versions, chunks and failure outcomes."
+        "Access fingerprint is computed separately from content, using tenant ID, authorization scope and allowed groups.",
+        "Same content with changed access => REFRESH_GOVERNANCE without creating chunks.",
+        "When both content and access change, governance refresh can run before CREATE_VERSION; state checks reject unexpected concurrent changes.",
+        "Each run records stage, outcome and failure details. The diagram is a synchronous ingestion view, not a deployed API or complete retrieval architecture."
       ]
     }
   ]
