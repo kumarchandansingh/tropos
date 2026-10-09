@@ -111,9 +111,7 @@ def evaluate_procedure(case: TrainingEvalCase, draft: ProcedureDraft) -> Trainin
         _norm(term) not in step for term in case.forbidden_step_terms for step in normalized_steps
     ) and matched_exceptions == len(case.expected_exceptions)
     gap_coverage = (
-        matched_gaps / len(case.expected_gaps)
-        if case.expected_gaps
-        else float(not draft.gaps)
+        matched_gaps / len(case.expected_gaps) if case.expected_gaps else float(not draft.gaps)
     )
 
     passed = (
