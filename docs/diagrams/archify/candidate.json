@@ -17,35 +17,45 @@
     ],
     "views": [
       {
-        "id": "captureJourney",
-        "label": "Source to evidence",
+        "id": "source-evidence",
+        "label": "Source evidence",
         "focus": [
           "source",
           "capture",
           "parser"
         ],
-        "note": "Capture exact source bytes, retain native identity, and parse supported document formats before canonicalization."
+        "note": "Capture preserves exact source evidence; parsing interprets content without rewriting its raw identity."
       },
       {
-        "id": "versionDecision",
-        "label": "When to create a version",
+        "id": "canonical-version",
+        "label": "Content versioning",
         "focus": [
+          "parser",
           "canonical",
           "version",
-          "chunk",
-          "storage"
+          "chunk"
         ],
-        "note": "A first-seen or changed canonical fingerprint creates a version; unchanged content does not create new chunks."
+        "note": "Deterministic normalization produces the canonical fingerprint; only CREATE_VERSION writes a new version and chunks."
       },
       {
-        "id": "accessChange",
-        "label": "Independent access update",
+        "id": "access-governance",
+        "label": "Access governance",
         "focus": [
           "version",
           "governance",
           "storage"
         ],
-        "note": "Tenant, scope, or allowed-group changes can refresh access without a new content version."
+        "note": "Access changes may refresh current permissions independently, including before new content is persisted."
+      },
+      {
+        "id": "durability",
+        "label": "Persistence and replay",
+        "focus": [
+          "capture",
+          "version",
+          "storage"
+        ],
+        "note": "SQLite records source captures, ingestion runs, state and evidence; completed identical captures are replay-safe."
       }
     ]
   },
@@ -254,7 +264,7 @@
       "items": [
         "Source identity, source version, exact bytes, capture timestamp and access policy are retained as provenance; source_version alone does not define a content version.",
         "Supported parsers handle UTF-8 text, Markdown, HTML and DOCX deterministically; PDF/OCR and model-assisted parsing are not part of this implemented path.",
-        "A previously completed (knowledge_id, ingestion_fingerprint) capture is replayed rather than re-ingested."
+        "Parser output becomes canonical evidence without replacing raw capture; unsupported formats and malformed documents fail explicitly."
       ]
     },
     {
@@ -275,6 +285,15 @@
         "Same content with changed access => REFRESH_GOVERNANCE without creating chunks.",
         "When both content and access change, governance refresh can run before CREATE_VERSION; state checks reject unexpected concurrent changes.",
         "Each run records stage, outcome and failure details. The diagram is a synchronous ingestion view, not a deployed API or complete retrieval architecture."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "4 · Replay, durability and audit",
+      "items": [
+        "SQLite persists immutable source captures, run stages and outcomes, current canonical state, document versions, and governed chunks.",
+        "A completed capture with the same knowledge ID and ingestion fingerprint returns its prior result instead of performing the work again.",
+        "Expected-state checks surface competing canonical updates rather than silently overwriting a newer version; failures are recorded by stage."
       ]
     }
   ]
