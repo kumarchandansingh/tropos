@@ -79,9 +79,7 @@ def _case(raw: dict[str, Any]) -> TrainingEvalCase:
             for step in raw["expected_steps"]
         ),
         forbidden_step_terms=tuple(raw["forbidden_step_terms"]),
-        expected_exceptions=tuple(
-            _expected_claim(item) for item in raw["expected_exceptions"]
-        ),
+        expected_exceptions=tuple(_expected_claim(item) for item in raw["expected_exceptions"]),
         expected_gaps=tuple(_expected_gap(item) for item in raw["expected_gaps"]),
     )
 
