@@ -6,7 +6,6 @@ from tropos.capabilities.training.langchain_extractor import LangChainProcedureE
 from tropos.capabilities.training.procedure import EvidenceExcerpt
 from tropos.evals.training import ExpectedStep, TrainingEvalCase, evaluate_procedure
 
-
 DATASET = Path(__file__).parents[3] / "evals/training/procedure_grounding_v1.json"
 
 
