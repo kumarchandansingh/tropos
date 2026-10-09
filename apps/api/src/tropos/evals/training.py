@@ -58,42 +58,44 @@ def evaluate_procedure(case: TrainingEvalCase, draft: ProcedureDraft) -> Trainin
 
     matched_steps = 0
     aligned_citations = 0
-    for expected in case.expected_steps:
-        expected_text = _norm(expected.contains)
-        matching = [
+    for expected_step in case.expected_steps:
+        expected_text = _norm(expected_step.contains)
+        matching_steps = [
             step
             for step, text in zip(draft.steps, normalized_steps, strict=True)
             if expected_text in text
         ]
-        if matching:
+        if matching_steps:
             matched_steps += 1
-            if _citation_ids(matching[0].evidence_refs) == set(expected.evidence_chunk_ids):
+            if _citation_ids(matching_steps[0].evidence_refs) == set(expected_step.evidence_chunk_ids):
                 aligned_citations += 1
 
     matched_exceptions = 0
-    for expected in case.expected_exceptions:
-        expected_text = _norm(expected.contains)
-        matching = [
+    for expected_exception in case.expected_exceptions:
+        expected_text = _norm(expected_exception.contains)
+        matching_exceptions = [
             item
             for item, text in zip(draft.exceptions, normalized_exceptions, strict=True)
             if expected_text in text
         ]
-        if matching:
+        if matching_exceptions:
             matched_exceptions += 1
-            if _citation_ids(matching[0].evidence_refs) == set(expected.evidence_chunk_ids):
+            if _citation_ids(matching_exceptions[0].evidence_refs) == set(
+                expected_exception.evidence_chunk_ids
+            ):
                 aligned_citations += 1
 
     matched_gaps = 0
-    for expected in case.expected_gaps:
-        expected_text = _norm(expected.contains)
-        matching = [
+    for expected_gap in case.expected_gaps:
+        expected_text = _norm(expected_gap.contains)
+        matching_gaps = [
             item
             for item, text in zip(draft.gaps, normalized_gaps, strict=True)
-            if expected_text in text and item.kind is expected.kind
+            if expected_text in text and item.kind is expected_gap.kind
         ]
-        if matching:
+        if matching_gaps:
             matched_gaps += 1
-            if _citation_ids(matching[0].evidence_refs) == set(expected.evidence_chunk_ids):
+            if _citation_ids(matching_gaps[0].evidence_refs) == set(expected_gap.evidence_chunk_ids):
                 aligned_citations += 1
 
     step_coverage = (
