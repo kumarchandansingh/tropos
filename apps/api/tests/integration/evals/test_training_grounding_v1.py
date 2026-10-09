@@ -4,10 +4,11 @@ from pathlib import Path
 from typing import Any, cast
 
 from tropos.capabilities.training.langchain_extractor import LangChainProcedureExtractor
-from tropos.capabilities.training.procedure import EvidenceExcerpt
+from tropos.capabilities.training.procedure import EvidenceExcerpt, GapKind
 from tropos.core.domain.evidence import EvidenceRef
 from tropos.evals.training import (
     ExpectedClaim,
+    ExpectedGap,
     ExpectedStep,
     TrainingEvalCase,
     evaluate_procedure,
@@ -62,6 +63,14 @@ def _expected_claim(raw: dict[str, Any]) -> ExpectedClaim:
     )
 
 
+def _expected_gap(raw: dict[str, Any]) -> ExpectedGap:
+    return ExpectedGap(
+        contains=raw["contains"],
+        evidence_chunk_ids=tuple(raw["evidence_chunk_ids"]),
+        kind=GapKind(raw["kind"]),
+    )
+
+
 def _case(raw: dict[str, Any]) -> TrainingEvalCase:
     return TrainingEvalCase(
         case_id=raw["case_id"],
@@ -73,7 +82,7 @@ def _case(raw: dict[str, Any]) -> TrainingEvalCase:
         expected_exceptions=tuple(
             _expected_claim(item) for item in raw["expected_exceptions"]
         ),
-        expected_gaps=tuple(_expected_claim(item) for item in raw["expected_gaps"]),
+        expected_gaps=tuple(_expected_gap(item) for item in raw["expected_gaps"]),
     )
 
 
