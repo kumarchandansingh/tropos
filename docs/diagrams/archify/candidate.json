@@ -97,7 +97,7 @@
       "label": "Version resolver",
       "sublabel": "content and access checked",
       "stage": 2,
-      "row": 2,
+      "row": 1,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/application/ingestion/versioning.py",
@@ -179,7 +179,7 @@
       "variant": "emphasis",
       "labelAt": [
         530,
-        315
+        201
       ]
     },
     {
@@ -201,7 +201,11 @@
       "from": "version",
       "to": "governance",
       "label": "access changed",
-      "variant": "security"
+      "variant": "security",
+      "labelAt": [
+        637,
+        325
+      ]
     },
     {
       "from": "governance",
