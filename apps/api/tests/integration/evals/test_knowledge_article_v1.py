@@ -19,12 +19,7 @@ from tropos.evals.knowledge_article import (
     render_scorecard,
 )
 
-DATASET = (
-    Path(__file__).parents[3]
-    / "evals"
-    / "resolve"
-    / "knowledge_article_v1.json"
-)
+DATASET = Path(__file__).parents[3] / "evals" / "resolve" / "knowledge_article_v1.json"
 
 
 def _ref(chunk_id: str) -> EvidenceRef:
@@ -181,9 +176,7 @@ def test_missing_information_requires_typed_grounded_gap() -> None:
                 "The device remains disconnected.",
                 "ka-missing-1",
             ),
-            symptoms=(
-                _claim("Device status is disconnected.", "ka-missing-1"),
-            ),
+            symptoms=(_claim("Device status is disconnected.", "ka-missing-1"),),
             prerequisites=(),
             diagnostic_checks=(),
             resolution_steps=(
