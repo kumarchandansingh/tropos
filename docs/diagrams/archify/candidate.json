@@ -207,7 +207,11 @@
     {
       "from": "source",
       "to": "knowledge",
-      "label": "captured source"
+      "label": "captured source",
+      "labelAt": [
+        204,
+        315
+      ]
     },
     {
       "from": "knowledge",
