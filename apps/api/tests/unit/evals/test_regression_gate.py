@@ -4,7 +4,7 @@ from tropos.evals.contracts import JsonObject
 from tropos.evals.regression_gate import compare_retrieval_reports
 
 
-def _assertions(expected: bool = True, *, authorized: bool = True) -> list[dict[str, object]]:
+def _assertions(expected: bool = True, *, authorized: bool = True) -> list[JsonObject]:
     values = {
         "expected_evidence": expected,
         "authorized_only": authorized,
