@@ -62,17 +62,6 @@
         "note": "Same dataset and case IDs are compared pairwise; pass-to-fail and fail-to-pass changes stay visible."
       },
       {
-        "id": "uncertainty",
-        "label": "Paired uncertainty",
-        "focus": [
-          "baseline",
-          "candidate",
-          "comparator",
-          "comparison"
-        ],
-        "note": "Numeric metrics use paired candidate-minus-baseline deltas; bootstrap intervals are withheld below the minimum pair count."
-      },
-      {
         "id": "gates",
         "label": "Gate semantics",
         "focus": [
