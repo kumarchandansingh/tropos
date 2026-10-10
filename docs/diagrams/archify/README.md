@@ -4,7 +4,7 @@ The Archify visualizer is the interactive architecture view for the current impl
 
 ## Permanent visualizer
 
-After the GitHub Pages workflow is enabled and deployed, the live visualizer is available at:
+After the repository's one-time GitHub Pages setting is enabled with **Source = GitHub Actions**, the live visualizer is available at:
 
 https://kumarchandansingh.github.io/tropos/
 
@@ -39,6 +39,14 @@ Relevant triggers currently include:
 - the Pages workflow itself
 
 This is continuous publication after repository changes; it is not a runtime reflection of unmerged branches.
+
+### One-time repository setting
+
+GitHub Pages itself must be enabled once by a repository administrator:
+
+`Settings → Pages → Build and deployment → Source → GitHub Actions`
+
+The workflow intentionally does not attempt to create/enable the Pages site through the GitHub App because repository-admin permission is required for that operation. After this one-time setting, deployments are automatic.
 
 ## Source specification
 
