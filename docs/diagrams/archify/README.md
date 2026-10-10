@@ -1,43 +1,103 @@
-# Tropos Archify ingestion pilot
+# Tropos Archify visualizer
 
-A source-backed documentation pilot for the synchronous ingestion path at Tropos revision `8cbad1f6261bb11f16a40cfe7f77a1887d29e5ab`. The diagram illustrates checked code and does not assert production deployment.
+The Archify visualizer is the interactive architecture view for the current implemented Tropos platform.
 
-## What to open
+## Permanent visualizer
 
-- `candidate.json` — version-controlled Archify dataflow specification, including source-code locations, explanation cards, and guided views.
-- `tropos-ingestion.html` — **generated** self-contained interactive diagram. Download the `tropos-archify-ingestion` artifact from the `Archify diagram pilot` GitHub Actions run. It is not committed.
-- `docs/architecture/INGESTION_NORMALIZATION.md` — source explanation of identity, normalization, governance, and versioning.
+After the GitHub Pages workflow is enabled and deployed, the live visualizer is available at:
 
-## Learning and review in the viewer
+https://kumarchandansingh.github.io/tropos/
 
-Use the four guided views — **Source evidence**, **Content versioning**, **Access governance**, and **Persistence and replay** — to explore the implemented components. The explanation cards cover source provenance, canonical version decisions, independent access updates, and durable run history. Open each node's linked source references to verify the claims.
+The same page is also published at:
 
-Keep the diagram itself compact; put detailed examples and trade-offs in cards or linked architecture documentation. Every description must be grounded in implementation or explicitly labeled planned/unknown. Do not add invented APIs, cloud services or LLM calls.
+https://kumarchandansingh.github.io/tropos/architecture/
+
+## Update model
+
+The visualizer is regenerated automatically after relevant changes merge to `main`.
+
+```text
+relevant merge to main
+        ↓
+Live Archify Pages workflow
+        ↓
+inject exact deployed commit SHA
+        ↓
+Archify finalize / browser validation
+        ↓
+GitHub Pages deployment
+        ↓
+stable visualizer URL updated
+```
+
+Relevant triggers currently include:
+
+- `apps/api/**`
+- architecture documentation
+- Tropos/Resolve/Training product docs
+- Archify specifications/runtime
+- the Pages workflow itself
+
+This is continuous publication after repository changes; it is not a runtime reflection of unmerged branches.
+
+## Source specification
+
+- `candidate.json` — version-controlled Tropos architecture dataflow specification.
+- `tropos-platform.html` — generated self-contained interactive viewer; not committed.
+- `.github/workflows/archify-pages.yml` — renders and publishes the live visualizer.
+- `.github/workflows/archify-diagram-pilot.yml` — validates Archify changes on pull requests and uploads a review artifact.
+
+The published workflow replaces the human-readable `main` revision in the spec with the exact deployed commit SHA before rendering. Source links in the live viewer therefore point to the code revision represented by that deployment.
+
+## Current scope
+
+The visualizer currently covers the implemented path from governed knowledge through retrieval and grounded AI:
+
+- source capture and governed ingestion;
+- SQLite canonical/version/chunk/embedding/run state;
+- BM25 lexical retrieval;
+- exact dense retrieval;
+- RRF hybrid retrieval;
+- stable `EvidenceRef`;
+- Resolve Knowledge Article generation;
+- Training procedure generation;
+- evaluation contracts/regression;
+- CI quality gates.
+
+Planned capabilities are not shown as implemented nodes.
+
+## Guided views
+
+Use the guided views to focus on:
+
+- **Knowledge foundation**
+- **Retrieval**
+- **Resolve**
+- **Training**
+- **Evaluation**
+
+Each node links to source-backed repository evidence.
 
 ## Render locally
 
-Node.js >=18, Git and Chrome/Chromium are required to run all `finalize` gates.
+Node.js >=18, Git and Chrome/Chromium are required for all `finalize` gates.
 
 ```sh
 export ARCHIFY_UPDATE_CHECK_DISABLED=1
 node .agents/skills/archify/bin/archify.mjs doctor
-node .agents/skills/archify/bin/archify.mjs finalize dataflow docs/diagrams/archify/candidate.json docs/diagrams/archify/tropos-ingestion.html --repo-root . --quality showcase --json
+node .agents/skills/archify/bin/archify.mjs finalize dataflow docs/diagrams/archify/candidate.json docs/diagrams/archify/tropos-platform.html --repo-root . --quality showcase --json
 ```
 
-The `finalize` command runs validation, delivery, integrity checks and real-browser checks. A valid JSON specification is not sufficient evidence of success.
+The `finalize` command performs schema validation, delivery/integrity checks and real-browser checks.
 
-## Security boundaries
+## Security boundary
 
-- Archify v3.0.1 is vendored under `.agents/skills/archify` and updated only after review.
-- The workflow uses read-only permissions, a credential-free checkout, commit-SHA-pinned GitHub Actions, and disables Archify's optional update check.
-- Execution of the vendored JavaScript in this workflow is limited to manual dispatch or same-repository pull requests; external fork PRs are skipped.
-- GitHub Actions artifacts expire after seven days; review their contents before external distribution.
-- These controls reduce credential and fork exposure; the GitHub-hosted runner is **not network-isolated**, and the vendored JavaScript is **not a fully audited dependency**.
+- Archify is vendored under `.agents/skills/archify` and updated only through repository review.
+- Rendering workflows use credential-free checkout for the renderer.
+- GitHub Pages deployment uses only `pages: write` and `id-token: write` in the publishing workflow.
+- External fork PRs do not execute the vendored JavaScript pilot.
+- The GitHub-hosted runner is not network-isolated and the vendored JavaScript is not treated as a fully audited dependency.
 
-## Correctness boundaries
+## Documentation rule
 
-- Replayed completed captures return a prior result without new ingestion.
-- `NO_CONTENT_VERSION` creates no document or chunks; `REBASELINE_REQUIRED` needs explicit review.
-- Access policy can refresh independently even if content is unchanged. Combined access+content changes refresh governance first.
-- External enterprise connectors, hosted presentation and model-assisted parsing are **not represented as implemented**.
-- Recheck source references after code changes. Do not merge until `finalize` and the existing repository CI pass and the HTML is visually reviewed.
+The visualizer is a source-backed architecture view, not the sole documentation source. Material architecture changes must update the living architecture/ADR/product documentation as required; the viewer should then be updated in the same delivery slice when its represented topology changes.
