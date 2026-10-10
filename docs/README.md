@@ -12,6 +12,7 @@ This documentation is organized by **decision purpose**, not by implementation d
 | What has already been built and why? | [Build history](product/BUILD_HISTORY.md) |
 | What is the current technical architecture? | [Architecture overview](architecture/ARCHITECTURE_OVERVIEW.md) |
 | Why were durable design choices made? | [Architecture decisions](decisions/README.md) |
+| How do product quality and the eval runtime fit together? | [Evaluation product model](architecture/EVALUATION_MODEL.md) |
 | How is quality/evaluation designed? | [Evaluation strategy](quality/EVAL_STRATEGY.md) |
 | What is planned next? | [Master backlog](product/master-backlog.md) |
 | How is delivery governed? | [Delivery governance](product/delivery-governance.md) |
@@ -53,6 +54,7 @@ Architecture documents describe the system **as it exists now**. They should not
 - [Knowledge model](architecture/KNOWLEDGE_MODEL.md)
 - [RAG architecture](architecture/RAG_ARCHITECTURE.md)
 - [Knowledge Article architecture](architecture/KNOWLEDGE_ARTICLE.md)
+- [Evaluation product model](architecture/EVALUATION_MODEL.md)
 - [Evaluation contracts](architecture/EVALUATION_CONTRACTS.md)
 - [Evaluation experiments](architecture/EVALUATION_EXPERIMENTS.md)
 - [Evaluation runs](architecture/EVALUATION_RUNS.md)
