@@ -51,5 +51,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: hybrid-real-model-evidence
-          path: \${{ runner.temp }}/tropos-real-eval
+          path: ${{ runner.temp }}/tropos-real-eval
           if-no-files-found: warn
