@@ -3,10 +3,7 @@ name: Hybrid real-model evaluation
 on:
   pull_request:
     paths:
-      - "apps/api/src/tropos/core/adapters/embeddings/**"
-      - "apps/api/src/tropos/core/adapters/retrieval/**"
-      - "apps/api/src/tropos/core/application/embeddings/**"
-      - "apps/api/src/tropos/core/application/retrieval/**"
+      - "apps/api/src/tropos/core/**"
       - "apps/api/src/tropos/evals/**"
       - "apps/api/evals/retrieval/**"
       - "apps/api/scripts/evaluate_hybrid_sentence_transformers.py"
