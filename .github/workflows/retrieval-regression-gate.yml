@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     env:
-      BASE_SHA: \${{ github.event.pull_request.base.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
 
     steps:
       - name: Checkout candidate
@@ -92,5 +92,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: retrieval-regression-evidence
-          path: \${{ runner.temp }}/tropos-retrieval-gate
+          path: ${{ runner.temp }}/tropos-retrieval-gate
           if-no-files-found: warn
