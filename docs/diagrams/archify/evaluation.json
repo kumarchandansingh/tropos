@@ -436,8 +436,8 @@
     {
       "id": "pq-source",
       "type": "database",
-      "label": "Resolved case / governed knowledge",
-      "sublabel": "product input",
+      "label": "Resolved case / source",
+      "sublabel": "governed product input",
       "tag": "QUALITY MODEL",
       "pos": [
         40,
@@ -506,11 +506,11 @@
       "sublabel": "turn evidence into operational artifact",
       "tag": "PRODUCT STAGE",
       "pos": [
-        760,
+        750,
         650
       ],
       "size": [
-        190,
+        210,
         76
       ],
       "sources": [
