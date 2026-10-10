@@ -58,6 +58,7 @@ class SQLiteExperimentStore:
                 CREATE TABLE IF NOT EXISTS experiment_scores (
                     run_id TEXT NOT NULL,
                     case_id TEXT NOT NULL,
+                    position INTEGER NOT NULL,
                     metric TEXT NOT NULL,
                     evaluator_id TEXT NOT NULL,
                     evaluator_version TEXT NOT NULL,
@@ -68,9 +69,7 @@ class SQLiteExperimentStore:
                     PRIMARY KEY (
                         run_id,
                         case_id,
-                        metric,
-                        evaluator_id,
-                        evaluator_version
+                        position
                     ),
                     FOREIGN KEY (run_id, case_id)
                     REFERENCES experiment_observations(run_id, case_id)
@@ -146,15 +145,16 @@ class SQLiteExperimentStore:
                             observation.error_type,
                         ),
                     )
-                    for score in observation.scores:
+                    for position, score in enumerate(observation.scores, start=1):
                         db.execute(
                             """
                             INSERT INTO experiment_scores
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """,
                             (
                                 run.run_id,
                                 observation.case_id,
+                                position,
                                 score.metric,
                                 score.evaluator_id,
                                 score.evaluator_version,
@@ -197,7 +197,7 @@ class SQLiteExperimentStore:
                     """
                     SELECT * FROM experiment_scores
                     WHERE run_id=? AND case_id=?
-                    ORDER BY metric, evaluator_id, evaluator_version
+                    ORDER BY position
                     """,
                     (run_id, observation_row["case_id"]),
                 ):

@@ -4,6 +4,8 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from tropos.evals.contracts import (
     EvalApproval,
     EvalCase,
@@ -187,7 +189,7 @@ def test_compare_runs_detects_case_regression_and_improvement() -> None:
     assert quality.pair_count == 2
     assert quality.baseline_mean == 0.8
     assert quality.candidate_mean == 0.9
-    assert quality.mean_delta == 0.1
+    assert quality.mean_delta == pytest.approx(0.1)
     assert quality.confidence_low is None
     assert quality.confidence_high is None
 
