@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from tropos.evals.contracts import JsonObject, JsonValue
-from tropos.evals.regression_gate import compare_retrieval_reports
+from tropos.evals.regression_gate import _to_eval_run, compare_retrieval_reports
 
 
 def _assertions(expected: bool = True, *, authorized: bool = True) -> list[JsonValue]:
@@ -138,3 +138,38 @@ def test_hard_invariant_blocks_candidate_even_when_quality_improves() -> None:
         result for result in decision.comparison.gate_results if result.metric == "authorized_only"
     )
     assert authorized.passed is False
+
+
+def test_saved_report_conversion_preserves_subject_and_provenance() -> None:
+    run = _to_eval_run(
+        _report("abc123", answerable_quality=1.0, answerable_passed=True)
+    )
+
+    assert run.subject.subject_id == "retrieval"
+    assert run.subject.version == "sqlite-fts5-bm25-v1"
+    assert run.subject.configuration == {
+        "retrieval_strategy": "sqlite-fts5-bm25-v1",
+        "evaluator": "saved-retrieval-v1",
+        "max_characters": 2000,
+        "limit": 5,
+    }
+    assert run.provenance.code_revision == "abc123"
+    assert run.provenance.dependency_digest == "lock-abc123"
+    assert run.provenance.runtime["gate_policy"] == "all-expectations-and-invariants-v1"
+    assert run.provenance.runtime["working_tree_dirty"] is False
+
+
+def test_regression_gate_markdown_exposes_revisions_and_regressed_cases() -> None:
+    decision = compare_retrieval_reports(
+        _report("base", answerable_quality=1.0, answerable_passed=True),
+        _report("head", answerable_quality=0.0, answerable_passed=False),
+    )
+
+    summary = decision.markdown()
+
+    assert "**FAIL**" in summary
+    assert "Baseline revision: `base`" in summary
+    assert "Candidate revision: `head`" in summary
+    assert "## Regressed cases" in summary
+    assert "- answerable" in summary
+    assert "synthetic development set" in summary
