@@ -8,15 +8,7 @@ from enum import StrEnum
 from hashlib import sha256
 from typing import Protocol
 
-type JsonValue = (
-    str
-    | int
-    | float
-    | bool
-    | None
-    | list[JsonValue]
-    | dict[str, JsonValue]
-)
+type JsonValue = str | int | float | bool | None | list[JsonValue] | dict[str, JsonValue]
 type JsonObject = dict[str, JsonValue]
 
 
@@ -248,10 +240,14 @@ class EvalObservation:
             _non_blank("error_type", self.error_type)
         elif self.error_type is not None:
             raise ValueError("error_type is only valid for error observations")
-        if self.state in {
-            EvalObservationState.NOT_RUN,
-            EvalObservationState.RUNNING,
-        } and self.scores:
+        if (
+            self.state
+            in {
+                EvalObservationState.NOT_RUN,
+                EvalObservationState.RUNNING,
+            }
+            and self.scores
+        ):
             raise ValueError("non-terminal observations cannot contain scores")
 
 
