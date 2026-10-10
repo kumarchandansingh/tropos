@@ -141,9 +141,7 @@ def test_hard_invariant_blocks_candidate_even_when_quality_improves() -> None:
 
 
 def test_saved_report_conversion_preserves_subject_and_provenance() -> None:
-    run = _to_eval_run(
-        _report("abc123", answerable_quality=1.0, answerable_passed=True)
-    )
+    run = _to_eval_run(_report("abc123", answerable_quality=1.0, answerable_passed=True))
 
     assert run.subject.subject_id == "retrieval"
     assert run.subject.version == "sqlite-fts5-bm25-v1"

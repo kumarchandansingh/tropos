@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import random
-from math import isclose
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 from hashlib import sha256
+from math import isclose
 from statistics import fmean
 from typing import Protocol
 from uuid import uuid4
