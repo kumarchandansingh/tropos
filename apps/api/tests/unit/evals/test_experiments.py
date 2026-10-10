@@ -12,9 +12,9 @@ from tropos.evals.contracts import (
     EvalObservationState,
     EvalOrigin,
     EvalRunProvenance,
+    EvalScope,
     EvalScore,
     EvalScoreSource,
-    EvalScope,
     EvalSplit,
     EvalSubject,
 )
