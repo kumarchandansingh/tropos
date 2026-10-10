@@ -29,15 +29,12 @@ from tropos.core.application.ingestion.ingest_knowledge import (
 from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
 from tropos.core.application.retrieval.models import RetrievalAccessContext
 from tropos.core.domain.access import AccessPolicy, AccessScope
+from tropos.evals.catalogue import authorized
 from tropos.evals.retrieval import RetrievalEvalCase, RetrievalEvalReport, evaluate_retrieval
 
 _MODEL_IDENTIFIER = "sentence-transformers/all-mpnet-base-v2"
 _MODEL_REVISION = "e8c3b32edf5434bc2275fc9bab85f82640a19130"
 _STRATEGY_VERSION = "sentence-transformers-all-mpnet-base-v2-normalized-v1"
-_ACCESS_BOUNDARY_CASES = (
-    "no-answer-restricted-denied",
-    "no-answer-cross-tenant",
-)
 
 
 class _DocumentRow(TypedDict):
@@ -86,7 +83,7 @@ class _SentenceTransformerProvider:
 
     @property
     def dimensions(self) -> int:
-        dimensions = self._model.get_sentence_embedding_dimension()
+        dimensions = self._model.get_embedding_dimension()
         if dimensions is None:
             raise RuntimeError("sentence-transformer did not report embedding dimensions")
         return int(dimensions)
@@ -128,18 +125,48 @@ def _orchestrator(store: SQLiteIngestionStore) -> IngestKnowledge:
     )
 
 
-def _access_gate(reports: dict[str, RetrievalEvalReport]) -> tuple[bool, list[dict[str, object]]]:
+def _access_gate(
+    reports: dict[str, RetrievalEvalReport],
+    dataset: _DatasetRow,
+) -> tuple[bool, list[dict[str, object]]]:
+    """Fail only when a retriever returns evidence the case is not authorized to see."""
+
     failures: list[dict[str, object]] = []
-    for strategy, report in reports.items():
-        by_id = {result.case_id: result for result in report.case_results}
-        for case_id in _ACCESS_BOUNDARY_CASES:
-            result = by_id[case_id]
-            if result.retrieved_knowledge_ids:
+    boundary_cases = tuple(
+        row for row in dataset["cases"] if "access-boundary" in row["tags"]
+    )
+    for row in boundary_cases:
+        access = RetrievalAccessContext(
+            tenant_id=row["tenant_id"],
+            groups=tuple(row["groups"]),
+        )
+        forbidden = {
+            document["knowledge_id"]
+            for document in dataset["documents"]
+            if not authorized(
+                AccessPolicy(
+                    tenant_id=document["tenant_id"],
+                    scope=AccessScope(document["scope"]),
+                    allowed_groups=tuple(document["allowed_groups"]),
+                ),
+                access,
+            )
+        }
+        for strategy, report in reports.items():
+            result = next(
+                item for item in report.case_results if item.case_id == row["case_id"]
+            )
+            leaked = tuple(
+                knowledge_id
+                for knowledge_id in result.retrieved_knowledge_ids
+                if knowledge_id in forbidden
+            )
+            if leaked:
                 failures.append(
                     {
                         "strategy": strategy,
-                        "case_id": case_id,
-                        "retrieved_knowledge_ids": result.retrieved_knowledge_ids,
+                        "case_id": row["case_id"],
+                        "unauthorized_knowledge_ids": leaked,
                     }
                 )
     return not failures, failures
@@ -204,7 +231,7 @@ def main() -> int:
             "dense": evaluate_retrieval(dense, cases),
             "hybrid": evaluate_retrieval(hybrid, cases),
         }
-        gate_passed, gate_failures = _access_gate(reports)
+        gate_passed, gate_failures = _access_gate(reports, dataset)
 
         output = {
             "schema_version": 1,
@@ -233,8 +260,9 @@ def main() -> int:
                 "passed": gate_passed,
                 "failures": gate_failures,
                 "note": (
-                    "Semantic no-answer relevance remains non-blocking until QE-109 calibration; "
-                    "tenant/group access boundaries are hard invariants."
+                    "Authorized-but-irrelevant nearest neighbours are a relevance/abstention "
+                    "problem and remain non-blocking until QE-109; unauthorized evidence is a "
+                    "hard invariant."
                 ),
             },
         }
