@@ -1,161 +1,186 @@
 # Codebase map
 
-This page maps repository paths to responsibilities. For design rationale, use the architecture documents and ADRs.
+This page maps repository paths to responsibilities. It is a navigation/reference page, not the place for design rationale.
 
-## Source layout
+## Repository layout
 
 ```text
 apps/api/
 ├── evals/
-│   └── retrieval/golden_v1.json
+│   ├── retrieval/
+│   │   ├── golden_v1.json
+│   │   └── catalogue_v2.json
+│   └── training/
+│       └── procedure_grounding_v1.json
 ├── src/tropos/
-│   ├── evals/
-│   │   └── retrieval.py
 │   ├── core/
 │   │   ├── domain/
 │   │   │   ├── access.py
+│   │   │   ├── evidence.py
 │   │   │   ├── knowledge.py
-│   │   │   └── knowledge_chunk.py
+│   │   │   ├── knowledge_chunk.py
+│   │   │   └── knowledge_article.py
 │   │   ├── application/
 │   │   │   ├── ingestion/
-│   │   │   │   ├── ingest_from_source.py
-│   │   │   │   ├── ingest_knowledge.py
-│   │   │   │   ├── raw_record.py
-│   │   │   │   ├── parsing.py
-│   │   │   │   ├── normalization.py
-│   │   │   │   ├── run_state.py
-│   │   │   │   └── versioning.py
+│   │   │   ├── embeddings/
 │   │   │   ├── retrieval/
-│   │   │   │   └── models.py
 │   │   │   ├── sources/
-│   │   │   │   └── reliability.py
 │   │   │   └── ports/
-│   │   │       ├── sources.py
-│   │   │       ├── retrieval.py
-│   │   │       ├── chunking.py
-│   │   │       ├── normalization.py
-│   │   │       └── persistence.py
 │   │   └── adapters/
-│   │       ├── sources/local_file.py
-│   │       ├── parsing/deterministic.py
-│   │       ├── normalization/deterministic.py
-│   │       ├── chunking/deterministic.py
-│   │       ├── persistence/sqlite.py
-│   │       └── retrieval/sqlite_fts.py
-│   └── capabilities/
-│       └── resolve/
-│           ├── domain/
-│           ├── application/
-│           └── adapters/
+│   │       ├── sources/
+│   │       ├── parsing/
+│   │       ├── normalization/
+│   │       ├── chunking/
+│   │       ├── persistence/
+│   │       ├── embeddings/
+│   │       └── retrieval/
+│   ├── capabilities/
+│   │   ├── resolve/
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   └── adapters/
+│   │   └── training/
+│   └── evals/
+│       ├── contracts.py
+│       ├── catalogue.py
+│       ├── execution.py
+│       ├── fixtures.py
+│       ├── retrieval.py
+│       ├── training.py
+│       ├── run_store.py
+│       └── reporting.py
 └── tests/
     ├── unit/
-    │   ├── core/
-    │   └── capabilities/resolve/
-    └── integration/evals/
-        └── test_retrieval_golden_v1.py
+    └── integration/
 ```
 
-## Ownership
+## Core domain
 
 | Path | Responsibility |
 | --- | --- |
-| `evals/retrieval/golden_v1.json` | Versioned synthetic retrieval corpus and relevance/access labels |
-| `tropos/evals/retrieval.py` | Strategy-neutral deterministic retrieval metrics and case reports |
 | `core/domain/access.py` | Tenant/group access semantics and indexability |
-| `core/domain/knowledge.py` | Canonical `KnowledgeDocument` model |
-| `core/domain/knowledge_chunk.py` | `KnowledgeChunk` model and chunk-set invariants |
-| `core/application/ports/sources.py` | Source connector contract, source failure taxonomy, and common `SourceCapture` envelope |
-| `core/application/sources/reliability.py` | Bounded retry policy and reusable source-connector reliability decorator |
-| `core/application/ingestion/ingest_from_source.py` | Bridge a replaceable connector into the stable ingestion workflow |
-| `core/application/ingestion/ingest_knowledge.py` | Synchronous ingestion workflow order, branching, idempotency, and failure recording |
-| `core/application/ingestion/raw_record.py` | Immutable source envelope and raw/ingestion fingerprints |
-| `core/application/ingestion/parsing.py` | Parser contract and parsing errors |
-| `core/application/ingestion/normalization.py` | Extracted/normalized data contracts and document materialization |
-| `core/application/ingestion/run_state.py` | Ingestion workflow stages and outcomes |
-| `core/application/ingestion/versioning.py` | Canonical content and governance change resolution |
-| `core/application/retrieval/models.py` | Strategy-neutral authorized search request/access context and retrieved-chunk result contracts |
-| `core/application/ports/retrieval.py` | Reusable governed chunk-retrieval port |
-| `core/application/ports/normalization.py` | Normalizer contract |
-| `core/application/ports/chunking.py` | Chunker contract |
-| `core/application/ports/persistence.py` | Source capture, ingestion-run, and canonical-state persistence ports |
-| `core/adapters/sources/local_file.py` | Local-file source capture adapter |
-| `core/adapters/parsing/deterministic.py` | Deterministic text/Markdown/HTML/DOCX parsing |
-| `core/adapters/normalization/deterministic.py` | Deterministic text normalization and structural extraction |
-| `core/adapters/chunking/deterministic.py` | Deterministic, lossless chunk generation |
-| `core/adapters/persistence/sqlite.py` | SQLite source/run/version/chunk persistence |
-| `core/adapters/retrieval/sqlite_fts.py` | SQLite FTS5/BM25 retrieval over current tenant/group-authorized chunks |
-| `capabilities/resolve/domain/` | Resolved-case and knowledge-action vocabulary/policy |
-| `capabilities/resolve/application/` | Resolve orchestration and retrieval/coverage/store contracts |
-| `capabilities/resolve/adapters/` | Replaceable Resolve-specific implementations |
+| `core/domain/knowledge.py` | Canonical KnowledgeDocument model |
+| `core/domain/knowledge_chunk.py` | Governed KnowledgeChunk and chunk invariants |
+| `core/domain/evidence.py` | Stable EvidenceRef shared by generated artifacts |
+| `core/domain/knowledge_article.py` | Shared fixed Knowledge Article artifact contracts |
 
-## Source-to-ingestion flow
+## Ingestion and source integration
+
+| Path | Responsibility |
+| --- | --- |
+| `core/application/ports/sources.py` | Source connector contract and SourceCapture envelope |
+| `core/application/sources/reliability.py` | Bounded retry policy |
+| `core/application/ingestion/ingest_from_source.py` | Connector → ingestion bridge |
+| `core/application/ingestion/ingest_knowledge.py` | Ingestion orchestration |
+| `core/application/ingestion/raw_record.py` | Raw source envelope and ingestion fingerprints |
+| `core/application/ingestion/parsing.py` | Parser contract |
+| `core/application/ingestion/normalization.py` | Normalized structures/document materialization |
+| `core/application/ingestion/versioning.py` | Canonical content/governance change resolution |
+| `core/application/ingestion/lifecycle.py` | Knowledge lifecycle/tombstone behavior |
+| `core/adapters/sources/local_file.py` | Local-file connector |
+| `core/adapters/parsing/deterministic.py` | TXT/Markdown/HTML/DOCX parsing |
+| `core/adapters/normalization/deterministic.py` | Deterministic normalization |
+| `core/adapters/chunking/deterministic.py` | Deterministic chunking |
+| `core/adapters/persistence/sqlite.py` | SQLite persistence |
+
+## Embeddings and retrieval
+
+| Path | Responsibility |
+| --- | --- |
+| `core/application/ports/embeddings.py` | Embedding provider/repository boundaries |
+| `core/application/embeddings/materialize.py` | Derived embedding materialization |
+| `core/application/ports/retrieval.py` | Governed strategy-neutral retriever contract |
+| `core/application/retrieval/models.py` | Search/access/result contracts |
+| `core/adapters/embeddings/openai.py` | OpenAI-compatible embedding provider adapter |
+| `core/adapters/embeddings/sqlite.py` | SQLite embedding persistence |
+| `core/adapters/retrieval/sqlite_fts.py` | FTS5/BM25 lexical retrieval |
+| `core/adapters/retrieval/exact_vector.py` | Exact dense/cosine retrieval |
+| `core/adapters/retrieval/hybrid_rrf.py` | Reciprocal Rank Fusion hybrid retrieval |
+
+## Resolve
+
+| Path | Responsibility |
+| --- | --- |
+| `capabilities/resolve/domain/resolved_case.py` | Resolved-case vocabulary |
+| `capabilities/resolve/domain/knowledge_action.py` | REUSE/IMPROVE/CREATE/NO_ACTION policy |
+| `capabilities/resolve/application/evaluate_case_closure.py` | Closure decision orchestration |
+| `capabilities/resolve/application/knowledge_article_request.py` | Bounded business intake and system-owned prompt policy |
+| `capabilities/resolve/application/generate_knowledge_article.py` | Governed retrieval → article-generation orchestration |
+| `capabilities/resolve/application/ports/knowledge_article.py` | Provider-neutral KnowledgeArticleGenerator port |
+| `capabilities/resolve/adapters/langchain_knowledge_article_generator.py` | LangChain structured-output adapter |
+| `capabilities/resolve/adapters/evaluation/rule_based_closure_evidence.py` | Deterministic closure-evidence evaluator |
+
+## Training
+
+| Path | Responsibility |
+| --- | --- |
+| `capabilities/training/procedure.py` | ProcedureDraft, steps, exceptions and typed gaps |
+| `capabilities/training/generate_procedure.py` | Governed retrieval → procedure generation |
+| `capabilities/training/langchain_extractor.py` | LangChain structured-output adapter and alias resolution |
+
+## Evaluation
+
+| Path | Responsibility |
+| --- | --- |
+| `evals/contracts.py` | Vendor-neutral EvalDataset/EvalCase/EvalRun/EvalObservation/EvalScore contracts |
+| `evals/catalogue.py` | Retrieval evaluation dataset validation/versioning |
+| `evals/execution.py` | Retrieval evaluation execution |
+| `evals/fixtures.py` | Isolated retrieval evaluation composition |
+| `evals/retrieval.py` | Retrieval metrics |
+| `evals/training.py` | Deterministic Training grounding evaluation |
+| `evals/run_store.py` | Saved run/observation persistence |
+| `evals/reporting.py` | Evaluation reporting |
+
+## Runtime flows
+
+### Ingestion
 
 ```mermaid
 flowchart LR
     Source[(Source)]
     --> Connector[KnowledgeSourceConnector]
-    --> Reliable[RetryingSourceConnector]
     --> Capture[SourceCapture]
-    --> SourceUseCase[IngestFromSource]
-    --> Ingestion[IngestKnowledge]
-    --> Parser[KnowledgeParser]
-    --> Normalizer[KnowledgeNormalizer]
-    --> Version[resolve_canonical_version]
-    --> Chunker[KnowledgeChunker]
-    --> Store[(Persistence)]
+    --> Parse[KnowledgeParser]
+    --> Normalize[KnowledgeNormalizer]
+    --> Version[Version resolution]
+    --> Chunk[KnowledgeChunker]
+    --> Persist[(SQLite)]
 ```
 
-`RetryingSourceConnector` is optional composition around a connector. It retries only explicitly transient source failures. `IngestFromSource` remains intentionally thin: it validates connector source identity, translates `SourceCapture` into `IngestKnowledgeCommand`, and delegates all canonical processing to the existing orchestrator.
-
-## Core retrieval flow
+### Retrieval
 
 ```mermaid
 flowchart LR
     Request[KnowledgeSearchRequest]
-    --> Retriever[KnowledgeChunkRetriever]
-    --> FTS[SQLite FTS5 adapter]
-    --> Current[Current canonical state]
-    --> Access[Tenant/group SQL filter]
-    --> Rank[BM25]
-    --> Result[RetrievedKnowledgeChunk]
+    --> Lex[BM25]
+    Request --> Dense[Dense]
+    Lex --> Hybrid[RRF]
+    Dense --> Hybrid
+    Hybrid --> Result[RetrievedKnowledgeChunk]
 ```
 
-The port is strategy-neutral. The current adapter is `sqlite-fts5-bm25-v1`; future vector or hybrid adapters may implement the same boundary.
-
-## Retrieval evaluation flow
+### Grounded generation
 
 ```mermaid
 flowchart LR
-    Corpus[golden_v1.json]
-    --> Ingest[Governed ingestion]
-    --> Retriever[Versioned retriever]
-    --> Eval[Retrieval evaluator]
-    --> Metrics["Recall@1 / Recall@3 / Recall@5 / Precision@5 / MRR / no-answer"]
+    Result[RetrievedKnowledgeChunk]
+    --> Ref[EvidenceRef]
+    --> Alias[E1..EN]
+    --> Model[Structured model adapter]
+    --> Resolve[Exact alias resolution]
+    --> Artifact[KnowledgeArticleDraft / ProcedureDraft]
 ```
-
-Evaluation labels are knowledge-level in V1 and the corpus is synthetic. The integration test establishes a reproducible development/regression baseline, not a production benchmark.
-
-## Resolve flow
-
-```mermaid
-flowchart LR
-    Case[ResolvedCase]
-    --> UseCase[EvaluateCaseClosure]
-    --> Evidence[ClosureEvidenceEvaluator]
-    --> Retrieve[Resolve KnowledgeRetriever]
-    --> Coverage[KnowledgeCoverageEvaluator]
-    --> Policy[decide_knowledge_action]
-    --> Store[KnowledgeDecisionStore]
-```
-
-Resolve still owns a capability-specific retrieval contract because it starts from a `ResolvedCase`. An adapter from that case contract to the reusable core chunk retriever is not implemented yet. The coverage evaluator and decision store also remain contract-only.
 
 ## Tests
 
-Unit tests mirror code boundaries under `apps/api/tests/unit/`. Cross-boundary executable quality checks live under `apps/api/tests/integration/`.
+Unit tests mirror the domain/application/adapter boundaries. Integration tests cover cross-boundary behavior such as ingestion + persistence + retrieval, evaluation baselines, and grounded generation with fake structured models.
 
-The retrieval golden-set integration test exercises the real ingestion and SQLite retrieval adapters together and measures the labeled corpus while preserving separate zero-tolerance assertions for tenant and restricted-group boundaries.
+Live provider credentials are not required for normal CI tests.
 
-## Saved evaluation modules
+## Related documents
 
-`tropos/evals/catalogue.py` owns validated definitions; `execution.py` owns case evaluation; `fixtures.py` composes synthetic ingestion and BM25; `run_store.py` owns durable observations; `reporting.py` renders saved results; `__main__.py` exposes catalogue/run/report commands. See [Evaluation runs](EVALUATION_RUNS.md).
+- [Architecture overview](ARCHITECTURE_OVERVIEW.md)
+- [RAG architecture](RAG_ARCHITECTURE.md)
+- [Knowledge Article architecture](KNOWLEDGE_ARTICLE.md)
+- [Evaluation contracts](EVALUATION_CONTRACTS.md)
+- [Build history](../product/BUILD_HISTORY.md)

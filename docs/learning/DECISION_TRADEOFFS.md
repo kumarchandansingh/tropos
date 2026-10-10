@@ -40,7 +40,7 @@ flowchart LR
 | Retrieval evaluation | manual spot checks, online-only metrics, versioned offline golden set | labeled golden corpus + Recall@K/MRR/Precision/no-answer checks | makes retrieval changes comparable and regressions visible in CI | synthetic corpus can overfit and is not production truth | held-out/production-like data becomes available | **Implemented baseline** |
 | Semantic retrieval | skip vectors, vector-only replacement, additive vector path | exact dense retrieval as a second strategy behind the same retrieval contract | measured BM25 semantic misses justify an evidence-based comparison | embedding cost, model lifecycle, vector storage complexity | after BM25-vs-vector evaluation | **Implemented V1; real-model quality evidence pending** |
 | Vector search | exact flat scan, HNSW, IVF, managed vector DB | exact/flat cosine search for V1 | isolates embedding quality from ANN approximation and infrastructure | does not scale to large corpora | corpus/latency makes exact scan materially slow | **Implemented V1 / ANN deferred** |
-| Hybrid retrieval | replace BM25 with vector, fixed weighted score, rank fusion/reranking | defer until BM25-vs-vector evidence exists | avoids solving fusion before proving complementary value | delays best-possible retrieval quality | vector adds semantic recall while BM25 remains stronger on exact terms | **Deferred** |
+| Hybrid retrieval | replace BM25 with vector, weighted raw-score blend, rank fusion, cross-encoder reranking | Reciprocal Rank Fusion (RRF) across BM25 + dense ranks | combines complementary retrievers without pretending BM25/cosine scores share a scale | operates two retrieval paths and needs candidate-depth/fusion tuning | reranking or ANN becomes justified by measured quality/latency needs | **Implemented V1** |
 | Persistence | SQLite, Postgres/pgvector, dedicated search/vector stack | SQLite while service/runtime scale is local | simplest durable baseline for correctness and evaluation | limited concurrency/operations/scale | shared hosted service, multi-tenant runtime, or scale requires it | **Implemented baseline** |
 | Enterprise sync | single-record capture, periodic full scan, delta/cursor sync engine | single-record connector + retry boundary today | isolates acquisition contract before adding operational sync complexity | no backfill/deletion/checkpoint/resume engine yet | enterprise connector rollout begins | **Deferred / planned** |
 
@@ -600,36 +600,40 @@ Benchmark corpus size and p95 latency; introduce ANN only when exact search beco
 
 ---
 
-# 17. Hybrid retrieval only after complementary strengths are measured
+# 17. Hybrid retrieval through Reciprocal Rank Fusion after complementary strengths were measured
 
 ## Problem
 
-Lexical and semantic retrieval may each win different query classes.
+Lexical and semantic retrieval win different query classes. BM25 is strong for identifiers and exact language; dense retrieval can recover paraphrases. Their raw scores are not naturally calibrated to the same scale.
 
 ## Options considered
 
 | Option | Benefit | Problem |
 | --- | --- | --- |
-| Pick one winner globally | simple | throws away complementary strengths |
-| Weighted raw-score blending | simple formula | BM25 and vector scores are not naturally calibrated to the same scale |
-| Rank fusion such as RRF | score-scale independent | another strategy/tuning layer |
-| Cross-encoder reranking | strong relevance potential | extra latency/cost/model dependency |
+| Pick one retriever globally | simplest runtime | discards complementary strengths |
+| Weighted raw-score blend | simple formula | BM25 and cosine score scales are not comparable without calibration |
+| Reciprocal Rank Fusion (RRF) | score-scale independent | adds fusion/candidate-depth tuning |
+| Cross-encoder reranking | strong relevance potential | extra latency, cost and model dependency |
 
 ## Decision
 
-Do not build hybrid yet. First obtain BM25-vs-vector results on the same labeled corpus.
+Use RRF to combine the ranked outputs of BM25 and exact dense retrieval while preserving both underlying strategies independently.
 
 ### Why
 
-Fusion is justified only if the two retrievers are measurably complementary.
+The evaluation work established enough complementary behavior to justify an additive hybrid path. RRF combines rank positions rather than uncalibrated raw scores.
 
 ### Cost / downside
 
-The system temporarily leaves potential combined quality on the table.
+Hybrid retrieval runs more than one strategy and introduces candidate-depth/fusion parameters. It does not solve abstention/no-answer calibration by itself.
 
 ### Revisit trigger
 
-If vector recovers semantic cases while BM25 remains better on identifiers/exact terms, evaluate rank fusion or reranking.
+Evaluate reranking or a different fusion policy only when production-like evaluation shows material benefit. Introduce ANN only when corpus scale/latency makes exact dense search a measured constraint.
+
+### Status
+
+**Implemented V1.** See ADR-015 and `HYBRID_RETRIEVAL_V1.md`.
 
 ---
 
@@ -897,3 +901,100 @@ Adopt a framework adapter when it materially reduces integration cost without ta
 ### Status
 
 **Implemented architectural boundary.**
+
+# 25. Stable evidence references with temporary model aliases
+
+## Problem
+
+Models need compact citation identifiers, but prompt-local ordinals are not durable provenance and long internal IDs are harder for models to reproduce reliably.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Persist E1/E2 ordinals | simple | identity changes every prompt |
+| Ask model to copy stable IDs | no resolver | brittle copying and infrastructure leakage |
+| Add citations after generation | flexible | risks post-hoc justification |
+| Temporary alias → stable EvidenceRef | simple model interface + durable lineage | explicit projection/resolution step |
+
+## Decision
+
+Map stable `EvidenceRef` objects to temporary `E1..EN` aliases per invocation and resolve returned aliases exactly before constructing the domain artifact.
+
+### Cost / downside
+
+A valid alias proves reference identity, not semantic support. Groundedness still needs independent evaluation.
+
+### Revisit trigger
+
+If structured model/tool interfaces reliably carry stable references directly, or if a shared claim-level evidence graph becomes necessary.
+
+### Status
+
+**Implemented in Training and Knowledge Article generation.** See ADR-016.
+
+---
+
+# 26. Bounded business controls instead of arbitrary prompt editing
+
+## Problem
+
+Business users need to influence output, but free system-prompt editing can weaken grounding, security, conflict handling and regression stability.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Fully editable system prompt | maximum flexibility | governance and testability collapse into user text |
+| No user control | simplest governance | poor product usability |
+| Typed bounded controls | useful flexibility with enforceable invariants | new preferences require schema work |
+
+## Decision
+
+Expose subject, article type, product/module, bounded context, retrieval keywords, detail level, focus areas and preferred terminology. Keep evidence, access, fixed structure, conflict handling and unsupported-claim policy system-owned.
+
+### Cost / downside
+
+Advanced users cannot arbitrarily reshape generation. A future template/prompt-admin feature needs explicit versioning, approval, regression testing and permissions.
+
+### Revisit trigger
+
+When product requirements justify a governed prompt/template administration capability.
+
+### Status
+
+**Implemented for Knowledge Article intake.** See ADR-017.
+
+---
+
+# 27. Tropos owns evaluation semantics; hosted eval tools are adapters
+
+## Problem
+
+LangSmith, Langfuse, Phoenix and similar tools provide useful experiment/tracing UIs, but tying golden data and score meaning to one vendor creates migration risk.
+
+## Options considered
+
+| Option | Benefit | Problem |
+| --- | --- | --- |
+| Vendor-native datasets/runs as source of truth | fastest hosted setup | quality semantics become vendor-owned |
+| Separate eval model per capability | local autonomy | duplication and incompatible concepts |
+| Shared Tropos contracts + adapters | portability and one quality vocabulary | adapter/migration work |
+
+## Decision
+
+Tropos owns `EvalCase`, `EvalDataset`, `EvalRun`, `EvalObservation`, `EvalScore`, approval/split/origin semantics and release interpretation. Hosted tools may receive synchronized data through adapters.
+
+### Cost / downside
+
+Tropos maintains a small shared evaluation domain and provider adapters rather than using one vendor's data model everywhere.
+
+### Revisit trigger
+
+If multiple real integrations expose a common capability that cannot be represented without distorting the generic contract.
+
+### Status
+
+**Shared contracts implemented. Hosted adapters planned.** See ADR-014.
+
+---

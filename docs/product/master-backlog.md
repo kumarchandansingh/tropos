@@ -1,6 +1,7 @@
 # Tropos Master Product & Quality Backlog
 
-Status: Baseline v1  
+Status: Active delivery baseline  
+Last reconciled: 2026-10-10  
 Purpose: Single source of truth for sequencing Tropos platform and capability work.  
 Delivery model: small verifiable PRs, explicit architecture boundaries, automated quality gates, evidence captured with each slice.
 
@@ -17,7 +18,7 @@ Sprint estimates below are deliberately coarse and should be refined during plan
 
 The repository already includes the engineering operating model and CI quality gates; governed knowledge chunking, normalization/versioning, SQLite persistence, source connector boundary/reliability, deterministic parsing, ingestion orchestration, governed lexical retrieval, dense retrieval, hybrid retrieval, retrieval evaluations, knowledge tombstones, living architecture/learning documentation, Training structured extraction, grounded generation evaluation, and stable EvidenceRef-based artifact grounding.
 
-Relevant merged PR sequence includes #1, #3, #5, #7-10, #12-17, #23-26, #29-34.
+Relevant delivered sequence now also includes #46 and #64-67. See [Build history](BUILD_HISTORY.md) for the chronological implementation record and decision/evidence links.
 
 ## Product architecture direction
 
@@ -46,17 +47,17 @@ Training
 
 **Sprint Goal:** Generate a fixed-format, evidence-backed Knowledge Article and measure its quality.
 
-| ID | Priority | Story | SP | Dependencies |
-|---|---|---|---:|---|
-| RES-101 | P0 | Define canonical KnowledgeArticle domain model and templates | 5 | EvidenceRef |
-| RES-102 | P0 | Define business intake and article-generation request contract | 3 | RES-101 |
-| RES-103 | P0 | Generate grounded KnowledgeArticleDraft through provider-neutral port | 8 | RES-101, RES-102 |
-| QE-101 | P0 | Define reusable eval dataset/run/score contracts | 5 | existing eval framework |
-| QE-102 | P0 | Build Knowledge Article golden dataset and deterministic graders v1 | 8 | RES-103, QE-101 |
+| ID | Priority | Story | SP | Status | Evidence |
+|---|---|---|---:|---|---|
+| RES-101 | P0 | Define canonical KnowledgeArticle domain model and templates | 5 | Done | #64 / ADR-013 |
+| RES-102 | P0 | Define business intake and article-generation request contract | 3 | Done | #65 / ADR-017 |
+| RES-103 | P0 | Generate grounded KnowledgeArticleDraft through provider-neutral port | 8 | Done | #66 / ADR-016 |
+| QE-101 | P0 | Define reusable eval dataset/run/score contracts | 5 | Done | #67 / ADR-014 |
+| QE-102 | P0 | Build Knowledge Article golden dataset and deterministic graders v1 | 8 | In progress | #39 / active implementation |
 
 ### Sprint 1 acceptance outcome
 
-Given governed evidence and a typed article request, Tropos can create a troubleshooting/how-to/FAQ draft with stable EvidenceRefs, fixed structure, explicit gaps/conflicts, and an automated quality scorecard.
+Core article generation is implemented: governed evidence plus typed intake can produce a troubleshooting/how-to/FAQ draft with stable EvidenceRefs and explicit gaps/conflicts. The remaining Sprint 1 acceptance item is the approved Knowledge Article regression dataset/scorecard (QE-102).
 
 ## Sprint 2 — Experimentation, regression and case classification
 
