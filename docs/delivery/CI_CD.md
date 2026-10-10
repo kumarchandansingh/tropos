@@ -7,16 +7,63 @@ Tropos uses pull requests and GitHub Actions as the current integration control.
 ```mermaid
 flowchart LR
     Branch[Feature / fix / docs branch]
+    --> Local[Local pre-commit Ruff formatting]
     --> PR[Pull request]
-    --> CI[api-quality]
+    --> Auto[Auto-format workflow]
+    Auto --> CI[api-quality]
     --> Gate{Pass?}
     Gate -- no --> Fix[Update branch]
-    Fix --> CI
+    Fix --> Auto
     Gate -- yes --> Merge[Squash merge]
     --> Main[Protected main]
 ```
 
 `main` is protected and requires the `api-quality` status check. Conversation resolution is required; force pushes and branch deletion are disabled by the branch policy. Mandatory approving reviewers are not configured while the repository has one maintainer.
+
+## Formatting before CI
+
+Tropos formats Python before the main quality gate in two places.
+
+### Local Git hook
+
+Run once after cloning:
+
+```bash
+python scripts/setup_git_hooks.py
+```
+
+This configures `core.hooksPath=.githooks`. The pre-commit hook runs Ruff auto-fix and formatting only on staged Python files under `apps/api`, then re-stages those same files.
+
+The hook uses the repository's locked API environment:
+
+```text
+staged Python
+→ ruff check --fix
+→ ruff format
+→ re-stage
+→ commit continues
+```
+
+### Pull-request auto-format
+
+`.github/workflows/autoformat.yml` runs on same-repository pull requests. It:
+
+1. checks out the PR branch;
+2. installs the locked API dependencies;
+3. runs Ruff fix/format commands directly inside `apps/api` so the workflow also works for older PR branches that predate the helper script;
+4. commits `style: auto-format Python` only when Ruff changed files;
+5. pushes the formatting commit back to the PR branch.
+
+The bot-generated synchronization event does not run the formatter again, preventing an automation loop. Fork pull requests are not auto-written; they remain check-only for security.
+
+The shared command is:
+
+```bash
+python scripts/format_api.py          # auto-fix + format
+python scripts/format_api.py --check  # check only
+```
+
+The main CI still performs format/lint checks. Auto-formatting removes mechanical failures; CI remains the independent integration gate.
 
 ## CI job
 
@@ -38,7 +85,13 @@ The workflow definition is `.github/workflows/ci.yml`.
 
 ## Local validation
 
-Run the same checks from `apps/api`:
+From the repository root:
+
+```bash
+python scripts/format_api.py
+```
+
+Then run the same non-mutating gates from `apps/api`:
 
 ```bash
 uv sync --dev --locked
@@ -49,7 +102,7 @@ uv run pytest
 uv build
 ```
 
-Local checks provide fast feedback; GitHub Actions is the shared integration record.
+Local formatting provides immediate feedback; GitHub Actions remains the shared integration record.
 
 ## Merge convention
 
