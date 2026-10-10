@@ -17,6 +17,9 @@ Architecture Decision Records (ADRs) preserve the context, alternatives, and con
 | [ADR-009](ADR-009-explicit-source-failure-taxonomy-and-bounded-retry.md) | Accepted | Classify source failures explicitly and retry only bounded transient failures |
 | [ADR-010](ADR-010-governed-sqlite-fts5-retrieval-baseline.md) | Accepted | Use current-version, tenant/group-filtered SQLite FTS5/BM25 as the first retrieval baseline |
 | [ADR-011](ADR-011-labeled-retrieval-evaluation-before-semantic-expansion.md) | Accepted | Measure the lexical baseline on a versioned labeled corpus before adding semantic retrieval complexity |
+| [ADR-012](ADR-012-versioned-evaluation-catalogues-and-saved-runs.md) | Accepted | Persist immutable versioned retrieval evaluation definitions and saved run evidence |
+| [ADR-013](ADR-013-fixed-grounded-knowledge-article-contracts.md) | Accepted | Use fixed evidence-backed Knowledge Article contracts shared across capabilities |
+| [ADR-014](ADR-014-vendor-neutral-evaluation-contracts.md) | Accepted | Keep reusable evaluation semantics in Tropos and integrate hosted tools through adapters |
 
 ## Scope
 
@@ -79,6 +82,3 @@ State the conditions that should trigger reconsideration.
 
 Accepted ADRs remain part of the decision history. When a decision changes materially, add a superseding ADR or explicitly mark the existing record as superseded rather than removing the historical context.
 
-## Saved evaluation decision
-
-[ADR-012: versioned evaluation catalogues and saved runs](ADR-012-versioned-evaluation-catalogues-and-saved-runs.md).

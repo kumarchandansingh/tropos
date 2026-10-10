@@ -15,6 +15,7 @@ Technical shorthand is expanded on first use where practical. The shared [techni
 | [Ingestion and normalization](architecture/INGESTION_NORMALIZATION.md) | Raw capture, canonicalization, version resolution, and governance refresh |
 | [Knowledge model](architecture/KNOWLEDGE_MODEL.md) | Evidence entities, identity layers, provenance, access, and chunk semantics |
 | [RAG architecture](architecture/RAG_ARCHITECTURE.md) | Implemented RAG foundation and target retrieval/decision pipeline |
+| [Knowledge Article architecture](architecture/KNOWLEDGE_ARTICLE.md) | Fixed grounded article contracts, business intake, retrieval trigger, and generation boundary |
 
 ## Engineering reference
 
@@ -23,6 +24,7 @@ Technical shorthand is expanded on first use where practical. The shared [techni
 | [Technical glossary](GLOSSARY.md) | Expansions and plain-English meanings for abbreviations used across the documentation |
 | [Codebase map](architecture/CODEBASE_MAP.md) | Source layout and module ownership |
 | [Evaluation strategy](quality/EVAL_STRATEGY.md) | Software, retrieval, AI, and product-quality evaluation |
+| [Evaluation contracts](architecture/EVALUATION_CONTRACTS.md) | Vendor-neutral datasets, cases, runs, observations, scores, provenance, and evaluator boundary |
 | [CI/CD](delivery/CI_CD.md) | Pull-request integration, quality gates, and deployment boundary |
 | [Environment strategy](delivery/ENVIRONMENT_STRATEGY.md) | Runtime-environment model and future promotion path |
 
