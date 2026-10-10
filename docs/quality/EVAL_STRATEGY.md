@@ -150,6 +150,19 @@ The evaluator deliberately does not claim semantic entailment. A model may cite 
 
 A human-readable Markdown scorecard can be rendered from the same case results. This keeps the regression output usable without adopting a hosted evaluation UI.
 
+## Baseline-versus-candidate experiments
+
+QE-103 adds a generic experiment runner and comparator over the shared evaluation contracts. A run pins the dataset snapshot, subject configuration, code/dependency provenance, terminal per-case observations, and optional baseline lineage.
+
+Comparisons require the same dataset snapshot and case IDs. They classify case regressions/improvements, compare shared numeric metrics pairwise, and can report a deterministic paired-bootstrap interval when at least 20 paired observations exist.
+
+Gate policy deliberately distinguishes:
+
+- **hard invariants** — every candidate score must explicitly pass;
+- **decision metrics** — paired aggregate movement is compared with an allowed regression budget.
+
+This is comparison infrastructure, not proof that the current V1 datasets are large enough for release-quality statistical claims. See [Evaluation experiments](../architecture/EVALUATION_EXPERIMENTS.md).
+
 ## Regression dataset lifecycle
 
 ```mermaid

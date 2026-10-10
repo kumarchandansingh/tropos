@@ -54,6 +54,7 @@ Architecture documents describe the system **as it exists now**. They should not
 - [RAG architecture](architecture/RAG_ARCHITECTURE.md)
 - [Knowledge Article architecture](architecture/KNOWLEDGE_ARTICLE.md)
 - [Evaluation contracts](architecture/EVALUATION_CONTRACTS.md)
+- [Evaluation experiments](architecture/EVALUATION_EXPERIMENTS.md)
 - [Evaluation runs](architecture/EVALUATION_RUNS.md)
 
 ### Architecture decisions

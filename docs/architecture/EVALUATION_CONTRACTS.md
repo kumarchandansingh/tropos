@@ -128,16 +128,28 @@ Tropos remains the source of truth for:
 
 A hosted platform may receive synchronized datasets, observations, traces, and scores for execution or visualization. Removing that platform must not require changes to capability/domain code or destroy the canonical eval definitions.
 
+## Current experiment implementation
+
+QE-103 now implements the generic experiment layer over these contracts:
+
+- `ExperimentRunner` executes one immutable dataset snapshot against one `EvalSubject`;
+- capability-owned `EvalCaseExecutor` implementations return terminal `EvalObservation` records;
+- `SQLiteExperimentStore` persists immutable run, observation, and score evidence;
+- `compare_runs` performs case-level baseline-versus-candidate classification;
+- shared numeric dimensions are compared pairwise with optional paired-bootstrap uncertainty;
+- gate policy separates hard invariants from aggregate decision metrics.
+
+See [Evaluation experiments and regression comparison](EVALUATION_EXPERIMENTS.md).
+
 ## Current exclusions
 
-This contract slice does not yet add:
+The generic experiment layer still does not add:
 
-- a generic experiment runner;
-- generic persistence for these contracts;
 - LangSmith/Langfuse/Phoenix adapters;
-- LLM-as-judge implementation;
+- LLM-as-judge implementation or calibration;
 - human review UI;
-- baseline-versus-candidate comparison;
-- release gating.
+- production PR/nightly/release thresholds;
+- a locked holdout benchmark;
+- calibrated retrieval abstention.
 
-Those are subsequent backlog slices.
+Those remain subsequent backlog slices.

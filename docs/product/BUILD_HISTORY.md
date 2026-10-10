@@ -93,6 +93,15 @@ The backlog uses P0/P1/P2/deferred priority, sprint-ready user stories, estimate
 | PR #66 | Grounded Knowledge Article runtime | Governed retrieval → stable evidence → temporary aliases → structured model output → stable evidence artifact | generator/application tests |
 | PR #67 | Reusable vendor-neutral eval contracts | Tropos owns dataset/case/run/score semantics; hosted eval tools remain replaceable adapters | ADR-014, `EVALUATION_CONTRACTS.md` |
 
+## Phase 8 — Evaluation experiments and regression evidence
+
+| Build | Outcome | Key decision / trade-off | Evidence |
+| --- | --- | --- | --- |
+| PR #68 | Knowledge Article deterministic regression V1 | Keep section/citation/gap/forbidden checks deterministic and explicit; semantic entailment remains separate | `tropos.evals.knowledge_article`, `knowledge_article_v1.json` |
+| PR #82 | Generic baseline-versus-candidate experiment runtime | Compare the same dataset/cases pairwise; separate hard invariants from decision metrics; withhold paired-bootstrap intervals below the minimum pair count | `tropos.evals.experiments`, `SQLiteExperimentStore`, `EVALUATION_EXPERIMENTS.md`, Archify evaluation view |
+
+QE-103 deliberately adds comparison infrastructure without claiming that the current small synthetic datasets are release-quality evidence. Larger holdout data, abstention calibration, workflow gates and semantic-judge calibration remain separate work.
+
 ## Current architecture maturity
 
 ```mermaid
@@ -101,7 +110,7 @@ flowchart LR
     --> Retrieve[Lexical + dense + hybrid retrieval]
     --> Evidence[Stable EvidenceRef]
     --> Generate[Structured grounded generation]
-    --> Evaluate[Versioned deterministic evaluation]
+    --> Evaluate[Versioned evaluation + experiment comparison]
     --> Future[Review / release / production runtime]
 
     style Ingest fill:#d5f5e3

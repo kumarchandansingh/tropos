@@ -53,11 +53,11 @@ Training
 | RES-102 | P0 | Define business intake and article-generation request contract | 3 | Done | #65 / ADR-017 |
 | RES-103 | P0 | Generate grounded KnowledgeArticleDraft through provider-neutral port | 8 | Done | #66 / ADR-016 |
 | QE-101 | P0 | Define reusable eval dataset/run/score contracts | 5 | Done | #67 / ADR-014 |
-| QE-102 | P0 | Build Knowledge Article golden dataset and deterministic graders v1 | 8 | In progress | #39 / active implementation |
+| QE-102 | P0 | Build Knowledge Article golden dataset and deterministic graders v1 | 8 | Done | #68 / #39 |
 
 ### Sprint 1 acceptance outcome
 
-Core article generation is implemented: governed evidence plus typed intake can produce a troubleshooting/how-to/FAQ draft with stable EvidenceRefs and explicit gaps/conflicts. The remaining Sprint 1 acceptance item is the approved Knowledge Article regression dataset/scorecard (QE-102).
+Sprint 1 is complete. Governed evidence plus typed intake can produce a troubleshooting/how-to/FAQ draft with stable EvidenceRefs and explicit gaps/conflicts, and QE-102 adds the approved deterministic Knowledge Article regression dataset/scorecard.
 
 ## Sprint 2 — Evaluation hardening and controlled experimentation
 
@@ -73,6 +73,10 @@ Core article generation is implemented: governed evidence plus typed intake can 
 | QE-112 | P1 | Harden Training deterministic grader for paraphrases and valid extra citations | 5 | existing Training eval |
 | OBS-101 | P1 | Add vendor-neutral trace/eval sink contracts and OpenTelemetry instrumentation boundary | 5 | QE-101 |
 | OBS-102 | P1 | Add LangSmith adapter for experiments/traces without domain coupling | 5 | OBS-101, QE-103 |
+
+### Sprint 2 delivery status
+
+QE-103 is delivered by PR #82: Tropos can now execute and persist generic evaluation experiments, compare baseline and candidate runs case-by-case, calculate paired metric deltas with optional bootstrap uncertainty, and distinguish hard invariants from decision metrics. QE-108 through QE-112 remain open.
 
 ### Sprint 2 acceptance outcome
 
