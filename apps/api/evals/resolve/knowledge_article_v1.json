@@ -1,0 +1,198 @@
+{
+  "dataset_id": "tropos-resolve-knowledge-article-v1",
+  "version": "v1",
+  "capability": "resolve",
+  "split": "development",
+  "notes": "Approved synthetic golden cases for deterministic Knowledge Article regression before live-model comparison.",
+  "cases": [
+    {
+      "case_id": "normal-how-to-device-reconnect",
+      "purpose": "Validate a straightforward grounded how-to article with no invented gaps or actions.",
+      "scope": "component",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": ["normal", "how_to", "grounding"],
+      "inputs": {
+        "article_type": "how_to",
+        "subject": "Reconnect a device after stale registration",
+        "evidence": [
+          {
+            "chunk_id": "ka-normal-1",
+            "text": "Clear the stale registration entry before attempting to reconnect the device."
+          },
+          {
+            "chunk_id": "ka-normal-2",
+            "text": "Reconnect the device. A successful reconnection changes the status to Connected."
+          }
+        ]
+      },
+      "expected": {
+        "article_type": "how_to",
+        "required_sections": ["purpose", "steps", "expected_result"],
+        "claims": [
+          {
+            "contains": "clear",
+            "evidence_chunk_ids": ["ka-normal-1"]
+          },
+          {
+            "contains": "reconnect",
+            "evidence_chunk_ids": ["ka-normal-2"]
+          },
+          {
+            "contains": "connected",
+            "evidence_chunk_ids": ["ka-normal-2"]
+          }
+        ],
+        "gaps": [],
+        "forbidden_terms": ["factory reset", "delete account"]
+      }
+    },
+    {
+      "case_id": "missing-information-becomes-gap",
+      "purpose": "Require missing escalation details to remain an explicit gap instead of being invented.",
+      "scope": "component",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": ["missing_information", "troubleshooting", "grounding"],
+      "inputs": {
+        "article_type": "troubleshooting",
+        "subject": "Device remains disconnected",
+        "evidence": [
+          {
+            "chunk_id": "ka-missing-1",
+            "text": "If the device remains disconnected, clear stale registration and retry the connection."
+          },
+          {
+            "chunk_id": "ka-missing-2",
+            "text": "The support note does not specify when the issue should be escalated."
+          }
+        ]
+      },
+      "expected": {
+        "article_type": "troubleshooting",
+        "required_sections": [
+          "issue_description",
+          "symptoms",
+          "resolution_steps",
+          "expected_result",
+          "gaps"
+        ],
+        "claims": [
+          {
+            "contains": "disconnected",
+            "evidence_chunk_ids": ["ka-missing-1"]
+          },
+          {
+            "contains": "clear stale registration",
+            "evidence_chunk_ids": ["ka-missing-1"]
+          }
+        ],
+        "gaps": [
+          {
+            "contains": "escalat",
+            "kind": "missing_information",
+            "evidence_chunk_ids": ["ka-missing-2"]
+          }
+        ],
+        "forbidden_terms": ["escalate after 30 minutes", "severity 1"]
+      }
+    },
+    {
+      "case_id": "conflicting-evidence-becomes-gap",
+      "purpose": "Require contradictory source instructions to be surfaced as a conflict rather than selecting one silently.",
+      "scope": "component",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": ["conflict", "troubleshooting", "grounding"],
+      "inputs": {
+        "article_type": "troubleshooting",
+        "subject": "Retry policy for failed registration",
+        "evidence": [
+          {
+            "chunk_id": "ka-conflict-1",
+            "text": "Retry registration once after clearing the stale registration entry."
+          },
+          {
+            "chunk_id": "ka-conflict-2",
+            "text": "Do not retry registration after a failed attempt; escalate the case immediately."
+          }
+        ]
+      },
+      "expected": {
+        "article_type": "troubleshooting",
+        "required_sections": [
+          "issue_description",
+          "symptoms",
+          "resolution_steps",
+          "expected_result",
+          "gaps"
+        ],
+        "claims": [],
+        "gaps": [
+          {
+            "contains": "conflict",
+            "kind": "conflict",
+            "evidence_chunk_ids": ["ka-conflict-1", "ka-conflict-2"]
+          }
+        ],
+        "forbidden_terms": [
+          "retry exactly once",
+          "always escalate immediately"
+        ]
+      }
+    },
+    {
+      "case_id": "exception-and-escalation-remain-separate",
+      "purpose": "Keep an exception and escalation condition explicit without promoting either into the normal resolution path.",
+      "scope": "component",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": ["exception", "escalation", "troubleshooting"],
+      "inputs": {
+        "article_type": "troubleshooting",
+        "subject": "Device registration recovery",
+        "evidence": [
+          {
+            "chunk_id": "ka-exception-1",
+            "text": "For a standard stale-registration failure, clear the stale entry and reconnect the device."
+          },
+          {
+            "chunk_id": "ka-exception-2",
+            "text": "If the device certificate is revoked, do not reconnect the device."
+          },
+          {
+            "chunk_id": "ka-exception-3",
+            "text": "Escalate to the security operations queue when a revoked certificate is confirmed."
+          }
+        ]
+      },
+      "expected": {
+        "article_type": "troubleshooting",
+        "required_sections": [
+          "issue_description",
+          "symptoms",
+          "resolution_steps",
+          "expected_result",
+          "exceptions",
+          "escalation_criteria"
+        ],
+        "claims": [
+          {
+            "contains": "clear the stale",
+            "evidence_chunk_ids": ["ka-exception-1"]
+          },
+          {
+            "contains": "do not reconnect",
+            "evidence_chunk_ids": ["ka-exception-2"]
+          },
+          {
+            "contains": "security operations",
+            "evidence_chunk_ids": ["ka-exception-3"]
+          }
+        ],
+        "gaps": [],
+        "forbidden_terms": ["reconnect revoked certificate"]
+      }
+    }
+  ]
+}
