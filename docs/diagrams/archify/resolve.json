@@ -95,7 +95,7 @@
       "sublabel": "rule-based sufficiency check",
       "tag": "ADAPTER",
       "pos": [
-        300,
+        285,
         110
       ],
       "size": [
@@ -117,7 +117,7 @@
       "sublabel": "coordinates closure decision",
       "tag": "APPLICATION",
       "pos": [
-        600,
+        560,
         110
       ],
       "size": [
@@ -139,7 +139,7 @@
       "sublabel": "retrieve · cover · save contracts",
       "tag": "PORTS ONLY",
       "pos": [
-        600,
+        560,
         265
       ],
       "size": [
@@ -161,7 +161,7 @@
       "sublabel": "deterministic business decision",
       "tag": "DOMAIN",
       "pos": [
-        930,
+        850,
         110
       ],
       "size": [
@@ -183,7 +183,7 @@
       "sublabel": "action + auditable reason",
       "tag": "DOMAIN",
       "pos": [
-        930,
+        850,
         265
       ],
       "size": [
@@ -232,7 +232,7 @@
       "sublabel": "query · access · evidence mapping",
       "tag": "APPLICATION",
       "pos": [
-        360,
+        330,
         500
       ],
       "size": [
@@ -254,7 +254,7 @@
       "sublabel": "authorized ranked evidence contract",
       "tag": "PORT",
       "pos": [
-        360,
+        330,
         670
       ],
       "size": [
@@ -276,7 +276,7 @@
       "sublabel": "chunk text + stable EvidenceRef",
       "tag": "APPLICATION DATA",
       "pos": [
-        680,
+        620,
         500
       ],
       "size": [
@@ -303,7 +303,7 @@
       "sublabel": "provider-neutral generation contract",
       "tag": "PORT",
       "pos": [
-        1000,
+        900,
         500
       ],
       "size": [
@@ -325,7 +325,7 @@
       "sublabel": "schema select · messages · model invoke",
       "tag": "ADAPTER",
       "pos": [
-        1000,
+        900,
         670
       ],
       "size": [
@@ -347,7 +347,7 @@
       "sublabel": "E1..EN → stable EvidenceRef",
       "tag": "DETERMINISTIC",
       "pos": [
-        680,
+        620,
         670
       ],
       "size": [
@@ -369,7 +369,7 @@
       "sublabel": "Troubleshooting · How-to · FAQ",
       "tag": "DOMAIN",
       "pos": [
-        680,
+        620,
         820
       ],
       "size": [
