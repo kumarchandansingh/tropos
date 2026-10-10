@@ -216,7 +216,7 @@ def evaluate_knowledge_article(
         row = _object(raw)
         matches = _matching_claims(_text(row["contains"]), draft)
         expected_ids = set(_strings(row["evidence_chunk_ids"]))
-        if matches and _citation_ids(matches[0].evidence_refs) == expected_ids:
+        if any(_citation_ids(match.evidence_refs) == expected_ids for match in matches):
             aligned += 1
     citation_alignment = aligned / len(expected_claims) if expected_claims else 1.0
 
