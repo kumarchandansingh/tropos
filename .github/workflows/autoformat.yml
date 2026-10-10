@@ -39,7 +39,10 @@ jobs:
         run: uv sync --dev --locked
 
       - name: Apply Ruff autofixes and formatting
-        run: python scripts/format_api.py
+        working-directory: apps/api
+        run: |
+          uv run ruff check --fix .
+          uv run ruff format .
 
       - name: Commit formatting changes
         run: |
