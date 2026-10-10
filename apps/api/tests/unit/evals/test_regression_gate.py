@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from tropos.evals.contracts import JsonObject
+from tropos.evals.contracts import JsonObject, JsonValue
 from tropos.evals.regression_gate import compare_retrieval_reports
 
 
-def _assertions(expected: bool = True, *, authorized: bool = True) -> list[JsonObject]:
+def _assertions(expected: bool = True, *, authorized: bool = True) -> list[JsonValue]:
     values = {
         "expected_evidence": expected,
         "authorized_only": authorized,
@@ -12,10 +12,12 @@ def _assertions(expected: bool = True, *, authorized: bool = True) -> list[JsonO
         "evidence_integrity": True,
         "result_contract": True,
     }
-    return [
-        {"name": name, "passed": passed, "detail": f"{name} fixture"}
-        for name, passed in values.items()
-    ]
+    assertions: list[JsonValue] = []
+    for name, passed in values.items():
+        assertions.append(
+            {"name": name, "passed": passed, "detail": f"{name} fixture"}
+        )
+    return assertions
 
 
 def _report(
