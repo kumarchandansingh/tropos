@@ -3,12 +3,12 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "Tropos Evaluation | Experiment Method and Design",
-    "subtitle": "Implemented QE-103 architecture: run evidence, paired comparison, uncertainty and gate semantics",
+    "subtitle": "Implemented QE-103 + QE-110: reproducible runs, paired comparison, uncertainty, regression gates and workflow enforcement",
     "output": "docs/diagrams/archify/tropos-evaluation.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/kumarchandansingh/tropos",
-      "revision": "377a4c679759fdc9e0f03176e0ec319576c04898",
+      "revision": "140838c89014efdbe34d11d322f417f460378b95",
       "provider": "github",
       "link_mode": "web"
     },
@@ -59,6 +59,20 @@
           "comparison"
         ],
         "note": "Hard invariants require explicit candidate passes; decision metrics use an allowed mean-regression budget."
+      },
+      {
+        "id": "workflow-gates",
+        "label": "CI and nightly enforcement",
+        "focus": [
+          "baseline",
+          "candidate",
+          "gate-policy",
+          "comparator",
+          "comparison",
+          "ci-gate",
+          "nightly-gate"
+        ],
+        "note": "Pull requests compare the base commit with the head on the same development dataset; the nightly real-model job pins dependency/model identity and enforces access hard invariants."
       }
     ]
   },
@@ -353,6 +367,60 @@
           "end_line": 130
         }
       ]
+    },
+    {
+      "id": "ci-gate",
+      "type": "external",
+      "label": "PR regression workflow",
+      "sublabel": "base SHA vs head SHA · gate JSON artifact",
+      "tag": "QE-110",
+      "pos": [
+        1200,
+        180
+      ],
+      "size": [
+        190,
+        84
+      ],
+      "sources": [
+        {
+          "path": ".github/workflows/retrieval-regression-gate.yml",
+          "line": 1,
+          "end_line": 91
+        },
+        {
+          "path": "apps/api/src/tropos/evals/regression_gate.py",
+          "line": 1,
+          "end_line": 277
+        }
+      ]
+    },
+    {
+      "id": "nightly-gate",
+      "type": "external",
+      "label": "Nightly real-model workflow",
+      "sublabel": "ST 6.1.0 · pinned model revision · access gate",
+      "tag": "QE-110",
+      "pos": [
+        1200,
+        400
+      ],
+      "size": [
+        190,
+        88
+      ],
+      "sources": [
+        {
+          "path": ".github/workflows/hybrid-real-eval.yml",
+          "line": 1,
+          "end_line": 58
+        },
+        {
+          "path": "apps/api/scripts/evaluate_hybrid_sentence_transformers.py",
+          "line": 1,
+          "end_line": 238
+        }
+      ]
     }
   ],
   "boundaries": [
@@ -387,6 +455,15 @@
         "gate-policy",
         "comparator",
         "comparison"
+      ],
+      "pad": 24
+    },
+    {
+      "kind": "region",
+      "label": "Workflow enforcement",
+      "wraps": [
+        "ci-gate",
+        "nightly-gate"
       ],
       "pad": 24
     }
@@ -480,6 +557,20 @@
       "fromSide": "bottom",
       "toSide": "top",
       "variant": "emphasis"
+    },
+    {
+      "id": "comparison-ci",
+      "from": "comparison",
+      "to": "ci-gate",
+      "label": "pass / fail + artifact",
+      "variant": "emphasis"
+    },
+    {
+      "id": "policy-nightly",
+      "from": "gate-policy",
+      "to": "nightly-gate",
+      "label": "hard invariants",
+      "variant": "dashed"
     }
   ],
   "cards": [
@@ -517,10 +608,18 @@
     },
     {
       "dot": "rose",
-      "title": "5 · Not claimed by this slice",
+      "title": "5 · Workflow enforcement is now executable",
       "items": [
-        "No locked holdout, calibrated abstention, production release gate, or calibrated LLM judge is introduced by QE-103.",
-        "Existing retrieval/Training/Knowledge Article evaluators remain capability-specific; executor wiring is explicit rather than inferred."
+        "PRs execute the same synthetic development dataset against the base SHA and head SHA, then fail on case regressions, decision-metric regression, execution errors, or hard-invariant failures.",
+        "The gate report records both code revisions and is uploaded with baseline/candidate run evidence instead of reducing the result to a green check."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "6 · Still not a release-quality benchmark",
+      "items": [
+        "The 14-case V1/growing V2 development evidence is a regression detector, not a statistically valid promotion benchmark; QE-108 adds the larger locked holdout and confidence intervals.",
+        "Real-model unrelated no-answer relevance remains non-blocking until QE-109 calibrates abstention; access/currentness/integrity stay hard blockers."
       ]
     }
   ]
