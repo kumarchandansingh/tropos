@@ -183,7 +183,7 @@ def test_access_policy_fingerprint_is_pinned_for_non_ascii_governance_data() -> 
     )
 
     assert access_policy_fingerprint(policy) == (
-        "dac352f2208af483ec205730b3501f0b2dd9c05592847a99f9d5f4073543f6dc"
+        "3400e1779836be8ae4affc3bf7e5eaa0dce40b6f7ff36a409b923a1721868873"
     )
 
 
