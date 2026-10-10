@@ -72,7 +72,7 @@
           "ci-gate",
           "nightly-gate"
         ],
-        "note": "Pull requests compare the base commit with the head on the same development dataset; the nightly real-model job pins dependency/model identity and enforces access hard invariants."
+        "note": "PRs compare base vs head on the same development set; nightly real-model runs pin model identity and hard-gate access."
       }
     ]
   },
