@@ -1,0 +1,96 @@
+name: Retrieval regression gate
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/src/tropos/core/**"
+      - "apps/api/src/tropos/evals/**"
+      - "apps/api/evals/retrieval/**"
+      - "apps/api/scripts/compare_retrieval_regression.py"
+      - "apps/api/pyproject.toml"
+      - "apps/api/uv.lock"
+      - ".github/workflows/retrieval-regression-gate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  compare-base-to-head:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+
+      - name: Install Python
+        run: uv python install 3.14
+
+      - name: Prepare candidate environment
+        working-directory: apps/api
+        run: uv sync --dev --locked
+
+      - name: Run candidate saved retrieval evaluation
+        working-directory: apps/api
+        run: |
+          RUN_DIR="$RUNNER_TEMP/tropos-retrieval-gate"
+          mkdir -p "$RUN_DIR"
+          cp evals/retrieval/catalogue_v2.json "$RUN_DIR/catalogue_v2.json"
+          set +e
+          uv run python -m tropos.evals run \
+            --dataset "$RUN_DIR/catalogue_v2.json" \
+            --database "$RUN_DIR/candidate.sqlite" \
+            --lockfile uv.lock \
+            --output "$RUN_DIR/candidate.json"
+          status=$?
+          set -e
+          if [ "$status" -gt 1 ]; then
+            exit "$status"
+          fi
+
+      - name: Run baseline saved retrieval evaluation
+        run: |
+          RUN_DIR="$RUNNER_TEMP/tropos-retrieval-gate"
+          BASE_DIR="$RUNNER_TEMP/tropos-baseline"
+          git worktree add --detach "$BASE_DIR" "$BASE_SHA"
+          cd "$BASE_DIR/apps/api"
+          uv sync --dev --locked
+          set +e
+          uv run python -m tropos.evals run \
+            --dataset "$RUN_DIR/catalogue_v2.json" \
+            --database "$RUN_DIR/baseline.sqlite" \
+            --lockfile uv.lock \
+            --output "$RUN_DIR/baseline.json"
+          status=$?
+          set -e
+          if [ "$status" -gt 1 ]; then
+            exit "$status"
+          fi
+
+      - name: Enforce baseline-versus-candidate gate
+        working-directory: apps/api
+        run: |
+          RUN_DIR="$RUNNER_TEMP/tropos-retrieval-gate"
+          uv run python scripts/compare_retrieval_regression.py \
+            --baseline "$RUN_DIR/baseline.json" \
+            --candidate "$RUN_DIR/candidate.json" \
+            --output "$RUN_DIR/gate.json" \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload evaluation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrieval-regression-evidence
+          path: ${{ runner.temp }}/tropos-retrieval-gate
+          if-no-files-found: warn

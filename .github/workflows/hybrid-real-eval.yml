@@ -3,8 +3,17 @@ name: Hybrid real-model evaluation
 on:
   pull_request:
     paths:
+      - "apps/api/src/tropos/core/**"
+      - "apps/api/src/tropos/evals/**"
+      - "apps/api/evals/retrieval/**"
       - "apps/api/scripts/evaluate_hybrid_sentence_transformers.py"
       - ".github/workflows/hybrid-real-eval.yml"
+  schedule:
+    - cron: "17 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   evaluate:
@@ -13,12 +22,34 @@ jobs:
     defaults:
       run:
         working-directory: apps/api
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+
       - name: Install Python
         run: uv python install 3.14
+
       - name: Sync project
         run: uv sync --dev --locked
-      - name: Run real-model hybrid evaluation
-        run: uv run --with sentence-transformers python scripts/evaluate_hybrid_sentence_transformers.py
+
+      - name: Run pinned real-model evaluation
+        run: |
+          mkdir -p "$RUNNER_TEMP/tropos-real-eval"
+          uv run --with sentence-transformers==6.1.0 \
+            python scripts/evaluate_hybrid_sentence_transformers.py \
+            --output "$RUNNER_TEMP/tropos-real-eval/report.json"
+
+      - name: Upload real-model evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hybrid-real-model-evidence
+          path: ${{ runner.temp }}/tropos-real-eval
+          if-no-files-found: warn
