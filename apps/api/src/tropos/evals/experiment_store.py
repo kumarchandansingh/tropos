@@ -209,9 +209,7 @@ class SQLiteExperimentStore:
                             evaluator_id=score_row["evaluator_id"],
                             evaluator_version=score_row["evaluator_version"],
                             passed=(
-                                None
-                                if score_row["passed"] is None
-                                else bool(score_row["passed"])
+                                None if score_row["passed"] is None else bool(score_row["passed"])
                             ),
                             rationale=score_row["rationale"],
                         )
