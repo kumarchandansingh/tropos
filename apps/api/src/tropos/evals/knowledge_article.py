@@ -11,7 +11,6 @@ from tropos.core.domain.knowledge_article import (
     ArticleStep,
     ArticleType,
     EvidenceClaim,
-    FAQArticle,
     HowToArticle,
     KnowledgeArticleDraft,
     TroubleshootingArticle,
