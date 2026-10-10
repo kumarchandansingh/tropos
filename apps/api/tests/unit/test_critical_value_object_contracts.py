@@ -55,5 +55,7 @@ from tropos.evals.regression_gate import RetrievalGateDecision
 )
 def test_critical_value_records_are_frozen_and_slotted(record_type: type[object]) -> None:
     assert is_dataclass(record_type)
-    assert record_type.__dataclass_params__.frozen is True
+    params = getattr(record_type, "__dataclass_params__", None)
+    assert params is not None
+    assert params.frozen is True
     assert hasattr(record_type, "__slots__")
