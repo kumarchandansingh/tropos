@@ -1,13 +1,15 @@
-"""Compare BM25, dense MPNet, and hybrid RRF on the unchanged golden V1 corpus."""
+"""Run BM25, dense MPNet, and hybrid RRF with pinned real-model provenance."""
 
 from __future__ import annotations
 
+import argparse
 import json
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, TypedDict, cast
 
+import sentence_transformers
 from sentence_transformers import SentenceTransformer
 
 from tropos.core.adapters.chunking.deterministic import DeterministicKnowledgeChunker
@@ -27,10 +29,15 @@ from tropos.core.application.ingestion.ingest_knowledge import (
 from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
 from tropos.core.application.retrieval.models import RetrievalAccessContext
 from tropos.core.domain.access import AccessPolicy, AccessScope
-from tropos.evals.retrieval import RetrievalEvalCase, evaluate_retrieval
+from tropos.evals.retrieval import RetrievalEvalCase, RetrievalEvalReport, evaluate_retrieval
 
 _MODEL_IDENTIFIER = "sentence-transformers/all-mpnet-base-v2"
+_MODEL_REVISION = "e8c3b32edf5434bc2275fc9bab85f82640a19130"
 _STRATEGY_VERSION = "sentence-transformers-all-mpnet-base-v2-normalized-v1"
+_ACCESS_BOUNDARY_CASES = (
+    "no-answer-restricted-denied",
+    "no-answer-cross-tenant",
+)
 
 
 class _DocumentRow(TypedDict):
@@ -60,7 +67,10 @@ class _DatasetRow(TypedDict):
 
 class _SentenceTransformerProvider:
     def __init__(self) -> None:
-        self._model = SentenceTransformer(_MODEL_IDENTIFIER)
+        self._model = SentenceTransformer(
+            _MODEL_IDENTIFIER,
+            revision=_MODEL_REVISION,
+        )
 
     @property
     def strategy_version(self) -> str:
@@ -69,6 +79,10 @@ class _SentenceTransformerProvider:
     @property
     def model_identifier(self) -> str:
         return _MODEL_IDENTIFIER
+
+    @property
+    def model_revision(self) -> str:
+        return _MODEL_REVISION
 
     @property
     def dimensions(self) -> int:
@@ -114,7 +128,27 @@ def _orchestrator(store: SQLiteIngestionStore) -> IngestKnowledge:
     )
 
 
-def main() -> None:
+def _access_gate(reports: dict[str, RetrievalEvalReport]) -> tuple[bool, list[dict[str, object]]]:
+    failures: list[dict[str, object]] = []
+    for strategy, report in reports.items():
+        by_id = {result.case_id: result for result in report.case_results}
+        for case_id in _ACCESS_BOUNDARY_CASES:
+            result = by_id[case_id]
+            if result.retrieved_knowledge_ids:
+                failures.append(
+                    {
+                        "strategy": strategy,
+                        "case_id": case_id,
+                        "retrieved_knowledge_ids": result.retrieved_knowledge_ids,
+                    }
+                )
+    return not failures, failures
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Pinned real-model hybrid retrieval evaluation")
+    parser.add_argument("--output", type=Path)
+    arguments = parser.parse_args()
     dataset = _load_dataset()
 
     with tempfile.TemporaryDirectory() as temporary_directory:
@@ -170,10 +204,14 @@ def main() -> None:
             "dense": evaluate_retrieval(dense, cases),
             "hybrid": evaluate_retrieval(hybrid, cases),
         }
+        gate_passed, gate_failures = _access_gate(reports)
 
         output = {
+            "schema_version": 1,
             "dataset_id": dataset["dataset_id"],
             "model_identifier": provider.model_identifier,
+            "model_revision": provider.model_revision,
+            "sentence_transformers_version": sentence_transformers.__version__,
             "reports": {name: report.as_dict() for name, report in reports.items()},
             "case_comparison": [
                 {
@@ -190,9 +228,24 @@ def main() -> None:
                 }
                 for case in cases
             ],
+            "gate": {
+                "policy": "retrieval-access-boundaries-v1",
+                "passed": gate_passed,
+                "failures": gate_failures,
+                "note": (
+                    "Semantic no-answer relevance remains non-blocking until QE-109 calibration; "
+                    "tenant/group access boundaries are hard invariants."
+                ),
+            },
         }
-        print(json.dumps(output, indent=2))
+        serialized = json.dumps(output, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
+        if arguments.output is None:
+            print(serialized, end="")
+        else:
+            arguments.output.parent.mkdir(parents=True, exist_ok=True)
+            arguments.output.write_text(serialized, encoding="utf-8")
+        return 0 if gate_passed else 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
