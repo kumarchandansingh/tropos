@@ -80,6 +80,7 @@ The resolver answers **"is this citation a valid supplied reference?"**. It does
 | Build | Outcome | Key decision / trade-off | Evidence |
 | --- | --- | --- | --- |
 | PR #46 | Prioritized master backlog, sprint planning and delivery metrics automation | Separate relatively stable product/program governance from automatically generated changing metrics | `master-backlog.md`, delivery metrics workflow |
+| PR #70 | Local pre-commit + PR auto-formatting before CI | Auto-correct mechanical Ruff issues before the independent quality gate rather than using CI as a formatter | `.githooks/pre-commit`, `.github/workflows/autoformat.yml`, `docs/delivery/CI_CD.md` |
 
 The backlog uses P0/P1/P2/deferred priority, sprint-ready user stories, estimates, acceptance criteria, test strategy and Definition of Done. Delivery reporting includes sprint/flow metrics and DORA-compatible signals when real production data exists.
 
