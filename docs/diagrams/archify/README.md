@@ -8,9 +8,13 @@ After the repository's one-time GitHub Pages setting is enabled with **Source = 
 
 https://kumarchandansingh.github.io/tropos/
 
-The same page is also published at:
+The same platform page is also published at:
 
 https://kumarchandansingh.github.io/tropos/architecture/
+
+The code-derived Resolve implementation drill-down is published at:
+
+https://kumarchandansingh.github.io/tropos/resolve/
 
 ## Update model
 
@@ -50,8 +54,10 @@ The workflow intentionally does not attempt to create/enable the Pages site thro
 
 ## Source specification
 
-- `candidate.json` — version-controlled Tropos architecture dataflow specification.
-- `tropos-platform.html` — generated self-contained interactive viewer; not committed.
+- `candidate.json` — version-controlled Tropos platform dataflow specification.
+- `resolve.json` — version-controlled Resolve architecture specification derived from current implementation evidence.
+- `tropos-platform.html` — generated platform viewer; not committed.
+- `tropos-resolve.html` — generated Resolve implementation viewer; not committed.
 - `.github/workflows/archify-pages.yml` — renders and publishes the live visualizer.
 - `.github/workflows/archify-diagram-pilot.yml` — validates Archify changes on pull requests and uploads a review artifact.
 
@@ -59,7 +65,7 @@ The published workflow replaces the human-readable `main` revision in the spec w
 
 ## Current scope
 
-The visualizer currently covers the implemented path from governed knowledge through retrieval and grounded AI:
+The platform visualizer covers the implemented path from governed knowledge through retrieval and grounded AI:
 
 - source capture and governed ingestion;
 - SQLite canonical/version/chunk/embedding/run state;
@@ -73,6 +79,19 @@ The visualizer currently covers the implemented path from governed knowledge thr
 - CI quality gates.
 
 Planned capabilities are not shown as implemented nodes.
+
+### Resolve drill-down scope
+
+The Resolve drill-down is authored from executable source on `main`, not from the roadmap. It currently shows:
+
+- `ResolvedCase`, rule-based closure evidence evaluation, `EvaluateCaseClosure`, contract-only knowledge ports, and deterministic knowledge-action policy;
+- typed Knowledge Article intake and system-owned generation policy;
+- deterministic query/access orchestration through `KnowledgeChunkRetriever`;
+- construction of evidence excerpts carrying stable `EvidenceRef`;
+- provider-neutral `KnowledgeArticleGenerator` port and concrete LangChain adapter;
+- structured output, temporary evidence aliases, exact alias resolution, and `KnowledgeArticleDraft`.
+
+It explicitly marks unimplemented/classification/NBA/publish/UI work as absent rather than drawing roadmap components into the runtime topology.
 
 ## Guided views
 
@@ -94,6 +113,7 @@ Node.js >=18, Git and Chrome/Chromium are required for all `finalize` gates.
 export ARCHIFY_UPDATE_CHECK_DISABLED=1
 node .agents/skills/archify/bin/archify.mjs doctor
 node .agents/skills/archify/bin/archify.mjs finalize dataflow docs/diagrams/archify/candidate.json docs/diagrams/archify/tropos-platform.html --repo-root . --quality showcase --json
+node .agents/skills/archify/bin/archify.mjs finalize architecture docs/diagrams/archify/resolve.json docs/diagrams/archify/tropos-resolve.html --repo-root . --quality showcase --json
 ```
 
 The `finalize` command performs schema validation, delivery/integrity checks and real-browser checks.

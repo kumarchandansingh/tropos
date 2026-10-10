@@ -21,18 +21,22 @@ jobs:
     timeout-minutes: 15
     env:
       ARCHIFY_UPDATE_CHECK_DISABLED: '1'
+
     steps:
       - name: Checkout without persisted credentials
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
           persist-credentials: false
+
       - name: Install Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
+
       - name: Report renderer version
         run: node --version && node .agents/skills/archify/bin/archify.mjs doctor
+
       - name: Pin review source links to checked revision
         run: |
           python - <<'PY'
@@ -40,11 +44,15 @@ jobs:
           import os
           from pathlib import Path
 
-          source = Path("docs/diagrams/archify/candidate.json")
-          target = Path("/tmp/tropos-archify-review.json")
-          payload = json.loads(source.read_text(encoding="utf-8"))
-          payload["meta"]["repository"]["revision"] = os.environ["GITHUB_SHA"]
-          target.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          specs = {
+              Path("docs/diagrams/archify/candidate.json"): Path("/tmp/tropos-archify-review.json"),
+              Path("docs/diagrams/archify/resolve.json"): Path("/tmp/tropos-resolve-review.json"),
+          }
+
+          for source, target in specs.items():
+              payload = json.loads(source.read_text(encoding="utf-8"))
+              payload["meta"]["repository"]["revision"] = os.environ["GITHUB_SHA"]
+              target.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
           PY
 
       - name: Generate and finalize current Tropos architecture
@@ -56,15 +64,28 @@ jobs:
           --repo-root .
           --quality showcase
           --json
-      - name: Upload generated diagram and receipts
+
+      - name: Generate and finalize Resolve implementation architecture
+        run: >
+          node .agents/skills/archify/bin/archify.mjs
+          finalize architecture
+          /tmp/tropos-resolve-review.json
+          docs/diagrams/archify/tropos-resolve.html
+          --repo-root .
+          --quality showcase
+          --json
+
+      - name: Upload generated diagrams and receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: tropos-archify-platform
+          name: tropos-archify-diagrams
           retention-days: 7
           path: |
             docs/diagrams/archify/candidate.json
+            docs/diagrams/archify/resolve.json
             docs/diagrams/archify/tropos-platform.html
+            docs/diagrams/archify/tropos-resolve.html
             docs/diagrams/archify/*finalize*.json
             docs/diagrams/archify/*delivery*.json
             docs/diagrams/archify/*browser-check*.json
