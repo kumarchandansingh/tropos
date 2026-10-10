@@ -101,7 +101,7 @@ This supports regression analysis at the decision level rather than only at the 
 
 ## Model evaluation
 
-Model-assisted generation is now present behind provider-neutral contracts for Training and Knowledge Article generation. Training has a deterministic synthetic golden set that checks expected step coverage, stable evidence alignment, exception separation, and typed gap coverage. Knowledge Article generation has deterministic schema/evidence invariants; its capability-specific golden set is the next evaluation slice.
+Model-assisted generation is now present behind provider-neutral contracts for Training and Knowledge Article generation. Training has a deterministic synthetic golden set that checks expected step coverage, stable evidence alignment, exception separation, and typed gap coverage. Knowledge Article generation now has an approved synthetic V1 golden dataset and deterministic graders for required-section coverage, stable citation alignment, typed gap handling, and forbidden/unsupported behavior. The V1 scenarios cover normal generation, missing information, conflicting evidence, and exception/escalation handling.
 
 Evaluation should continue to distinguish context relevance, faithfulness/groundedness, answer relevance, and task correctness rather than collapsing them into one score. LLM-based judges may supplement deterministic checks and human review, but judge prompts/models must be versioned and calibrated against manually reviewed examples. Alias validation proves citation identity, not semantic entailment.
 
@@ -112,6 +112,23 @@ The shared contract in `tropos.evals.contracts` defines vendor-neutral `EvalCase
 Approved golden cases remain Tropos-owned/version-controlled product specifications. Synthetic model-generated examples remain candidates until curated. Hosted tools such as LangSmith, Langfuse, or Phoenix may later execute or visualize synchronized runs through adapters; they do not own correctness semantics.
 
 See [Evaluation contracts](../architecture/EVALUATION_CONTRACTS.md).
+
+### Knowledge Article regression V1
+
+The versioned dataset at `apps/api/evals/resolve/knowledge_article_v1.json` contains four approved synthetic component cases. These are intentionally narrow regression specifications, not a production benchmark.
+
+The deterministic evaluator reports separate dimensions:
+
+| Dimension | What it checks |
+| --- | --- |
+| Required-section coverage | Expected operational sections are present for the scenario |
+| Citation alignment | Expected claims/actions point to the exact expected stable chunk IDs |
+| Gap handling | Missing/conflicting information appears as the expected typed grounded gap |
+| Forbidden-behavior clear | Known unsupported or dangerous invented actions are absent |
+
+The evaluator deliberately does not claim semantic entailment. A model may cite the correct source while making a claim that the source does not support. Semantic groundedness remains a later model-judge/human-calibration layer.
+
+A human-readable Markdown scorecard can be rendered from the same case results. This keeps the regression output usable without adopting a hosted evaluation UI.
 
 ## Regression dataset lifecycle
 
