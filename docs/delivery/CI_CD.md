@@ -50,7 +50,7 @@ staged Python
 
 1. checks out the PR branch;
 2. installs the locked API dependencies;
-3. runs `python scripts/format_api.py`;
+3. runs Ruff fix/format commands directly inside `apps/api` so the workflow also works for older PR branches that predate the helper script;
 4. commits `style: auto-format Python` only when Ruff changed files;
 5. pushes the formatting commit back to the PR branch.
 
