@@ -10,6 +10,7 @@ from tropos.capabilities.resolve.adapters.langchain_knowledge_article_generator 
 )
 from tropos.capabilities.resolve.application.knowledge_article_request import (
     KnowledgeArticleGenerationRequest,
+    KnowledgeArticlePromptInputs,
     PromptProfileRef,
     build_prompt_inputs,
 )
@@ -64,7 +65,7 @@ def _evidence() -> tuple[KnowledgeArticleEvidenceExcerpt, ...]:
     )
 
 
-def _prompt_inputs(article_type: ArticleType):
+def _prompt_inputs(article_type: ArticleType) -> KnowledgeArticlePromptInputs:
     request = KnowledgeArticleGenerationRequest(
         subject="Device sync failure",
         article_type=article_type,
