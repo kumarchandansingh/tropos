@@ -51,14 +51,14 @@ def _report(
         "counts": {
             "not_run": 0,
             "running": 0,
-            "passed": 2 if answerable_passed else 1,
-            "failed": 0 if answerable_passed else 1,
+            "passed": 2 if answerable_passed and authorized else 1,
+            "failed": 0 if answerable_passed and authorized else 1,
             "error": 0,
         },
         "cases": [
             {
                 "definition": {"case_id": "answerable", "tags": ["answerable"]},
-                "state": "passed" if answerable_passed else "failed",
+                "state": "passed" if answerable_passed and authorized else "failed",
                 "duration_ms": 1.0,
                 "error": None,
                 "actual": [],
