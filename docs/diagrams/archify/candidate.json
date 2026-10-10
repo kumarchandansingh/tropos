@@ -8,7 +8,7 @@
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/kumarchandansingh/tropos",
-      "revision": "main",
+      "revision": "0264f6709b841fb30436902ba0cf12654c3d6867",
       "provider": "github",
       "link_mode": "web"
     },
@@ -332,7 +332,7 @@
       ]
     },
     {
-      "dot": "purple",
+      "dot": "violet",
       "title": "2 · Retrieval strategies stay separable",
       "items": [
         "BM25 preserves exact-term and identifier behavior; dense retrieval uses exact cosine to isolate representation quality before ANN complexity.",
@@ -340,7 +340,7 @@
       ]
     },
     {
-      "dot": "green",
+      "dot": "emerald",
       "title": "3 · Stable evidence outside the model",
       "items": [
         "Generated artifacts persist stable EvidenceRef objects. Temporary E1..EN aliases exist only inside one model invocation.",
@@ -356,7 +356,7 @@
       ]
     },
     {
-      "dot": "red",
+      "dot": "rose",
       "title": "5 · Quality is layered",
       "items": [
         "Software CI, retrieval evaluation, grounded-generation evaluation and product outcome evaluation are distinct evidence layers.",
