@@ -176,9 +176,7 @@ class LangChainKnowledgeArticleGenerator:
 
         from langchain_core.messages import HumanMessage, SystemMessage
 
-        aliases = {
-            f"E{index}": item.reference for index, item in enumerate(evidence, start=1)
-        }
+        aliases = {f"E{index}": item.reference for index, item in enumerate(evidence, start=1)}
         evidence_payload = "\n\n".join(
             (
                 f"[E{index}] source={item.reference.source_system}:"
@@ -224,27 +222,22 @@ class LangChainKnowledgeArticleGenerator:
             troubleshooting_draft = _TroubleshootingDraft.model_validate(result)
             content = TroubleshootingArticle(
                 issue_description=_claim(troubleshooting_draft.issue_description, aliases),
-                symptoms=tuple(
-                    _claim(item, aliases) for item in troubleshooting_draft.symptoms
-                ),
+                symptoms=tuple(_claim(item, aliases) for item in troubleshooting_draft.symptoms),
                 prerequisites=tuple(
                     _claim(item, aliases) for item in troubleshooting_draft.prerequisites
                 ),
                 diagnostic_checks=tuple(
-                    _step(item, aliases)
-                    for item in troubleshooting_draft.diagnostic_checks
+                    _step(item, aliases) for item in troubleshooting_draft.diagnostic_checks
                 ),
                 resolution_steps=tuple(
-                    _step(item, aliases)
-                    for item in troubleshooting_draft.resolution_steps
+                    _step(item, aliases) for item in troubleshooting_draft.resolution_steps
                 ),
                 expected_result=_claim(troubleshooting_draft.expected_result, aliases),
                 exceptions=tuple(
                     _claim(item, aliases) for item in troubleshooting_draft.exceptions
                 ),
                 escalation_criteria=tuple(
-                    _claim(item, aliases)
-                    for item in troubleshooting_draft.escalation_criteria
+                    _claim(item, aliases) for item in troubleshooting_draft.escalation_criteria
                 ),
                 gaps=tuple(_gap(item, aliases) for item in troubleshooting_draft.gaps),
             )
@@ -253,17 +246,11 @@ class LangChainKnowledgeArticleGenerator:
             how_to_draft = _HowToDraft.model_validate(result)
             content = HowToArticle(
                 purpose=_claim(how_to_draft.purpose, aliases),
-                prerequisites=tuple(
-                    _claim(item, aliases) for item in how_to_draft.prerequisites
-                ),
+                prerequisites=tuple(_claim(item, aliases) for item in how_to_draft.prerequisites),
                 steps=tuple(_step(item, aliases) for item in how_to_draft.steps),
                 expected_result=_claim(how_to_draft.expected_result, aliases),
-                next_steps=tuple(
-                    _claim(item, aliases) for item in how_to_draft.next_steps
-                ),
-                exceptions=tuple(
-                    _claim(item, aliases) for item in how_to_draft.exceptions
-                ),
+                next_steps=tuple(_claim(item, aliases) for item in how_to_draft.next_steps),
+                exceptions=tuple(_claim(item, aliases) for item in how_to_draft.exceptions),
                 gaps=tuple(_gap(item, aliases) for item in how_to_draft.gaps),
             )
             title = how_to_draft.title
