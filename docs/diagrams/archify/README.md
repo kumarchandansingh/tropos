@@ -16,9 +16,13 @@ The code-derived Resolve implementation drill-down is published at:
 
 https://kumarchandansingh.github.io/tropos/resolve/
 
-The code-derived evaluation method and experiment-design view is published at:
+The implemented evaluation experiment runtime is published at:
 
 https://kumarchandansingh.github.io/tropos/evaluation/
+
+The conceptual product-quality map is published at:
+
+https://kumarchandansingh.github.io/tropos/evaluation-quality/
 
 ## Update model
 
@@ -60,10 +64,12 @@ The workflow intentionally does not attempt to create/enable the Pages site thro
 
 - `candidate.json` — version-controlled Tropos platform dataflow specification.
 - `resolve.json` — version-controlled Resolve architecture specification derived from current implementation evidence.
-- `evaluation.json` — version-controlled evaluation product-quality map plus implemented experiment/comparison architecture.
+- `evaluation.json` — version-controlled implemented experiment/comparison runtime.
+- `evaluation-quality.json` — version-controlled conceptual product-quality and assurance map.
 - `tropos-platform.html` — generated platform viewer; not committed.
 - `tropos-resolve.html` — generated Resolve implementation viewer; not committed.
-- `tropos-evaluation.html` — generated evaluation method/design viewer; not committed.
+- `tropos-evaluation.html` — generated evaluation runtime viewer; not committed.
+- `tropos-evaluation-quality.html` — generated product-quality model viewer; not committed.
 - `.github/workflows/archify-pages.yml` — renders and publishes the live visualizer.
 - `.github/workflows/archify-diagram-pilot.yml` — validates Archify changes on pull requests and uploads a review artifact.
 
@@ -99,16 +105,14 @@ The Resolve drill-down is authored from executable source on `main`, not from th
 
 It explicitly marks unimplemented/classification/NBA/publish/UI work as absent rather than drawing roadmap components into the runtime topology.
 
-### Evaluation drill-down scope
+### Evaluation visualizer scope
 
-The evaluation drill-down has two intentionally different views:
+Evaluation is deliberately split into two pages so conceptual quality semantics do not masquerade as runtime implementation:
 
-- **Product quality map** — a conceptual map showing where software tests, invariant checks, retrieval benchmarks, model evals, and future product-outcome evaluation attach to the Tropos product flow.
-- **Evaluation runtime** — the implemented experiment machinery: dataset/subject/provenance, `ExperimentRunner`, `EvalCaseExecutor`, observations/scores, persisted runs, baseline-versus-candidate comparison, uncertainty, and gates.
+- **Product quality model** — where software tests, invariant checks, retrieval benchmarks, model evals, and future product-outcome evaluation attach to the product flow.
+- **Experiment runtime** — the implemented machinery: dataset/subject/provenance, `ExperimentRunner`, `EvalCaseExecutor`, observations/scores, persisted runs, baseline-versus-candidate comparison, uncertainty, and gates.
 
-Conceptual nodes are explicitly tagged as quality-model concepts rather than implemented runtime components. Future agent/user outcome evaluation is shown only as a future quality boundary.
-
-QE-108 through QE-111 remain outside the implemented runtime topology until they are delivered.
+Future agent/user outcome evaluation is explicitly tagged as future. QE-108 through QE-111 remain outside the implemented runtime topology until delivered.
 
 ## Guided views
 
