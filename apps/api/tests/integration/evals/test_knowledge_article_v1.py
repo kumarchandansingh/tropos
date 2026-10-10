@@ -106,6 +106,34 @@ def test_good_normal_how_to_passes_all_dimensions() -> None:
     assert result.passed is True
 
 
+def test_citation_alignment_accepts_later_matching_claim_with_expected_evidence() -> None:
+    case = _case("normal-how-to-device-reconnect")
+    draft = KnowledgeArticleDraft(
+        title="Reconnect a device",
+        article_type=ArticleType.HOW_TO,
+        product="Device Service",
+        content=HowToArticle(
+            purpose=_claim(
+                "Clear stale registration before reconnecting.",
+                "ka-normal-1",
+            ),
+            prerequisites=(),
+            steps=(
+                _step("Clear the stale registration.", "ka-normal-1"),
+                _step("Reconnect the device.", "ka-normal-2"),
+            ),
+            expected_result=_claim(
+                "The device status becomes Connected.",
+                "ka-normal-2",
+            ),
+        ),
+    )
+
+    result = evaluate_knowledge_article(case, draft)
+
+    assert result.citation_alignment == 1.0
+
+
 def test_wrong_citation_fails_even_when_wording_is_correct() -> None:
     case = _case("normal-how-to-device-reconnect")
     draft = KnowledgeArticleDraft(
