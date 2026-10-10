@@ -16,9 +16,7 @@ def _validate_optional_text(field_name: str, value: str | None) -> None:
 
 def _validate_terms(field_name: str, values: tuple[str, ...]) -> None:
     if len(values) > MAX_PREFERENCE_ITEMS:
-        raise ValueError(
-            f"{field_name} must contain no more than {MAX_PREFERENCE_ITEMS} items"
-        )
+        raise ValueError(f"{field_name} must contain no more than {MAX_PREFERENCE_ITEMS} items")
     if any(not value.strip() for value in values):
         raise ValueError(f"{field_name} must not contain blank items")
     normalized = tuple(value.casefold() for value in values)
@@ -67,9 +65,7 @@ class KnowledgeArticleGenerationRequest:
             self.business_context is not None
             and len(self.business_context) > MAX_BUSINESS_CONTEXT_LENGTH
         ):
-            raise ValueError(
-                "business_context exceeds the supported maximum length"
-            )
+            raise ValueError("business_context exceeds the supported maximum length")
         _validate_terms("retrieval_keywords", self.retrieval_keywords)
 
 
