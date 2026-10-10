@@ -1,0 +1,95 @@
+name: Live Archify Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'docs/architecture/**'
+      - 'docs/product/TROPOS_PLATFORM.md'
+      - 'docs/product/RESOLVE.md'
+      - 'docs/product/TRAINING.md'
+      - 'docs/diagrams/archify/**'
+      - '.agents/skills/archify/**'
+      - '.github/workflows/archify-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ARCHIFY_UPDATE_CHECK_DISABLED: '1'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Pin visualizer source links to deployed revision
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          source = Path("docs/diagrams/archify/candidate.json")
+          target = Path("/tmp/tropos-archify-live.json")
+          payload = json.loads(source.read_text(encoding="utf-8"))
+          payload["meta"]["repository"]["revision"] = os.environ["GITHUB_SHA"]
+          target.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Render and validate current Tropos architecture
+        run: >
+          node .agents/skills/archify/bin/archify.mjs
+          finalize dataflow
+          /tmp/tropos-archify-live.json
+          docs/diagrams/archify/tropos-platform.html
+          --repo-root .
+          --quality showcase
+          --json
+
+      - name: Prepare Pages site
+        run: |
+          mkdir -p _site/architecture
+          cp docs/diagrams/archify/tropos-platform.html _site/index.html
+          cp docs/diagrams/archify/tropos-platform.html _site/architecture/index.html
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

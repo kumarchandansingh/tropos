@@ -1,4 +1,4 @@
-name: Archify diagram pilot
+name: Archify diagram review
 
 on:
   pull_request:
@@ -33,12 +33,26 @@ jobs:
           node-version: '22'
       - name: Report renderer version
         run: node --version && node .agents/skills/archify/bin/archify.mjs doctor
-      - name: Generate and finalize source-backed dataflow
+      - name: Pin review source links to checked revision
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          source = Path("docs/diagrams/archify/candidate.json")
+          target = Path("/tmp/tropos-archify-review.json")
+          payload = json.loads(source.read_text(encoding="utf-8"))
+          payload["meta"]["repository"]["revision"] = os.environ["GITHUB_SHA"]
+          target.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Generate and finalize current Tropos architecture
         run: >
           node .agents/skills/archify/bin/archify.mjs
           finalize dataflow
-          docs/diagrams/archify/candidate.json
-          docs/diagrams/archify/tropos-ingestion.html
+          /tmp/tropos-archify-review.json
+          docs/diagrams/archify/tropos-platform.html
           --repo-root .
           --quality showcase
           --json
@@ -46,11 +60,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: tropos-archify-ingestion
+          name: tropos-archify-platform
           retention-days: 7
           path: |
             docs/diagrams/archify/candidate.json
-            docs/diagrams/archify/tropos-ingestion.html
+            docs/diagrams/archify/tropos-platform.html
             docs/diagrams/archify/*finalize*.json
             docs/diagrams/archify/*delivery*.json
             docs/diagrams/archify/*browser-check*.json
