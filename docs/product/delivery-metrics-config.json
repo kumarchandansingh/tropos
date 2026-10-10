@@ -1,0 +1,10 @@
+{
+  "current_sprint": "Sprint 1",
+  "sprints": {
+    "Sprint 1": {"start": null, "end": null},
+    "Sprint 2": {"start": null, "end": null},
+    "Sprint 3": {"start": null, "end": null},
+    "Sprint 4": {"start": null, "end": null}
+  },
+  "production_environment_names": ["production", "prod"]
+}
