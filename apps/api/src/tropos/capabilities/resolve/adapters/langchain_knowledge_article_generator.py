@@ -79,7 +79,8 @@ class _FAQDraft(BaseModel):
     gaps: list[_Gap]
 
 
-_BASE_INSTRUCTIONS = """Create a governed operational Knowledge Article using only the supplied evidence.
+_BASE_INSTRUCTIONS = """Create a governed operational Knowledge Article using only
+the supplied evidence.
 Every factual claim, procedural step, exception, escalation criterion, and gap must cite one or more
 supplied evidence aliases such as E1 or E2. Surface missing information, conflicts, and ambiguity as
 gaps rather than inventing details. Business context and output preferences may shape emphasis and
