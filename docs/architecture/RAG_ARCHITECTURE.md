@@ -1,161 +1,221 @@
-# RAG architecture
+# RAG and retrieval architecture
 
-Tropos is building toward retrieval-augmented knowledge decisions. The implemented baseline now spans governed ingestion, durable SQLite persistence, access-controlled lexical retrieval over current canonical chunks, and a labeled retrieval-evaluation seed. It is not yet a production RAG service: there is no public API, hosted runtime, external enterprise connector, vector retrieval, prompt-augmentation layer, or model-answering layer.
+Tropos retrieval has evolved from a lexical baseline into a governed multi-strategy retrieval layer supporting lexical, dense, and hybrid search. Retrieval remains separate from generation: its job is to return current, authorized, provenance-rich evidence through a stable contract.
 
-## End-to-end target
+## End-to-end position
 
 ```mermaid
 flowchart LR
-    S[(Source knowledge)]
-    --> R[Capture]
-    --> N[Normalize]
-    --> V[Version]
-    --> C[Chunk]
-    --> P[(Persist)]
-    --> I[Lexical / future semantic index]
-    --> Q[Retrieve]
-    --> K[Rank / select]
-    --> A[Assess coverage]
-    --> G[Optional model assistance]
-    --> E[Evaluate]
+    Source[(Source knowledge)]
+    --> Capture[Capture]
+    --> Normalize[Normalize]
+    --> Version[Version]
+    --> Chunk[Governed chunks]
+    --> Persist[(Persist)]
+    --> Lex[BM25]
+    Persist --> Dense[Dense]
+    Lex --> Hybrid[RRF]
+    Dense --> Hybrid
+    Hybrid --> Evidence[RetrievedKnowledgeChunk]
+    Evidence --> Generate[Grounded generation / capability logic]
+    Generate --> Evaluate[Evaluation]
 ```
 
-## Capability status
+## Current capability status
 
 | Stage | Status | Notes |
 | --- | --- | --- |
-| Raw capture and access policy | Implemented | Exact payload and source-envelope identity |
-| Deterministic normalization | Implemented | Canonical text and structural identity |
-| Canonical version resolution | Implemented | Content, access, and normalizer changes separated |
-| Deterministic chunking | Implemented | Governed, lossless evidence units |
-| SQLite persistence | Implemented | Source captures, runs, canonical state, versions, and chunks |
-| Lexical/full-text retrieval | Implemented | SQLite FTS5 + BM25 over current authorized chunks |
-| Retrieval evaluation V1 | Implemented baseline | Synthetic labeled corpus with Recall@1/3/5, Precision@5, MRR, no-answer/access cases |
-| Resolve decision policy | Implemented | `REUSE / IMPROVE / CREATE / NO_ACTION` |
-| Resolve retrieval adapter | Planned | Resolve still needs an adapter from a resolved case to the reusable core retriever |
-| Coverage evaluation | Contract only / planned adapter | Separate from retrieval ranking |
-| Embeddings and hybrid retrieval | Deferred pending comparison | Add as a versioned strategy when semantic-recall evidence justifies it |
-| LLM reasoning or drafting | Deferred | Must consume authorized, provenance-rich evidence |
-| Presentation/deployment | Planned | API, workspace/runtime composition, hosted environments |
+| Source capture / access policy | Implemented | Source identity and source-state capture |
+| Deterministic normalization | Implemented | Canonical representation before version comparison |
+| Canonical version resolution | Implemented | Content/access/strategy changes separated |
+| Deterministic chunking | Implemented | Governed lossless evidence units |
+| SQLite persistence | Implemented baseline | Canonical state, chunks and derived embeddings |
+| Lexical retrieval | Implemented | SQLite FTS5/BM25 |
+| Dense retrieval | Implemented V1 | Versioned embeddings + exact cosine search |
+| Hybrid retrieval | Implemented V1 | RRF over lexical and dense ranks |
+| Retrieval evaluation | Implemented | Golden data, ranking metrics, saved runs/reports |
+| Stable evidence reference | Implemented | `EvidenceRef` outside prompt-local aliases |
+| Grounded structured generation | Implemented baseline | Training + Resolve Knowledge Articles |
+| ANN/HNSW | Deferred | Scale/latency trigger not yet demonstrated |
+| Cross-encoder reranking | Deferred | Quality/latency evidence not yet demonstrated |
+| Hosted retrieval service | Planned | No production API/runtime yet |
 
-## Ingestion path
+## Shared retrieval contract
 
-```mermaid
-flowchart LR
-    Raw[Raw state]
-    --> Extract[Extract text / structure]
-    --> Canon[Normalize and canonicalize]
-    --> Version[Resolve canonical version]
-    --> Chunk[Create governed chunks]
-    --> Store[(Persist)]
-    --> Index[(FTS5 index)]
+The core retrieval boundary accepts a `KnowledgeSearchRequest` containing:
+
+- query;
+- tenant/group access context;
+- result limit.
+
+Concrete retrievers implement `KnowledgeChunkRetriever` and return `RetrievedKnowledgeChunk` objects with governed chunk identity, rank, strategy-native score, and retrieval strategy version.
+
+The contract deliberately does not normalize all scores to one generic relevance number. BM25 scores, cosine similarity, fusion positions and future reranker scores have different meanings.
+
+## Authorization and freshness
+
+Authorization is part of retrieval itself. Unauthorized evidence must not cross the governed retrieval boundary and then be filtered at presentation time.
+
+```text
+query
+→ current canonical state
+→ tenant eligibility
+→ restricted-group eligibility
+→ ranking
+→ returned governed evidence
 ```
 
-Ingestion distinguishes source-byte changes, canonical-content changes, access-policy changes, and processing-strategy changes. That separation controls reprocessing, governance refresh, and retrieval freshness.
-
-## Query path
-
-```mermaid
-flowchart LR
-    Query[Query + tenant/group context]
-    --> Search[Retriever strategy]
-    --> Current[Current canonical version filter]
-    --> Access[Tenant/group authorization]
-    --> Rank[Rank evidence]
-    --> Evidence[Governed KnowledgeChunk evidence]
-```
-
-Authorization is part of retrieval itself. Unauthorized chunks are not returned to a later filtering stage.
-
-The reusable core contract accepts a `KnowledgeSearchRequest` containing the query, tenant/group access context, and result limit. The contract is strategy-neutral: lexical, vector, or hybrid adapters may implement the same `KnowledgeChunkRetriever` boundary. Results preserve chunk provenance, access policy, rank, strategy-native score, and retrieval strategy version.
+Historical versions may remain persisted for audit/history without remaining retrievable as current evidence.
 
 ## Lexical baseline
 
-The first concrete retrieval strategy is `sqlite-fts5-bm25-v1`.
+`sqlite-fts5-bm25-v1` remains the exact-term baseline.
 
-- Index: SQLite FTS5 over chunk title and text.
-- Ranking: BM25, with title weighted above body text.
-- Corpus: persisted `KnowledgeChunk` rows.
-- Freshness: only chunks matching `knowledge_state` are eligible, so historical versions may remain stored without being retrievable.
-- Isolation: tenant equality is mandatory.
-- Restricted access: group intersection is evaluated inside the SQL query.
-- Index maintenance: SQLite triggers add/delete text rows when persisted chunks change.
-- Score semantics: strategy-native ranking score; not a normalized 0-to-1 relevance probability.
+Strengths:
 
-Do not add a generic score threshold at the core boundary yet. A BM25 score, vector-similarity score, and reranker score do not share a stable meaning. Thresholds must be strategy-specific and calibrated by evaluation.
+- identifiers, codes and exact product/policy language;
+- low operational complexity;
+- transparent ranking behavior;
+- no embedding provider dependency.
 
-## Retrieval evaluation and semantic expansion
+Weakness:
 
-The versioned V1 corpus at `apps/api/evals/retrieval/golden_v1.json` measures both expected lexical strengths and deliberately paraphrased semantic gaps.
+- paraphrases and semantically related wording can be missed.
 
-```mermaid
-flowchart LR
-    BM25[sqlite-fts5-bm25-v1]
-    --> Golden[Golden retrieval corpus]
-    --> Metrics["Recall@K / MRR / no-answer checks"]
-    --> Gap{Material semantic gap?}
-    Gap -- no --> Keep[Keep simpler lexical baseline]
-    Gap -- yes --> Vector[Add vector retriever]
-    Vector --> Hybrid[Compare vector and hybrid]
-    Hybrid --> Metrics
-```
+The labeled V1 retrieval set made that semantic gap measurable.
 
-The likely future shape is additive hybrid retrieval rather than vector replacing lexical retrieval:
+## Dense Retrieval V1
+
+Dense retrieval was added as an independent strategy rather than replacing BM25.
 
 ```mermaid
 flowchart LR
-    Q[Query]
-    --> L[Lexical retriever]
-    Q --> V[Vector retriever]
-    L --> F[Rank fusion / reranking]
-    V --> F
-    F --> A[Authorized governed evidence]
+    Chunk[Current governed chunk]
+    --> Embed[Embedding provider]
+    --> Vector[(Versioned derived embedding)]
+
+    Query[Query]
+    --> QEmbed[Query embedding]
+    --> Candidate[Authorized current vectors]
+    --> Cosine[Exact cosine]
+    --> Ranked[Dense ranked evidence]
 ```
 
-This preserves exact-term strengths for identifiers, names, codes, and policy language while adding semantic recall for paraphrases. A hybrid strategy is not accepted until measured against the baseline.
+### Derived-state rule
 
-## Access and isolation
+Embeddings are not canonical knowledge. Their identity includes the stable chunk and embedding strategy version. Changing an embedding model/configuration is a processing migration, not a content version.
 
-`AccessPolicy` remains the authorization source carried by canonical evidence.
+### Exact search before ANN
 
-- `tenant` evidence is retrievable only inside the matching tenant.
-- `restricted` evidence additionally requires at least one matching principal group.
-- `unresolved` evidence is never indexable as a `KnowledgeChunk` and is not accepted by retrieval.
+Dense V1 uses exact cosine similarity.
 
-Access changes can refresh chunk authorization state without creating a content version. Retrieval reads the current persisted authorization values at query time.
+**Why:** representation quality and approximate-index quality are separate experiments. If the vector retriever misses relevant evidence, exact search makes it easier to attribute that miss to embeddings/chunking/query semantics rather than HNSW/IVF approximation.
 
-## Freshness
+**Cost:** O(N) scanning does not scale indefinitely.
 
-| Version result | Retrieval consequence |
-| --- | --- |
-| `NO_CONTENT_VERSION` | No new chunk/index content |
-| `REFRESH_GOVERNANCE` | Retrieval immediately uses refreshed authorization state |
-| `CREATE_VERSION` | Persist new chunks; FTS triggers index them; `knowledge_state` selects the new current version |
-| `REBASELINE_REQUIRED` | Run a controlled corpus migration/rebaseline before replacing current state |
+**Revisit trigger:** corpus size and p95 latency show exact search is materially constraining service objectives.
 
-## Evaluation boundaries
+See [ADR-015](../decisions/ADR-015-evidence-led-dense-and-hybrid-retrieval.md) and [Dense Retrieval V1](../learning/DENSE_RETRIEVAL_V1.md).
 
-Retrieval and generation are evaluated separately. Retrieval metrics measure whether the correct governed evidence is found and ranked. A future generation layer will additionally require context relevance, groundedness/faithfulness, answer relevance, task correctness, and citation integrity.
+## Hybrid Retrieval V1
 
-The V1 corpus is synthetic and knowledge-level. It is a regression/development baseline, not an enterprise accuracy benchmark. Pilot data should add a held-out production-like set and may require chunk-level or graded relevance labels.
-
-See [Evaluation strategy](../quality/EVAL_STRATEGY.md).
-
-## Model boundary
-
-Model assistance remains downstream of authorized evidence and validated contracts.
+After lexical and dense strategies demonstrated complementary strengths, Tropos added Reciprocal Rank Fusion (RRF).
 
 ```mermaid
 flowchart LR
-    Evidence[Authorized evidence]
-    --> Prompt[Versioned prompt + schema]
-    --> Model[Model]
-    --> Validate[Validate structured output]
-    --> App[Application policy]
+    Query[Query]
+    --> BM25[BM25 rank list]
+    Query --> Dense[Dense rank list]
+    BM25 --> RRF[RRF]
+    Dense --> RRF
+    RRF --> Hybrid[Hybrid ranked evidence]
 ```
 
-Canonical identity, access enforcement, and the core knowledge-action vocabulary remain deterministic unless a future ADR changes those boundaries.
+RRF combines rank positions rather than blending raw scores.
 
-## Saved evaluation foundation
+**Why not weighted raw-score blending?** BM25 and cosine scores are not calibrated to a common scale. A fixed weighted sum would create a tuning parameter whose meaning depends on retriever-specific score distributions.
 
-The retrieval baseline now also has a versioned synthetic V2 catalogue, isolated lifecycle scenarios, durable run/case observations, independent returned-evidence assertions and JSON/Markdown reports. [Evaluation runs](EVALUATION_RUNS.md) documents this implemented extension. Embeddings, vector retrieval and an interactive evaluation dashboard remain planned.
+**Cost:** hybrid runs both retrieval paths and introduces candidate-depth/fusion parameters.
+
+**What it does not solve:** no-answer/abstention, semantic entailment, or reranking quality.
+
+See [Hybrid Retrieval V1](../learning/HYBRID_RETRIEVAL_V1.md).
+
+## No-answer behavior
+
+Dense retrieval always has a nearest neighbor. A generic hard-coded cosine threshold was deliberately not introduced in V1.
+
+Current principle:
+
+> abstention thresholds must be calibrated from labeled evidence, not chosen as a magic constant.
+
+No-answer cases remain part of retrieval evaluation. Future options include:
+
+- calibrated strategy-specific thresholds;
+- hybrid/reranker confidence;
+- explicit abstention classifier;
+- workflow-level insufficient-evidence decision.
+
+## Retrieval evaluation
+
+Tropos keeps retrieval evaluation independent of generation evaluation.
+
+Current retrieval evidence includes:
+
+- versioned golden definitions;
+- development/synthetic cases;
+- Recall@1/3/5;
+- Precision@5;
+- Mean Reciprocal Rank (MRR);
+- no-answer checks;
+- access/current-version/integrity assertions;
+- persisted execution/run evidence;
+- comparative BM25/dense/hybrid work.
+
+The synthetic datasets are regression/development evidence, not enterprise production accuracy claims.
+
+See [Evaluation strategy](../quality/EVAL_STRATEGY.md) and [Evaluation runs](EVALUATION_RUNS.md).
+
+## Generation boundary
+
+Authorized retrieval evidence is projected into capability-specific generation contracts.
+
+```mermaid
+flowchart LR
+    Retrieved[RetrievedKnowledgeChunk]
+    --> Ref[Stable EvidenceRef]
+    --> Alias[Temporary prompt alias]
+    --> Model[Structured model]
+    --> Resolve[Exact alias resolver]
+    --> Artifact[Evidence-backed artifact]
+```
+
+The retrieval layer does not decide whether a generated claim is semantically supported. It establishes the controlled evidence set and lineage. Generation evaluation owns claim/artifact quality.
+
+## Current trade-offs
+
+| Decision | Selected approach | Cost | Revisit trigger |
+| --- | --- | --- | --- |
+| Lexical vs vector | Keep both strategies | multiple retrieval paths | one strategy becomes clearly redundant on production evidence |
+| Dense index | Exact cosine | O(N) query cost | p95 latency/corpus scale |
+| Fusion | RRF | candidate/fusion tuning | production-like eval favors reranking/another fusion policy |
+| Score threshold | no generic threshold | weak raw dense abstention | labeled score distributions |
+| Authorization | pre-filter/governed boundary | constrains index choices | invariant remains; implementation may evolve |
+| Embedding state | derived/versioned | storage/model lifecycle | operational scale/migration needs |
+
+## Deferred complexity
+
+- HNSW/IVF/managed vector service;
+- generic vector-score thresholds;
+- cross-encoder reranking;
+- Maximum Marginal Relevance unless diversity is a measured need;
+- query rewriting/orchestration frameworks before evaluation proves value.
+
+## Related documents
+
+- [Architecture overview](ARCHITECTURE_OVERVIEW.md)
+- [Knowledge model](KNOWLEDGE_MODEL.md)
+- [Evaluation strategy](../quality/EVAL_STRATEGY.md)
+- [Dense Retrieval V1](../learning/DENSE_RETRIEVAL_V1.md)
+- [Hybrid Retrieval V1](../learning/HYBRID_RETRIEVAL_V1.md)
+- [ADR-015](../decisions/ADR-015-evidence-led-dense-and-hybrid-retrieval.md)
