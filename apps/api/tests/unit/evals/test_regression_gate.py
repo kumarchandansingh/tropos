@@ -14,9 +14,7 @@ def _assertions(expected: bool = True, *, authorized: bool = True) -> list[JsonV
     }
     assertions: list[JsonValue] = []
     for name, passed in values.items():
-        assertions.append(
-            {"name": name, "passed": passed, "detail": f"{name} fixture"}
-        )
+        assertions.append({"name": name, "passed": passed, "detail": f"{name} fixture"})
     return assertions
 
 
