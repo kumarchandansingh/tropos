@@ -32,6 +32,26 @@ Tests cover access-policy validation, source identity, parsing, normalization, v
 
 Code coverage percentage is not currently measured or gated. That is separate from behavioral quality: a high line-coverage number would not prove retrieval relevance, access isolation, or freshness correctness.
 
+## Evidence maturity and current limits
+
+The evaluation architecture is stronger than the evidence volume currently available. The repository must not present the V1 retrieval or generation sets as production-quality estimates.
+
+Current limitations are explicit:
+
+- retrieval V1 contains 10 answerable and 4 expected-empty cases;
+- the repository currently has no locked holdout retrieval set;
+- retrieval labels are knowledge-level rather than chunk-level;
+- V1 `Precision@5` uses a fixed denominator of five, so one-relevant-document cases have a maximum value of 0.20;
+- dense retrieval recovered the two known semantic misses in the recorded MPNet experiment but returned irrelevant authorized nearest neighbours for three of four no-answer cases;
+- hybrid RRF is implemented, but the repository does not currently contain a committed hybrid real-model scorecard;
+- no confidence intervals are reported in V1;
+- current real-model hybrid workflow execution does not constitute a regression gate by itself;
+- model-judge evaluation is defined as a future score source but is not implemented/calibrated as a release gate.
+
+These constraints mean that small score differences are hypotheses or regression signals, not statistically stable product-quality claims.
+
+Before release-quality use, Tropos should report sample counts and uncertainty, separate development from holdout evidence, and use paired baseline/candidate comparisons instead of treating one aggregate number as decisive.
+
 ## Retrieval evaluation V1
 
 The first retrieval baseline is evaluated against the versioned synthetic corpus at `apps/api/evals/retrieval/golden_v1.json`.
@@ -103,7 +123,7 @@ This supports regression analysis at the decision level rather than only at the 
 
 Model-assisted generation is now present behind provider-neutral contracts for Training and Knowledge Article generation. Training has a deterministic synthetic golden set that checks expected step coverage, stable evidence alignment, exception separation, and typed gap coverage. Knowledge Article generation has deterministic schema/evidence invariants; its capability-specific golden set is the next evaluation slice.
 
-Evaluation should continue to distinguish context relevance, faithfulness/groundedness, answer relevance, and task correctness rather than collapsing them into one score. LLM-based judges may supplement deterministic checks and human review, but judge prompts/models must be versioned and calibrated against manually reviewed examples. Alias validation proves citation identity, not semantic entailment.
+Evaluation should continue to distinguish context relevance, faithfulness/groundedness, answer relevance, and task correctness rather than collapsing them into one score. LLM-based judges may supplement deterministic checks and human review, but judge prompts/models must be versioned and calibrated against manually reviewed examples before they can become release gates. Calibration should use a human-labelled claim/evidence set and report agreement statistics such as a confusion matrix and Cohen's kappa. Alias validation proves citation identity, not semantic entailment.
 
 ## Reusable evaluation contract
 
@@ -126,9 +146,11 @@ flowchart LR
     --> Failure
 ```
 
-The V1 corpus is a development/regression seed, not a held-out enterprise benchmark. Pilot data should later create a separate held-out release set.
+The V1 corpus is a development/regression seed, not a held-out enterprise benchmark. The next retrieval benchmark must add a locked holdout, explicit scenario tags, chunk-level labels, larger answerable/no-answer populations, and uncertainty reporting. Development data may be used for threshold or policy tuning; holdout data must not.
 
 Critical security or decision failures remain case-level blockers even when aggregate scores improve. Cross-tenant evidence leakage, restricted-group leakage, or stale historical evidence are zero-tolerance failures.
+
+For statistical decision metrics, Tropos should prefer paired baseline/candidate comparisons because the same cases are evaluated under both configurations. Retrieval comparisons should support paired bootstrap confidence intervals once the benchmark size is large enough to make them useful. Hard invariants and statistical decision metrics must remain separate gate types.
 
 ## Release gates by capability
 
