@@ -78,3 +78,13 @@ def test_retirement_rejects_wrong_source_identity(tmp_path: Path) -> None:
     current = store.get_current_state("remote-work")
     assert current is not None
     assert current.lifecycle_status is KnowledgeLifecycleStatus.ACTIVE
+
+
+def test_retire_command_requires_timezone_aware_observation_time() -> None:
+    with pytest.raises(ValueError, match="timezone"):
+        RetireKnowledgeCommand(
+            knowledge_id="remote-work",
+            source_system="sharepoint:hr",
+            source_record_id="item-456",
+            observed_at=datetime(2026, 9, 27),
+        )
