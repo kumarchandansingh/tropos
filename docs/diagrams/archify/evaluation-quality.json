@@ -1,0 +1,403 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Tropos Evaluation | Product Quality Model",
+    "subtitle": "Conceptual assurance map: product behavior first, then the right tests, invariants, benchmarks and model/product evaluations",
+    "output": "docs/diagrams/archify/tropos-evaluation-quality.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/kumarchandansingh/tropos",
+      "revision": "c96fe987e3e987a0f11bad8b6038047056ef9ca7",
+      "provider": "github",
+      "link_mode": "web"
+    },
+    "views": [
+      {
+        "id": "product-quality",
+        "label": "Product quality map",
+        "focus": [
+          "source",
+          "retrieval",
+          "evidence",
+          "generation",
+          "outcome",
+          "software",
+          "invariants",
+          "benchmark",
+          "model-eval",
+          "product-eval"
+        ],
+        "note": "Conceptual map: identify the product boundary first, then attach the appropriate assurance mechanism."
+      },
+      {
+        "id": "retrieval-quality",
+        "label": "Retrieval quality",
+        "focus": [
+          "source",
+          "retrieval",
+          "evidence",
+          "software",
+          "invariants",
+          "benchmark"
+        ],
+        "note": "Retrieval is protected by software correctness, zero-tolerance invariants and labelled quality benchmarks."
+      },
+      {
+        "id": "generation-quality",
+        "label": "Generation quality",
+        "focus": [
+          "evidence",
+          "generation",
+          "software",
+          "model-eval"
+        ],
+        "note": "Generation quality starts from governed evidence; real model evals require the generator, not hand-written drafts, to produce the output."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "source",
+      "type": "database",
+      "label": "Resolved case / source",
+      "sublabel": "governed product input",
+      "tag": "PRODUCT",
+      "pos": [
+        40,
+        100
+      ],
+      "size": [
+        170,
+        74
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/EVALUATION_MODEL.md",
+          "line": 34,
+          "end_line": 48
+        }
+      ]
+    },
+    {
+      "id": "retrieval",
+      "type": "backend",
+      "label": "Retrieval",
+      "sublabel": "find relevant current authorized evidence",
+      "tag": "PRODUCT",
+      "pos": [
+        270,
+        100
+      ],
+      "size": [
+        175,
+        74
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/EVALUATION_MODEL.md",
+          "line": 69,
+          "end_line": 77
+        }
+      ]
+    },
+    {
+      "id": "evidence",
+      "type": "database",
+      "label": "Selected evidence",
+      "sublabel": "controlled context for generation",
+      "tag": "PRODUCT",
+      "pos": [
+        500,
+        100
+      ],
+      "size": [
+        175,
+        74
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/EVALUATION_MODEL.md",
+          "line": 34,
+          "end_line": 48
+        }
+      ]
+    },
+    {
+      "id": "generation",
+      "type": "backend",
+      "label": "Knowledge Article generation",
+      "sublabel": "evidence → operational artifact",
+      "tag": "PRODUCT",
+      "pos": [
+        500,
+        285
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/EVALUATION_MODEL.md",
+          "line": 79,
+          "end_line": 92
+        }
+      ]
+    },
+    {
+      "id": "outcome",
+      "type": "external",
+      "label": "Agent / user outcome",
+      "sublabel": "future workflow outcome boundary",
+      "tag": "FUTURE",
+      "pos": [
+        760,
+        285
+      ],
+      "size": [
+        180,
+        76
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/EVALUATION_MODEL.md",
+          "line": 94,
+          "end_line": 98
+        }
+      ]
+    },
+    {
+      "id": "software",
+      "type": "backend",
+      "label": "Software tests",
+      "sublabel": "deterministic code correctness",
+      "tag": "ASSURANCE",
+      "pos": [
+        40,
+        500
+      ],
+      "size": [
+        160,
+        72
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/EVALUATION_MODEL.md",
+          "line": 14,
+          "end_line": 31
+        }
+      ]
+    },
+    {
+      "id": "invariants",
+      "type": "security",
+      "label": "Invariant checks",
+      "sublabel": "authorization · currentness · integrity",
+      "tag": "ASSURANCE",
+      "pos": [
+        245,
+        500
+      ],
+      "size": [
+        180,
+        72
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/EVALUATION_MODEL.md",
+          "line": 69,
+          "end_line": 77
+        }
+      ]
+    },
+    {
+      "id": "benchmark",
+      "type": "backend",
+      "label": "Retrieval benchmark",
+      "sublabel": "Recall · ranking · no-answer",
+      "tag": "QUALITY",
+      "pos": [
+        470,
+        500
+      ],
+      "size": [
+        175,
+        72
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/EVALUATION_MODEL.md",
+          "line": 69,
+          "end_line": 77
+        }
+      ]
+    },
+    {
+      "id": "model-eval",
+      "type": "backend",
+      "label": "Model evaluation",
+      "sublabel": "real generator output + graders",
+      "tag": "QUALITY",
+      "pos": [
+        690,
+        500
+      ],
+      "size": [
+        175,
+        72
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/EVALUATION_MODEL.md",
+          "line": 79,
+          "end_line": 92
+        }
+      ]
+    },
+    {
+      "id": "product-eval",
+      "type": "external",
+      "label": "Product evaluation",
+      "sublabel": "acceptance · edits · resolution outcome",
+      "tag": "FUTURE",
+      "pos": [
+        690,
+        650
+      ],
+      "size": [
+        180,
+        72
+      ],
+      "sources": [
+        {
+          "path": "docs/architecture/EVALUATION_MODEL.md",
+          "line": 94,
+          "end_line": 98
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Product behavior",
+      "wraps": [
+        "source",
+        "retrieval",
+        "evidence",
+        "generation",
+        "outcome"
+      ],
+      "pad": 24
+    },
+    {
+      "kind": "region",
+      "label": "Assurance and evaluation",
+      "wraps": [
+        "software",
+        "invariants",
+        "benchmark",
+        "model-eval",
+        "product-eval"
+      ],
+      "pad": 24
+    }
+  ],
+  "connections": [
+    {
+      "id": "source-retrieval",
+      "from": "source",
+      "to": "retrieval"
+    },
+    {
+      "id": "retrieval-evidence",
+      "from": "retrieval",
+      "to": "evidence",
+      "label": "returns"
+    },
+    {
+      "id": "evidence-generation",
+      "from": "evidence",
+      "to": "generation",
+      "label": "grounds",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "generation-outcome",
+      "from": "generation",
+      "to": "outcome",
+      "variant": "dashed"
+    },
+    {
+      "id": "software-retrieval",
+      "from": "software",
+      "to": "retrieval",
+      "label": "tests",
+      "variant": "dashed"
+    },
+    {
+      "id": "invariants-retrieval",
+      "from": "invariants",
+      "to": "retrieval",
+      "label": "must hold",
+      "variant": "emphasis"
+    },
+    {
+      "id": "benchmark-retrieval",
+      "from": "benchmark",
+      "to": "retrieval",
+      "label": "measures",
+      "variant": "dashed"
+    },
+    {
+      "id": "model-generation",
+      "from": "model-eval",
+      "to": "generation",
+      "label": "measures",
+      "variant": "dashed"
+    },
+    {
+      "id": "product-outcome",
+      "from": "product-eval",
+      "to": "outcome",
+      "label": "measures",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "1 · Start from product behavior",
+      "items": [
+        "Ask what the product is trying to do and what output exists at that boundary before selecting an evaluation method.",
+        "The same word 'eval' must not hide whether we are testing code correctness, a system invariant, retrieval quality, model output or a user outcome."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "2 · Invariants are not quality scores",
+      "items": [
+        "Authorization, currentness and evidence integrity are zero-tolerance properties.",
+        "A security/integrity defect remains a blocker even when Recall or another benchmark metric improves."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "3 · Model eval means a model produced the output",
+      "items": [
+        "A deterministic Knowledge Article grader can be unit-tested with hand-authored drafts.",
+        "It becomes a model eval only when the real generator produces the draft being graded; stochastic subjects may require repeated trials."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "4 · Future product evaluation is a different layer",
+      "items": [
+        "Acceptance, edits, resolution success and time-to-resolution measure workflow outcomes rather than component quality.",
+        "That product-outcome signal is not implemented in Tropos today."
+      ]
+    }
+  ]
+}

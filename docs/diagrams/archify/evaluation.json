@@ -2,8 +2,8 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "Tropos Evaluation | Experiment Method and Design",
-    "subtitle": "Implemented QE-103 + QE-110: reproducible runs, paired comparison, uncertainty, regression gates and workflow enforcement",
+    "title": "Tropos Evaluation | Experiment Runtime",
+    "subtitle": "Implemented QE-103 + QE-110 runtime: reproducible runs, paired comparison, uncertainty, regression gates and workflow enforcement",
     "output": "docs/diagrams/archify/tropos-evaluation.html",
     "quality_profile": "showcase",
     "repository": {
@@ -15,7 +15,7 @@
     "views": [
       {
         "id": "run",
-        "label": "Run one configuration",
+        "label": "Evaluation runtime",
         "focus": [
           "dataset",
           "subject",
@@ -26,7 +26,7 @@
           "eval-run",
           "store"
         ],
-        "note": "Dataset, subject and provenance are kept separate while every case produces a terminal observation."
+        "note": "Implemented harness: dataset, subject and provenance remain separate while every case produces a terminal observation."
       },
       {
         "id": "compare",
@@ -574,6 +574,14 @@
     }
   ],
   "cards": [
+    {
+      "dot": "cyan",
+      "title": "Product quality map is documented separately",
+      "items": [
+        "This page is the implemented experiment runtime, not the product-quality taxonomy.",
+        "See the Product Quality Model visualizer for software tests, invariants, benchmarks, model evals and future product outcomes."
+      ]
+    },
     {
       "dot": "cyan",
       "title": "1 · Reproducible run identity",

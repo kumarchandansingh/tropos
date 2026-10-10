@@ -6,6 +6,19 @@ Tropos owns the meaning of evaluation data and quality outcomes. Hosted tools ma
 
 The reusable contracts live in `tropos.evals.contracts`.
 
+## Terminology
+
+Use the canonical vocabulary in [Evaluation product model](EVALUATION_MODEL.md). In particular:
+
+- **software tests** verify deterministic code behavior;
+- **invariants** are zero-tolerance system properties;
+- **benchmarks** measure quality on fixed labelled cases;
+- **model evals** require a real model to produce the output under test;
+- a **grader** is the code/model/human logic that judges an output;
+- a **trial** is one execution of one case, while a **run** covers a dataset for one subject/configuration.
+
+The `evals` package is an umbrella for evaluation infrastructure; the word “eval” does not imply an LLM judge.
+
 ## Contract model
 
 ```text

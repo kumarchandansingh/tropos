@@ -48,6 +48,7 @@ jobs:
               Path("docs/diagrams/archify/candidate.json"): Path("/tmp/tropos-archify-review.json"),
               Path("docs/diagrams/archify/resolve.json"): Path("/tmp/tropos-resolve-review.json"),
               Path("docs/diagrams/archify/evaluation.json"): Path("/tmp/tropos-evaluation-review.json"),
+              Path("docs/diagrams/archify/evaluation-quality.json"): Path("/tmp/tropos-evaluation-quality-review.json"),
           }
 
           for source, target in specs.items():
@@ -86,6 +87,16 @@ jobs:
           --quality showcase
           --json
 
+      - name: Generate and finalize evaluation product quality model
+        run: >
+          node .agents/skills/archify/bin/archify.mjs
+          finalize architecture
+          /tmp/tropos-evaluation-quality-review.json
+          docs/diagrams/archify/tropos-evaluation-quality.html
+          --repo-root .
+          --quality showcase
+          --json
+
       - name: Upload generated diagrams and receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -96,9 +107,11 @@ jobs:
             docs/diagrams/archify/candidate.json
             docs/diagrams/archify/resolve.json
             docs/diagrams/archify/evaluation.json
+            docs/diagrams/archify/evaluation-quality.json
             docs/diagrams/archify/tropos-platform.html
             docs/diagrams/archify/tropos-resolve.html
             docs/diagrams/archify/tropos-evaluation.html
+            docs/diagrams/archify/tropos-evaluation-quality.html
             docs/diagrams/archify/*finalize*.json
             docs/diagrams/archify/*delivery*.json
             docs/diagrams/archify/*browser-check*.json
