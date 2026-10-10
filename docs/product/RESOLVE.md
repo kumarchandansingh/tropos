@@ -4,6 +4,14 @@ Tropos Resolve is the service-resolution capability of the Tropos platform. It t
 
 Resolve is not one model call. It is a sequence of business decisions and evidence checks built on the shared Tropos knowledge platform.
 
+## Interactive implementation view
+
+The source-backed Resolve implementation diagram is published at:
+
+https://kumarchandansingh.github.io/tropos/resolve/
+
+It is derived from executable code on `main`. It shows the two implemented Resolve slices: the closure-decision baseline and grounded Knowledge Article generation. Planned classification, Next Best Action, review/publish lifecycle, and UI components are deliberately excluded.
+
 ## Product problem
 
 Support teams continuously resolve incidents, but resolution knowledge is often lost, duplicated, incomplete, stale, difficult to retrieve, or disconnected from the source evidence that justified it.
