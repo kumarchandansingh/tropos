@@ -120,9 +120,7 @@ class ExperimentComparison:
 
     @property
     def regressions(self) -> tuple[CaseComparison, ...]:
-        return tuple(
-            item for item in self.case_comparisons if item.change is CaseChange.REGRESSION
-        )
+        return tuple(item for item in self.case_comparisons if item.change is CaseChange.REGRESSION)
 
     @property
     def improvements(self) -> tuple[CaseComparison, ...]:
@@ -205,7 +203,7 @@ def compare_runs(
     baseline: EvalRun,
     candidate: EvalRun,
     *,
-    policy: ExperimentGatePolicy = ExperimentGatePolicy(),
+    policy: ExperimentGatePolicy | None = None,
     bootstrap_samples: int = 2000,
     bootstrap_confidence: float = 0.95,
     minimum_bootstrap_pairs: int = 20,
@@ -264,8 +262,9 @@ def compare_runs(
         )
 
     metric_by_name = {item.metric: item for item in metrics}
+    resolved_policy = policy if policy is not None else ExperimentGatePolicy()
     gate_results = tuple(
-        _evaluate_gate(rule, candidate, metric_by_name) for rule in policy.rules
+        _evaluate_gate(rule, candidate, metric_by_name) for rule in resolved_policy.rules
     )
 
     return ExperimentComparison(
@@ -296,9 +295,7 @@ def paired_bootstrap_mean_delta(
 
     deltas = tuple(after - before for before, after in zip(baseline, candidate, strict=True))
     rng = random.Random(seed)
-    estimates = sorted(
-        fmean(rng.choice(deltas) for _ in deltas) for _ in range(samples)
-    )
+    estimates = sorted(fmean(rng.choice(deltas) for _ in deltas) for _ in range(samples))
 
     tail = (1.0 - confidence) / 2.0
     lower_index = min(samples - 1, max(0, int(tail * samples)))
@@ -358,9 +355,7 @@ def _metric_pairs(
         baseline_scores = _numeric_scores(baseline_by_case[case_id])
         candidate_scores = _numeric_scores(candidate_by_case[case_id])
         for metric in sorted(set(baseline_scores) & set(candidate_scores)):
-            pairs.setdefault(metric, []).append(
-                (baseline_scores[metric], candidate_scores[metric])
-            )
+            pairs.setdefault(metric, []).append((baseline_scores[metric], candidate_scores[metric]))
     return pairs
 
 
