@@ -80,7 +80,7 @@ def test_faq_questions_and_answers_are_structured() -> None:
         ),
     )
 
-    article = KnowledgeArticleDraft(
+    KnowledgeArticleDraft(
         title="Device registration FAQ",
         article_type=ArticleType.FAQ,
         product="Device Service",
