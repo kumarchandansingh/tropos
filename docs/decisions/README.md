@@ -20,6 +20,9 @@ Architecture Decision Records (ADRs) preserve the context, alternatives, and con
 | [ADR-012](ADR-012-versioned-evaluation-catalogues-and-saved-runs.md) | Accepted | Persist immutable versioned retrieval evaluation definitions and saved run evidence |
 | [ADR-013](ADR-013-fixed-grounded-knowledge-article-contracts.md) | Accepted | Use fixed evidence-backed Knowledge Article contracts shared across capabilities |
 | [ADR-014](ADR-014-vendor-neutral-evaluation-contracts.md) | Accepted | Keep reusable evaluation semantics in Tropos and integrate hosted tools through adapters |
+| [ADR-015](ADR-015-evidence-led-dense-and-hybrid-retrieval.md) | Accepted | Evolve retrieval through exact dense search and RRF hybrid before ANN/reranking complexity |
+| [ADR-016](ADR-016-stable-evidence-references-with-model-local-aliases.md) | Accepted | Use temporary model aliases that resolve to stable EvidenceRef identities |
+| [ADR-017](ADR-017-bounded-business-generation-controls.md) | Accepted | Expose bounded business controls while keeping generation governance system-owned |
 
 ## Scope
 
@@ -37,7 +40,7 @@ An ADR is appropriate when a choice materially constrains one or more of these a
 
 Routine refactoring, naming changes, and local implementation details do not require ADRs.
 
-Planned technologies are not accepted decisions until the project has enough requirements or implementation evidence to choose them. The lexical retrieval baseline is accepted through ADR-010 and its evaluation method through ADR-011; vector store, model provider, deployment platform, and observability stack remain undecided. SQLite remains the accepted first local persistence/search baseline, not a production-scale persistence or search commitment.
+Planned technologies are not accepted decisions until the project has enough requirements or implementation evidence to choose them. Lexical retrieval is accepted through ADR-010/011; dense and hybrid evolution through ADR-015; grounded model evidence identity through ADR-016; and bounded business generation control through ADR-017. ANN/vector-serving infrastructure, production database topology, deployment platform, and hosted observability provider remain undecided. SQLite remains the accepted local persistence/search baseline, not a production-scale serving commitment.
 
 ## Template
 

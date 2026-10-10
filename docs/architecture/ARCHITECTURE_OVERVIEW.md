@@ -1,34 +1,61 @@
 # Architecture overview
 
-Tropos is a modular monolith with Ports-and-Adapters boundaries. The architecture separates reusable governed-knowledge mechanics from capability-specific policy and keeps infrastructure dependencies outside the domain model.
+Tropos is a modular monolith using Ports-and-Adapters boundaries. The architecture separates reusable governed-knowledge mechanics from capability-specific business policy and keeps databases, model frameworks, providers, and hosted tools outside the domain model.
 
-## Module boundaries
+## Current system shape
 
 ```mermaid
 flowchart TB
     subgraph Core[Tropos Core]
       Source[Source connector]
-      Raw[Raw capture]
-      Norm[Normalization and versioning]
-      Doc[KnowledgeDocument]
+      Parse[Parser]
+      Norm[Normalization + versioning]
       Chunk[KnowledgeChunk]
-      Store[(Persistence)]
-      Retrieve[Governed retrieval]
-      Source --> Raw --> Norm --> Doc --> Chunk --> Store --> Retrieve
+      Persist[(SQLite)]
+      Lex[Lexical retrieval]
+      Dense[Dense retrieval]
+      Hybrid[Hybrid RRF]
+      Evidence[EvidenceRef]
+
+      Source --> Parse --> Norm --> Chunk --> Persist
+      Persist --> Lex
+      Persist --> Dense
+      Lex --> Hybrid
+      Dense --> Hybrid
+      Chunk --> Evidence
     end
 
     subgraph Resolve[Tropos Resolve]
-      Case[ResolvedCase]
-      Closure[Closure evidence]
-      Coverage[Retrieval and coverage policy]
+      Closure[Case closure evaluation]
       Action[REUSE / IMPROVE / CREATE / NO_ACTION]
-      Case --> Closure --> Coverage --> Action
+      Intake[Knowledge Article intake]
+      KAGen[Knowledge Article generation]
+      KA[KnowledgeArticleDraft]
+
+      Closure --> Action
+      Intake --> KAGen --> KA
     end
 
-    Retrieve -. governed evidence .-> Coverage
-```
+    subgraph Training[Tropos Training]
+      Procedure[Procedure generation]
+      Draft[ProcedureDraft]
+      Procedure --> Draft
+    end
 
-`tropos.core` owns reusable source integration, evidence identity, access, parsing, normalization, versioning, chunking, persistence, and retrieval contracts/adapters. `tropos.capabilities.resolve` owns support-case workflow and knowledge-action policy.
+    subgraph Quality[Evaluation]
+      RetEval[Retrieval evaluations]
+      TrainEval[Training grounding eval]
+      EvalContracts[Generic eval contracts]
+    end
+
+    Hybrid -. authorized evidence .-> KAGen
+    Hybrid -. authorized evidence .-> Procedure
+    Evidence -. stable lineage .-> KAGen
+    Evidence -. stable lineage .-> Procedure
+    KAGen --> EvalContracts
+    Procedure --> TrainEval
+    Hybrid --> RetEval
+```
 
 ## Dependency direction
 
@@ -37,45 +64,52 @@ flowchart TB
     Presentation[Future API / CLI / UI]
     CapApp[Capability application]
     CapDomain[Capability domain]
-    CoreApp[Core application and ports]
+    CoreApp[Core application + ports]
     CoreDomain[Core domain]
     Adapters[Adapters]
-    External[(Sources / stores / parsers / search / models)]
+    External[(Files / DB / model providers / hosted tools)]
 
     Presentation --> CapApp
     Presentation --> CoreApp
     CapApp --> CapDomain
+    CapApp --> CoreApp
     CapApp --> CoreDomain
     CoreApp --> CoreDomain
+    Adapters --> CapApp
     Adapters --> CoreApp
     Adapters --> CoreDomain
     Adapters --> External
 ```
 
-Domain and application policy do not depend on database sessions, search engines, model SDKs, web frameworks, or source-system clients. Those dependencies belong in adapters or outer composition layers.
+Domain and application policy do not depend on database sessions, model SDKs, web frameworks, or hosted evaluation tools. Concrete integrations implement Tropos-owned ports.
 
-## Current implementation
+## Current implementation matrix
 
 | Boundary | Responsibility | Status |
 | --- | --- | --- |
-| Core domain | Access policy, canonical knowledge documents, governed chunks | Implemented |
-| Core application | Source-capture contracts, ingestion orchestration, normalization/version contracts, retrieval contracts | Implemented |
-| Source adapters | Local-file source capture | Implemented |
-| Source reliability | Explicit failure taxonomy and bounded retry/backoff decorator | Implemented |
-| Parsing adapters | Deterministic plain-text, Markdown, HTML, and DOCX parsing | Implemented |
-| Processing adapters | Deterministic normalizer and deterministic chunker | Implemented |
-| Persistence | SQLite source/run/canonical document/version/chunk storage | Implemented |
-| Retrieval | SQLite FTS5/BM25 over current tenant/group-authorized chunks | Implemented |
-| Resolve domain | Resolved-case and knowledge-action policy | Implemented |
-| Resolve application | Closure-evaluation orchestration and retrieval/coverage/store ports | Implemented contracts and orchestration |
-| Resolve-to-core retrieval adapter | Translate a resolved case into the reusable core search contract | Planned |
-| External connectors | SharePoint, Gmail, Jira, Confluence, and similar sources | Planned |
-| Coverage | Concrete coverage evaluator | Planned |
-| Retrieval evaluation | Labeled query/evidence set and ranking metrics | Planned |
-| Model assistance | Embeddings, hybrid retrieval, LLM reasoning/drafting | Deferred until baseline evaluation |
-| Presentation/deployment | API, UI, hosted environments | Planned |
+| Core domain | Access policy, canonical knowledge, governed chunks, stable evidence refs, Knowledge Article artifact | Implemented |
+| Core ingestion application | Capture, parse, normalize, version, lifecycle and chunk orchestration | Implemented |
+| Source adapter | Local-file source capture | Implemented baseline |
+| Source reliability | Failure taxonomy and bounded transient retry | Implemented |
+| Parsing | TXT, Markdown, HTML, DOCX deterministic parsing | Implemented baseline |
+| Persistence | SQLite source/run/canonical state/version/chunk/embedding state | Implemented baseline |
+| Lexical retrieval | FTS5/BM25 over current authorized chunks | Implemented |
+| Dense retrieval | Exact cosine over persisted versioned embeddings | Implemented V1 |
+| Hybrid retrieval | Reciprocal Rank Fusion over lexical+dense ranks | Implemented V1 |
+| Retrieval evaluation | Golden corpora, ranking metrics, saved run evidence | Implemented |
+| Generic evaluation contracts | Dataset/case/run/observation/score/provenance vocabulary | Implemented |
+| Resolve closure decision | Evidence sufficiency + REUSE/IMPROVE/CREATE/NO_ACTION policy | Implemented baseline |
+| Resolve Knowledge Article | Typed artifact, bounded intake, governed retrieval trigger, structured generation | Implemented baseline |
+| Training generation | Structured procedure draft with stable evidence refs | Implemented baseline |
+| Training grounding evaluation | Deterministic synthetic golden cases | Implemented baseline |
+| Hosted API/UI | Runtime/product surface | Planned |
+| Postgres production persistence | Hosted serving persistence | Planned |
+| External enterprise connectors/sync | Gmail/SharePoint/Jira/etc. durable synchronization | Planned |
+| Human approval lifecycle | Review/approve/publish operational artifacts | Planned |
+| Case classification / NBA | Live service-resolution intelligence | Planned |
+| Hosted observability/eval adapter | LangSmith/Langfuse/Phoenix/etc. | Planned |
 
-## Source and ingestion boundary
+## Ingestion path
 
 ```mermaid
 flowchart LR
@@ -92,72 +126,166 @@ flowchart LR
     --> Store[(SQLite)]
 ```
 
-Source acquisition and content-format parsing are intentionally separate. A SharePoint connector and a Gmail connector may both produce HTML; they should reuse the same HTML parser rather than duplicating parsing behavior. Conversely, one source system may expose several formats without changing the ingestion orchestrator.
+Key separation:
 
-This pipeline keeps these concerns separate:
+- source identity is not content identity;
+- raw/source state is not canonical knowledge state;
+- content change is not access-policy change;
+- embeddings are derived retrieval state, not canonical knowledge;
+- source acquisition is not format parsing.
 
-- source-system acquisition and native identity;
-- exact source evidence;
-- format interpretation;
-- canonical content identity;
-- access/governance state;
-- normalization strategy;
-- chunking strategy;
-- durable persistence.
+## Retrieval path
 
-See [Source integration](SOURCE_INTEGRATION.md) for connector boundaries and [Ingestion and normalization](INGESTION_NORMALIZATION.md) for canonicalization/version rules.
+```mermaid
+flowchart TB
+    Query[KnowledgeSearchRequest + access context]
+    --> Lex[BM25 lexical candidates]
+    Query --> Dense[Exact dense candidates]
+    Lex --> Hybrid[RRF fusion]
+    Dense --> Hybrid
+    Hybrid --> Current[Current-version invariant]
+    Current --> Authorized[Tenant/group authorization]
+    Authorized --> Result[RetrievedKnowledgeChunk]
+```
 
-## Retrieval boundary
+The shared retrieval contract is strategy-neutral. Concrete strategies currently include:
+
+- `sqlite-fts5-bm25-v1`;
+- exact dense retrieval over versioned embeddings;
+- hybrid Reciprocal Rank Fusion.
+
+Authorization is a retrieval invariant, not a presentation filter. Unauthorized evidence must not cross the governed retrieval boundary.
+
+See [RAG architecture](RAG_ARCHITECTURE.md).
+
+## Grounded-generation path
+
+Resolve Knowledge Articles and Training use the same architectural pattern:
 
 ```mermaid
 flowchart LR
-    Query[KnowledgeSearchRequest]
-    --> Match[FTS5 lexical match]
-    --> Current[Current canonical-state filter]
-    --> Auth[Tenant/group authorization]
-    --> Rank[BM25 rank]
-    --> Evidence[RetrievedKnowledgeChunk]
+    Retrieved[Authorized retrieved chunks]
+    --> Excerpts[EvidenceExcerpt + stable EvidenceRef]
+    --> Alias[Temporary E1..EN aliases]
+    --> Adapter[Structured model adapter]
+    --> Model[Injected model]
+    --> ResolveAlias[Exact alias resolution]
+    --> Artifact[Grounded domain artifact]
 ```
 
-The first retrieval adapter is deliberately lexical. It searches persisted chunks, excludes historical versions by joining against current `knowledge_state`, and applies tenant/group access constraints inside the SQL query before evidence is returned. The strategy is explicitly identified as `sqlite-fts5-bm25-v1` so later retrieval evaluations can be tied to concrete behavior.
+The model does not own evidence identity. Prompt-local aliases exist only for one invocation and are resolved back to stable `EvidenceRef` objects before the domain artifact is constructed.
 
-See [RAG architecture](RAG_ARCHITECTURE.md) for retrieval semantics and the path toward evaluation and hybrid retrieval.
+The resolver proves that a reference came from the supplied evidence set. It does **not** prove semantic entailment; that is an evaluation concern.
 
-## Responsibility table
+## Resolve architecture
 
-| Layer | Owns | Excludes |
-| --- | --- | --- |
-| Core domain | Evidence and access invariants | Vendor SDKs, persistence, HTTP clients |
-| Core application | Core use cases and replaceable contracts | Vendor-specific behavior |
-| Core adapters | Source integrations, deterministic algorithms, persistence and retrieval implementations | Capability-specific policy |
-| Capability domain | Capability vocabulary and business rules | Infrastructure |
-| Capability application | Capability orchestration | Vendor-specific infrastructure |
-| Presentation/bootstrap | Request translation and dependency wiring | Domain decisions |
+Resolve contains two implemented vertical slices.
 
-Presentation/bootstrap are target boundaries; no production API or runtime composition layer exists yet.
+### Closure knowledge decision
+
+```text
+ResolvedCase
+→ closure evidence evaluation
+→ related-knowledge/coverage ports
+→ deterministic knowledge action
+→ future decision persistence
+```
+
+### Knowledge Article generation
+
+```text
+KnowledgeArticleGenerationRequest
+→ deterministic retrieval intent/query
+→ governed KnowledgeChunkRetriever
+→ EvidenceRef-rich excerpts
+→ KnowledgeArticleGenerator port
+→ LangChain structured adapter
+→ KnowledgeArticleDraft
+```
+
+Business-editable generation fields are intentionally bounded; grounding, access, conflict handling and fixed article structure remain system-owned.
+
+See [Knowledge Article architecture](KNOWLEDGE_ARTICLE.md).
+
+## Training architecture
+
+Training uses governed evidence to generate a structured procedure artifact:
+
+```text
+governed retrieval
+→ evidence excerpts
+→ ProcedureExtractor port
+→ LangChain structured adapter
+→ stable evidence resolution
+→ ProcedureDraft
+→ deterministic grounding eval
+```
+
+This slice established the evidence-backed generation pattern later reused in Resolve.
+
+## Evaluation architecture
+
+Tropos has two evaluation layers today:
+
+1. **Specialized executable evaluators** for retrieval and Training.
+2. **Reusable vendor-neutral contracts** for future cross-capability datasets, runs, scores, provenance and experiment comparisons.
+
+```mermaid
+flowchart TB
+    Gold[Versioned golden definitions]
+    --> Runner[Capability-specific evaluator / runner]
+    --> Observation[Expected vs actual observation]
+    --> Score[Metrics / assertions]
+    --> Report[Report / future hosted visualization]
+
+    Contracts[EvalDataset / EvalCase / EvalRun / EvalScore]
+    -. shared vocabulary .-> Runner
+```
+
+Hosted tools are future adapters. Tropos remains the source of truth for approved golden cases, expected behavior, evaluator semantics and release gates.
+
+See [Evaluation contracts](EVALUATION_CONTRACTS.md), [Evaluation runs](EVALUATION_RUNS.md), and [Evaluation strategy](../quality/EVAL_STRATEGY.md).
 
 ## Architectural guarantees
 
-The implemented foundation maintains these guarantees:
+The current foundation protects these invariants:
 
-1. New source connectors can enter through a stable capture contract without adding source-specific branches to `IngestKnowledge`.
-2. Source acquisition is separate from content-format parsing.
-3. Raw source identity is separate from canonical content identity.
-4. Normalization and version resolution are deterministic and strategy-versioned.
-5. Presentation-only changes do not create canonical content versions.
-6. Access changes remain independently observable from content changes.
-7. Canonical fingerprints and canonical text derive from the same normalized structure.
-8. Core retrieval returns only current evidence authorized for the supplied tenant/group context.
-9. Retrieval evidence remains traceable to canonical content and captured source state.
-10. Capability policy remains isolated from reusable core mechanics.
+1. source-system acquisition is separated from content parsing;
+2. raw source identity is separated from canonical content identity;
+3. normalization and version resolution are deterministic and versioned;
+4. presentation-only changes do not automatically create business-content versions;
+5. governance/access evolution can be observed independently of content changes;
+6. embeddings remain derived processing state;
+7. retrieval returns only current evidence authorized for the supplied access context;
+8. retrieval strategies remain replaceable behind the same contract;
+9. stable evidence identity survives model-prompt projection;
+10. capability policy remains outside reusable core mechanics;
+11. model/framework SDKs remain adapters rather than domain dependencies;
+12. evaluation definitions and score meaning remain Tropos-owned.
 
-Changes to these guarantees require an architecture decision record.
+Changes to these guarantees should be captured through an ADR.
+
+## Deliberately deferred complexity
+
+- ANN/HNSW or managed vector infrastructure before exact-search scale/latency proves the need;
+- cross-encoder reranking before hybrid evidence indicates value;
+- LangGraph before durable branching/checkpoint/HITL requirements exist;
+- generic multi-agent orchestration;
+- production Postgres/hosted serving stack before multi-consumer runtime exists;
+- hosted observability vendor lock-in;
+- autonomous publishing.
 
 ## Related documents
 
+- [Tropos platform](../product/TROPOS_PLATFORM.md)
+- [Resolve](../product/RESOLVE.md)
+- [Training](../product/TRAINING.md)
+- [Build history](../product/BUILD_HISTORY.md)
 - [Codebase map](CODEBASE_MAP.md)
 - [Source integration](SOURCE_INTEGRATION.md)
 - [Ingestion and normalization](INGESTION_NORMALIZATION.md)
 - [Knowledge model](KNOWLEDGE_MODEL.md)
 - [RAG architecture](RAG_ARCHITECTURE.md)
+- [Knowledge Article architecture](KNOWLEDGE_ARTICLE.md)
+- [Evaluation contracts](EVALUATION_CONTRACTS.md)
 - [Architecture decisions](../decisions/README.md)

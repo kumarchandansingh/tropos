@@ -178,6 +178,19 @@ This proves citation identity and provenance, not semantic entailment. Whether a
 
 `EvidenceClaim` and `ArticleStep` require at least one stable `EvidenceRef`. `ArticleGap` records missing information, conflict or ambiguity with contextual evidence. Prompt-local aliases are not part of this domain model and must never be persisted as evidence identity.
 
+## Decisions and trade-offs
+
+| Decision | Selected approach | Cost / downside | Revisit trigger |
+| --- | --- | --- | --- |
+| Article structure | Fixed troubleshooting/how-to/FAQ contracts | less free-form flexibility | a distinct repeatable operational document type is proven necessary |
+| Business control | Typed bounded preferences | no arbitrary system-prompt editing | governed prompt/template administration becomes a product requirement |
+| Evidence identity | Stable EvidenceRef outside the prompt | projection/resolution step required | direct stable-reference model interfaces become reliably usable |
+| Model framework | LangChain adapter behind Tropos port | Tropos maintains adapter code | framework capability materially reduces cost without taking over domain semantics |
+| Missing/conflicting information | Typed gaps rather than invented completion | drafts can remain explicitly incomplete | reviewed business policy resolves the missing/conflicting source |
+| Semantic support | Separate evaluator concern | alias validity alone is insufficient | calibrated semantic judge/human review is added |
+
+See [ADR-013](../decisions/ADR-013-fixed-grounded-knowledge-article-contracts.md), [ADR-016](../decisions/ADR-016-stable-evidence-references-with-model-local-aliases.md), and [ADR-017](../decisions/ADR-017-bounded-business-generation-controls.md).
+
 ## Deliberate exclusions
 
 The current slices do not yet define:
