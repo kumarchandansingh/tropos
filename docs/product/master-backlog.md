@@ -59,31 +59,36 @@ Training
 
 Core article generation is implemented: governed evidence plus typed intake can produce a troubleshooting/how-to/FAQ draft with stable EvidenceRefs and explicit gaps/conflicts. The remaining Sprint 1 acceptance item is the approved Knowledge Article regression dataset/scorecard (QE-102).
 
-## Sprint 2 — Experimentation, regression and case classification
+## Sprint 2 — Evaluation hardening and controlled experimentation
 
-**Sprint Goal:** Compare candidate changes safely and turn raw cases into controlled resolution workflows.
+**Sprint Goal:** Make retrieval/generation evidence strong enough to compare changes safely before expanding Resolve intelligence.
 
 | ID | Priority | Story | SP | Dependencies |
 |---|---|---|---:|---|
-| QE-103 | P0 | Build experiment runner and baseline-vs-candidate regression comparison | 8 | QE-101, QE-102 |
+| QE-103 | P0 | Build experiment runner and baseline-vs-candidate regression comparison, including paired uncertainty | 8 | QE-101, QE-102 |
+| QE-108 | P0 | Build retrieval benchmark v2 with locked holdout, chunk labels, scenario taxonomy and confidence intervals | 8 | existing retrieval eval |
+| QE-109 | P0 | Calibrate retrieval abstention and false-answer risk | 8 | QE-108 |
+| QE-110 | P0 | Turn retrieval evals into reproducible CI/nightly regression gates | 5 | QE-103 |
+| QE-111 | P1 | Calibrate semantic generation judge against human-labelled claims | 8 | QE-102, QE-103 |
+| QE-112 | P1 | Harden Training deterministic grader for paraphrases and valid extra citations | 5 | existing Training eval |
 | OBS-101 | P1 | Add vendor-neutral trace/eval sink contracts and OpenTelemetry instrumentation boundary | 5 | QE-101 |
 | OBS-102 | P1 | Add LangSmith adapter for experiments/traces without domain coupling | 5 | OBS-101, QE-103 |
-| RES-104 | P0 | Define case taxonomy and CaseClassification contract | 5 | Resolve domain |
-| RES-105 | P0 | Implement hybrid case classification: rules + structured model output | 8 | RES-104 |
-| QE-104 | P0 | Build classification golden dataset and field/workflow graders | 5 | RES-104, RES-105 |
 
 ### Sprint 2 acceptance outcome
 
-A candidate prompt/model/config can be compared against a baseline with regressions visible, and raw case text can be mapped into a validated classification/workflow contract with measurable accuracy.
+Tropos can compare baseline and candidate configurations case-by-case with explicit uncertainty; retrieval evidence includes a locked holdout and calibrated abstention behavior; and relevant retrieval changes can fail automated regression gates. Model-judge scoring remains non-blocking until calibrated against human labels.
 
-## Sprint 3 — Resolve retrieval and Next Best Action
+## Sprint 3 — Case classification, Resolve retrieval and Next Best Action
 
-**Sprint Goal:** Turn classified cases into grounded, eligible recommendations.
+**Sprint Goal:** Expand Resolve only after the quality foundation can detect regressions.
 
 | ID | Priority | Story | SP | Dependencies |
 |---|---|---|---:|---|
+| RES-104 | P0 | Define case taxonomy and CaseClassification contract | 5 | Resolve domain, QE-103 |
+| RES-105 | P0 | Implement hybrid case classification: rules + structured model output | 8 | RES-104 |
+| QE-104 | P0 | Build classification golden dataset and field/workflow graders | 5 | RES-104, RES-105 |
 | RES-106 | P0 | Build ResolutionRetrievalIntent and deterministic query builder | 5 | RES-104 |
-| RES-107 | P0 | Retrieve workflow-specific governed evidence and measure Recall@K/MRR | 8 | RES-106 |
+| RES-107 | P0 | Retrieve workflow-specific governed evidence and measure Recall@K/MRR | 8 | RES-106, QE-108 |
 | RES-108 | P0 | Define RecommendedAction contract, eligibility and policy hooks | 5 | RES-104 |
 | RES-109 | P0 | Generate/rank grounded candidate actions and escalation conditions | 8 | RES-107, RES-108 |
 | QE-105 | P0 | Build NBA golden dataset and graders | 8 | RES-109 |
