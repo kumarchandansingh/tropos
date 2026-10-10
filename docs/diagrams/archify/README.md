@@ -60,7 +60,7 @@ The workflow intentionally does not attempt to create/enable the Pages site thro
 
 - `candidate.json` — version-controlled Tropos platform dataflow specification.
 - `resolve.json` — version-controlled Resolve architecture specification derived from current implementation evidence.
-- `evaluation.json` — version-controlled QE-103 experiment/comparison architecture derived from current implementation evidence.
+- `evaluation.json` — version-controlled evaluation product-quality map plus implemented experiment/comparison architecture.
 - `tropos-platform.html` — generated platform viewer; not committed.
 - `tropos-resolve.html` — generated Resolve implementation viewer; not committed.
 - `tropos-evaluation.html` — generated evaluation method/design viewer; not committed.
@@ -101,17 +101,14 @@ It explicitly marks unimplemented/classification/NBA/publish/UI work as absent r
 
 ### Evaluation drill-down scope
 
-The evaluation drill-down shows only implemented experiment infrastructure:
+The evaluation drill-down has two intentionally different views:
 
-- immutable dataset, subject and provenance contracts;
-- `ExperimentRunner` and the capability-owned `EvalCaseExecutor` port;
-- per-case `EvalObservation / EvalScore` evidence;
-- `EvalRun` plus immutable `SQLiteExperimentStore` persistence;
-- baseline-versus-candidate case classification;
-- paired numeric metric comparison and deterministic bootstrap uncertainty;
-- hard-invariant versus decision-metric gate policy.
+- **Product quality map** — a conceptual map showing where software tests, invariant checks, retrieval benchmarks, model evals, and future product-outcome evaluation attach to the Tropos product flow.
+- **Evaluation runtime** — the implemented experiment machinery: dataset/subject/provenance, `ExperimentRunner`, `EvalCaseExecutor`, observations/scores, persisted runs, baseline-versus-candidate comparison, uncertainty, and gates.
 
-QE-108 through QE-111 remain outside the runtime topology until implemented.
+Conceptual nodes are explicitly tagged as quality-model concepts rather than implemented runtime components. Future agent/user outcome evaluation is shown only as a future quality boundary.
+
+QE-108 through QE-111 remain outside the implemented runtime topology until they are delivered.
 
 ## Guided views
 
