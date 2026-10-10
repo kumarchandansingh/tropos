@@ -1,12 +1,17 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from tropos.core.adapters.chunking.deterministic import DeterministicKnowledgeChunker
 from tropos.core.adapters.embeddings.sqlite import SQLiteEmbeddingRepository
 from tropos.core.adapters.normalization.deterministic import DeterministicKnowledgeNormalizer
 from tropos.core.adapters.parsing.deterministic import DeterministicKnowledgeParser
 from tropos.core.adapters.persistence.sqlite import SQLiteIngestionStore
-from tropos.core.adapters.retrieval.exact_vector import ExactVectorKnowledgeRetriever
+from tropos.core.adapters.retrieval.exact_vector import (
+    ExactVectorKnowledgeRetriever,
+    _cosine_similarity,
+)
 from tropos.core.application.embeddings.materialize import MaterializeEmbeddings
 from tropos.core.application.embeddings.models import EmbeddingVector, SimilarityMetric
 from tropos.core.application.ingestion.ingest_knowledge import (
@@ -323,3 +328,18 @@ def test_acl_only_change_reuses_existing_embedding(tmp_path: Path) -> None:
         "priority-one coordination bridge",
         groups=("support-leads",),
     ) == ("incident",)
+
+
+@pytest.mark.parametrize(
+    ("left", "right"),
+    (
+        (EmbeddingVector((0.0, 0.0)), EmbeddingVector((1.0, 0.0))),
+        (EmbeddingVector((1.0, 0.0)), EmbeddingVector((0.0, 0.0))),
+    ),
+)
+def test_cosine_similarity_rejects_a_zero_vector_on_either_side(
+    left: EmbeddingVector,
+    right: EmbeddingVector,
+) -> None:
+    with pytest.raises(ValueError, match="zero vector"):
+        _cosine_similarity(left, right)
