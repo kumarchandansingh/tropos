@@ -308,8 +308,7 @@
     {
       "id": "source-retrieval",
       "from": "source",
-      "to": "retrieval",
-      "label": "query / context"
+      "to": "retrieval"
     },
     {
       "id": "retrieval-evidence",
@@ -329,7 +328,6 @@
       "id": "generation-outcome",
       "from": "generation",
       "to": "outcome",
-      "label": "future use",
       "variant": "dashed"
     },
     {
