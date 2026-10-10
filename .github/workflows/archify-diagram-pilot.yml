@@ -33,11 +33,25 @@ jobs:
           node-version: '22'
       - name: Report renderer version
         run: node --version && node .agents/skills/archify/bin/archify.mjs doctor
+      - name: Pin review source links to checked revision
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          source = Path("docs/diagrams/archify/candidate.json")
+          target = Path("/tmp/tropos-archify-review.json")
+          payload = json.loads(source.read_text(encoding="utf-8"))
+          payload["meta"]["repository"]["revision"] = os.environ["GITHUB_SHA"]
+          target.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
+
       - name: Generate and finalize current Tropos architecture
         run: >
           node .agents/skills/archify/bin/archify.mjs
           finalize dataflow
-          docs/diagrams/archify/candidate.json
+          /tmp/tropos-archify-review.json
           docs/diagrams/archify/tropos-platform.html
           --repo-root .
           --quality showcase
