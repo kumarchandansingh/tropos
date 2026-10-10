@@ -1,0 +1,25 @@
+#!/usr/bin/env sh
+set -eu
+
+STAGED_PYTHON_FILES="$(git diff --cached --name-only --diff-filter=ACMR -- 'apps/api/**/*.py' 'apps/api/*.py' || true)"
+
+if [ -z "$STAGED_PYTHON_FILES" ]; then
+  exit 0
+fi
+
+echo "Running Ruff auto-fix/format on staged Tropos API Python files..."
+
+cd apps/api
+API_FILES="$(printf '%s\n' "$STAGED_PYTHON_FILES" | sed 's#^apps/api/##')"
+
+# shellcheck disable=SC2086
+uv run ruff check --fix $API_FILES
+# shellcheck disable=SC2086
+uv run ruff format $API_FILES
+
+cd ../..
+# Re-stage only files that were already part of this commit.
+# shellcheck disable=SC2086
+git add $STAGED_PYTHON_FILES
+
+echo "Ruff formatting complete; formatted staged files were re-staged."
