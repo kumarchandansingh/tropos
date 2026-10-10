@@ -1,6 +1,8 @@
 from dataclasses import replace
 from datetime import UTC, datetime
 
+import pytest
+
 from tropos.core.adapters.normalization.deterministic import DeterministicKnowledgeNormalizer
 from tropos.core.application.ingestion.normalization import (
     ExtractedKnowledgeText,
@@ -9,6 +11,8 @@ from tropos.core.application.ingestion.normalization import (
 )
 from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
 from tropos.core.application.ingestion.versioning import (
+    CanonicalKnowledgeState,
+    KnowledgeLifecycleStatus,
     VersionAction,
     VersionReason,
     access_policy_fingerprint,
@@ -169,3 +173,38 @@ def test_source_version_churn_does_not_participate_in_content_decision() -> None
 
     assert decision.action is VersionAction.NO_CONTENT_VERSION
     assert decision.requires_governance_refresh is False
+
+
+def test_access_policy_fingerprint_is_pinned_for_non_ascii_governance_data() -> None:
+    policy = AccessPolicy(
+        tenant_id="भारत",
+        scope=AccessScope.RESTRICTED,
+        allowed_groups=("ज्ञान", "support"),
+    )
+
+    assert access_policy_fingerprint(policy) == (
+        "dac352f2208af483ec205730b3501f0b2dd9c05592847a99f9d5f4073543f6dc"
+    )
+
+
+@pytest.mark.parametrize(
+    ("content_fingerprint", "access_fingerprint"),
+    (
+        ("a" * 63, "b" * 64),
+        ("a" * 65, "b" * 64),
+        ("g" * 64, "b" * 64),
+        ("a" * 64, "b" * 63),
+        ("a" * 64, "z" * 64),
+    ),
+)
+def test_canonical_state_rejects_malformed_sha256_fingerprints(
+    content_fingerprint: str,
+    access_fingerprint: str,
+) -> None:
+    with pytest.raises(ValueError, match="SHA-256"):
+        CanonicalKnowledgeState(
+            content_fingerprint=content_fingerprint,
+            normalization_strategy_version="canonical-text-v1",
+            access_fingerprint=access_fingerprint,
+            lifecycle_status=KnowledgeLifecycleStatus.ACTIVE,
+        )
