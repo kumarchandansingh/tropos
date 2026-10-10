@@ -13,7 +13,7 @@ flowchart TB
     --> PROD[Product outcomes]
 ```
 
-Software and integration correctness are implemented. Retrieval now has a first executable quality baseline. Model and product-outcome evaluation remain future layers.
+Software and integration correctness are implemented. Retrieval has executable regression baselines and saved runs. Training has a first deterministic grounded-generation evaluator. Reusable cross-capability evaluation contracts are now defined; broader model judging and product-outcome evaluation remain incremental work.
 
 ## Current software gates
 
@@ -101,7 +101,17 @@ This supports regression analysis at the decision level rather than only at the 
 
 ## Model evaluation
 
-Model-assisted behavior remains deferred. When introduced, evaluation should distinguish context relevance, faithfulness/groundedness, answer relevance, and task correctness. LLM-based judges may supplement deterministic checks and human review, but judge prompts/models must be versioned and calibrated against manually reviewed examples.
+Model-assisted generation is now present behind provider-neutral contracts for Training and Knowledge Article generation. Training has a deterministic synthetic golden set that checks expected step coverage, stable evidence alignment, exception separation, and typed gap coverage. Knowledge Article generation has deterministic schema/evidence invariants; its capability-specific golden set is the next evaluation slice.
+
+Evaluation should continue to distinguish context relevance, faithfulness/groundedness, answer relevance, and task correctness rather than collapsing them into one score. LLM-based judges may supplement deterministic checks and human review, but judge prompts/models must be versioned and calibrated against manually reviewed examples. Alias validation proves citation identity, not semantic entailment.
+
+## Reusable evaluation contract
+
+The shared contract in `tropos.evals.contracts` defines vendor-neutral `EvalCase`, `EvalDataset`, `EvalRun`, `EvalObservation`, `EvalScore`, evaluator identity, split, approval state, and provenance. It complements rather than replaces the existing retrieval-specific runner.
+
+Approved golden cases remain Tropos-owned/version-controlled product specifications. Synthetic model-generated examples remain candidates until curated. Hosted tools such as LangSmith, Langfuse, or Phoenix may later execute or visualize synchronized runs through adapters; they do not own correctness semantics.
+
+See [Evaluation contracts](../architecture/EVALUATION_CONTRACTS.md).
 
 ## Regression dataset lifecycle
 
