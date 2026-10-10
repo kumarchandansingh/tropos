@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -272,3 +273,91 @@ def test_sqlite_experiment_store_round_trips_per_case_observations(tmp_path: Pat
     assert restored == run
     assert restored.baseline_run_id == "prior-run"
     assert restored.observations[0].scores[0].metric == "quality"
+
+
+def test_compare_runs_distinguishes_unchanged_from_incomparable() -> None:
+    dataset = _dataset(1)
+    baseline = ExperimentRunner(
+        clock=_clock(),
+        run_id_factory=lambda: "baseline",
+    ).run(
+        dataset=dataset,
+        subject=_subject("v1"),
+        provenance=_provenance("baseline-rev"),
+        executor=_Executor(quality=0.8),
+    )
+    unchanged_candidate = ExperimentRunner(
+        clock=_clock(),
+        run_id_factory=lambda: "candidate-unchanged",
+    ).run(
+        dataset=dataset,
+        subject=_subject("v2"),
+        provenance=_provenance("candidate-rev"),
+        executor=_Executor(quality=0.8),
+        baseline_run_id=baseline.run_id,
+    )
+
+    unchanged = compare_runs(baseline, unchanged_candidate)
+    assert unchanged.case_comparisons[0].change is CaseChange.UNCHANGED
+
+    not_run_observation = replace(
+        unchanged_candidate.observations[0],
+        state=EvalObservationState.NOT_RUN,
+        scores=(),
+    )
+    incomparable_candidate = replace(
+        unchanged_candidate,
+        run_id="candidate-incomparable",
+        observations=(not_run_observation,),
+    )
+
+    incomparable = compare_runs(baseline, incomparable_candidate)
+    assert incomparable.case_comparisons[0].change is CaseChange.INCOMPARABLE
+
+
+def test_decision_metric_allows_regression_exactly_at_budget_boundary() -> None:
+    dataset = _dataset(2)
+    baseline = ExperimentRunner(
+        clock=_clock(),
+        run_id_factory=lambda: "baseline",
+    ).run(
+        dataset=dataset,
+        subject=_subject("v1"),
+        provenance=_provenance("baseline-rev"),
+        executor=_Executor(quality=0.8),
+    )
+    candidate = ExperimentRunner(
+        clock=_clock(),
+        run_id_factory=lambda: "candidate",
+    ).run(
+        dataset=dataset,
+        subject=_subject("v2"),
+        provenance=_provenance("candidate-rev"),
+        executor=_Executor(quality=0.78),
+        baseline_run_id=baseline.run_id,
+    )
+
+    comparison = compare_runs(
+        baseline,
+        candidate,
+        policy=ExperimentGatePolicy(
+            rules=(DecisionMetricGate("quality", max_mean_regression=0.02),)
+        ),
+    )
+
+    assert comparison.gate_results[0].passed is True
+    assert comparison.metric_comparisons[0].mean_delta == pytest.approx(-0.02)
+
+
+def test_paired_bootstrap_pins_both_interval_endpoints() -> None:
+    baseline = tuple(0.0 for _ in range(20))
+    candidate = tuple([0.0] * 10 + [1.0] * 10)
+
+    interval = paired_bootstrap_mean_delta(
+        baseline,
+        candidate,
+        samples=500,
+        seed=7,
+    )
+
+    assert interval == pytest.approx((0.3, 0.7))

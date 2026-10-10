@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 from hashlib import sha256
+from math import isclose
 from statistics import fmean
 from typing import Protocol
 from uuid import uuid4
@@ -391,7 +392,13 @@ def _evaluate_gate(
             False,
             "no paired numeric observations for this metric",
         )
-    passed = comparison.mean_delta >= -rule.max_mean_regression
+    boundary = -rule.max_mean_regression
+    passed = comparison.mean_delta >= boundary or isclose(
+        comparison.mean_delta,
+        boundary,
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    )
     detail = (
         f"mean delta={comparison.mean_delta:.6f}; "
         f"allowed regression={rule.max_mean_regression:.6f}; "
