@@ -98,12 +98,12 @@ class SQLiteExperimentStore:
         if run.status is EvalRunStatus.RUNNING or run.finished_at is None:
             raise ValueError("only terminal evaluation runs can be persisted")
 
-        subject = {
+        subject: JsonObject = {
             "subject_id": run.subject.subject_id,
             "version": run.subject.version,
             "configuration": run.subject.configuration,
         }
-        provenance = {
+        provenance: JsonObject = {
             "code_revision": run.provenance.code_revision,
             "dependency_digest": run.provenance.dependency_digest,
             "runtime": run.provenance.runtime,

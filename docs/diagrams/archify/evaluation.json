@@ -422,7 +422,7 @@
       "id": "executor-observation",
       "from": "executor",
       "to": "observation",
-      "label": "terminal result"
+      "label": "result"
     },
     {
       "id": "observation-run",
