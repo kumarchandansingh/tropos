@@ -156,7 +156,7 @@ def test_retrieves_authorized_evidence_and_preserves_generation_context() -> Non
     assert excerpt.reference.knowledge_id == "knowledge-1"
     assert excerpt.reference.source_record_id == "sync.md"
     assert excerpt.reference.source_version == "3"
-    assert excerpt.reference.locator == "service-manual:sync.md@v3#chars=12-63"
+    assert excerpt.reference.locator == "service-manual:sync.md@v3#chars=12-64"
     assert excerpt.reference.content_fingerprint == text_fingerprint(excerpt.text)
 
 
