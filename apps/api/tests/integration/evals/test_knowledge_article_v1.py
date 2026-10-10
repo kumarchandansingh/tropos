@@ -12,6 +12,7 @@ from tropos.core.domain.knowledge_article import (
     KnowledgeArticleDraft,
     TroubleshootingArticle,
 )
+from tropos.evals.contracts import EvalCase
 from tropos.evals.knowledge_article import (
     evaluate_knowledge_article,
     load_knowledge_article_dataset,
@@ -58,7 +59,7 @@ def _gap(
     )
 
 
-def _case(case_id: str):
+def _case(case_id: str) -> EvalCase:
     dataset = load_knowledge_article_dataset(DATASET)
     return next(case for case in dataset.cases if case.case_id == case_id)
 
