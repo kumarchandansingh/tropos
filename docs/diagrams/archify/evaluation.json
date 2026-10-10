@@ -8,7 +8,7 @@
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/kumarchandansingh/tropos",
-      "revision": "feat/qe-110-retrieval-regression-gates",
+      "revision": "cf51c336987569d5e0aa366e4c57ff8c58466bbf",
       "provider": "github",
       "link_mode": "web"
     },
