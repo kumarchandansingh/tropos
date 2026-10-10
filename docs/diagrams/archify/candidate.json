@@ -2,8 +2,8 @@
   "schema_version": 1,
   "diagram_type": "dataflow",
   "meta": {
-    "title": "Tropos | Governed Knowledge, Retrieval and Grounded AI",
-    "subtitle": "Current implemented architecture on main; regenerated automatically after relevant merges",
+    "title": "Tropos | Governed Knowledge to Grounded AI",
+    "subtitle": "Current implemented architecture; regenerated after relevant merges to main",
     "output": "docs/diagrams/archify/tropos-platform.html",
     "quality_profile": "showcase",
     "repository": {
@@ -13,8 +13,8 @@
       "link_mode": "web"
     },
     "viewBox": [
-      1240,
-      700
+      1180,
+      640
     ],
     "views": [
       {
@@ -22,21 +22,20 @@
         "label": "Knowledge foundation",
         "focus": [
           "source",
-          "ingestion",
-          "sqlite"
+          "knowledge"
         ],
-        "note": "Source capture, deterministic ingestion/versioning and durable local persistence form the governed knowledge foundation."
+        "note": "Source capture, deterministic parsing/normalization/versioning and durable local persistence form the governed knowledge foundation."
       },
       {
         "id": "retrieval",
         "label": "Retrieval",
         "focus": [
+          "knowledge",
           "bm25",
           "dense",
-          "hybrid",
           "evidence"
         ],
-        "note": "Lexical and exact-dense retrieval remain independent strategies; RRF fuses ranked results and EvidenceRef preserves stable lineage."
+        "note": "BM25 and exact-dense retrieval remain independent strategies; RRF combines ranks before stable evidence projection."
       },
       {
         "id": "resolve",
@@ -45,7 +44,7 @@
           "evidence",
           "resolve"
         ],
-        "note": "Resolve turns governed evidence into bounded, structured Knowledge Article drafts through a provider-neutral generation port."
+        "note": "Resolve turns governed evidence into fixed-structure Knowledge Article drafts through a provider-neutral generation boundary."
       },
       {
         "id": "training",
@@ -54,33 +53,25 @@
           "evidence",
           "training"
         ],
-        "note": "Training reuses the same governed retrieval and stable evidence pattern to produce structured ProcedureDraft artifacts."
-      },
-      {
-        "id": "quality",
-        "label": "Evaluation",
-        "focus": [
-          "resolve",
-          "training",
-          "evals",
-          "ci"
-        ],
-        "note": "Deterministic evaluators, shared eval contracts and CI provide regression and software-quality evidence."
+        "note": "Training reuses the same evidence pattern to create structured ProcedureDraft artifacts."
       }
     ]
   },
   "stages": [
     {
-      "label": "Source / canonical knowledge"
+      "label": "Sources"
     },
     {
-      "label": "Retrieval / evidence"
+      "label": "Governed knowledge"
     },
     {
-      "label": "Capability generation"
+      "label": "Retrieval candidates"
     },
     {
-      "label": "Quality / delivery"
+      "label": "Fusion / evidence"
+    },
+    {
+      "label": "Capabilities"
     }
   ],
   "nodes": [
@@ -88,9 +79,10 @@
       "id": "source",
       "type": "external",
       "label": "Source connector",
-      "sublabel": "capture identity + payload",
+      "sublabel": "identity + payload",
       "stage": 0,
-      "row": 0,
+      "row": 1,
+      "width": 132,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/application/ingestion/ingest_from_source.py",
@@ -100,28 +92,19 @@
       ]
     },
     {
-      "id": "ingestion",
-      "type": "backend",
-      "label": "Governed ingestion",
-      "sublabel": "parse · normalize · version · chunk",
-      "stage": 0,
+      "id": "knowledge",
+      "type": "database",
+      "label": "Governed knowledge",
+      "sublabel": "parse · version · chunk",
+      "stage": 1,
       "row": 1,
+      "width": 148,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/application/ingestion/ingest_knowledge.py",
           "line": 29,
           "end_line": 178
-        }
-      ]
-    },
-    {
-      "id": "sqlite",
-      "type": "database",
-      "label": "SQLite state",
-      "sublabel": "versions · chunks · embeddings · runs",
-      "stage": 0,
-      "row": 2,
-      "sources": [
+        },
         {
           "path": "apps/api/src/tropos/core/adapters/persistence/sqlite.py",
           "line": 32,
@@ -133,9 +116,10 @@
       "id": "bm25",
       "type": "backend",
       "label": "BM25 retrieval",
-      "sublabel": "SQLite FTS5 lexical",
-      "stage": 1,
+      "sublabel": "FTS5 lexical",
+      "stage": 2,
       "row": 0,
+      "width": 128,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/adapters/retrieval/sqlite_fts.py",
@@ -148,9 +132,10 @@
       "id": "dense",
       "type": "backend",
       "label": "Dense retrieval",
-      "sublabel": "exact cosine over embeddings",
-      "stage": 1,
-      "row": 1,
+      "sublabel": "exact cosine",
+      "stage": 2,
+      "row": 2,
+      "width": 128,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/adapters/retrieval/exact_vector.py",
@@ -160,28 +145,19 @@
       ]
     },
     {
-      "id": "hybrid",
-      "type": "backend",
-      "label": "Hybrid retrieval",
-      "sublabel": "Reciprocal Rank Fusion",
-      "stage": 1,
-      "row": 2,
+      "id": "evidence",
+      "type": "security",
+      "label": "Governed evidence",
+      "sublabel": "RRF + EvidenceRef",
+      "stage": 3,
+      "row": 1,
+      "width": 138,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/adapters/retrieval/hybrid_rrf.py",
           "line": 20,
           "end_line": 102
-        }
-      ]
-    },
-    {
-      "id": "evidence",
-      "type": "security",
-      "label": "Stable EvidenceRef",
-      "sublabel": "durable source lineage",
-      "stage": 1,
-      "row": 3,
-      "sources": [
+        },
         {
           "path": "apps/api/src/tropos/core/domain/evidence.py",
           "line": 7,
@@ -193,9 +169,10 @@
       "id": "resolve",
       "type": "backend",
       "label": "Resolve",
-      "sublabel": "Knowledge Article generation",
-      "stage": 2,
+      "sublabel": "Knowledge Articles",
+      "stage": 4,
       "row": 0,
+      "width": 138,
       "sources": [
         {
           "path": "apps/api/src/tropos/capabilities/resolve/application/generate_knowledge_article.py",
@@ -213,9 +190,10 @@
       "id": "training",
       "type": "backend",
       "label": "Training",
-      "sublabel": "ProcedureDraft generation",
-      "stage": 2,
+      "sublabel": "ProcedureDraft",
+      "stage": 4,
       "row": 2,
+      "width": 128,
       "sources": [
         {
           "path": "apps/api/src/tropos/capabilities/training/generate_procedure.py",
@@ -223,103 +201,43 @@
           "end_line": 74
         }
       ]
-    },
-    {
-      "id": "evals",
-      "type": "backend",
-      "label": "Evaluation",
-      "sublabel": "goldens · runs · scores · provenance",
-      "stage": 3,
-      "row": 0,
-      "sources": [
-        {
-          "path": "apps/api/src/tropos/evals/contracts.py",
-          "line": 123,
-          "end_line": 306
-        },
-        {
-          "path": "apps/api/src/tropos/evals/training.py",
-          "line": 30,
-          "end_line": 136
-        }
-      ]
-    },
-    {
-      "id": "ci",
-      "type": "cloud",
-      "label": "CI / quality gates",
-      "sublabel": "format · lint · types · tests · build",
-      "stage": 3,
-      "row": 2,
-      "sources": [
-        {
-          "path": ".github/workflows/ci.yml",
-          "line": 1,
-          "end_line": 48
-        }
-      ]
     }
   ],
   "flows": [
     {
       "from": "source",
-      "to": "ingestion",
+      "to": "knowledge",
       "label": "captured source"
     },
     {
-      "from": "ingestion",
-      "to": "sqlite",
-      "label": "canonical state + chunks"
-    },
-    {
-      "from": "sqlite",
+      "from": "knowledge",
       "to": "bm25",
       "label": "current authorized chunks"
     },
     {
-      "from": "sqlite",
+      "from": "knowledge",
       "to": "dense",
-      "label": "versioned derived embeddings"
+      "label": "versioned embeddings"
     },
     {
       "from": "bm25",
-      "to": "hybrid",
+      "to": "evidence",
       "label": "lexical ranks"
     },
     {
       "from": "dense",
-      "to": "hybrid",
-      "label": "semantic ranks"
-    },
-    {
-      "from": "hybrid",
       "to": "evidence",
-      "label": "retrieved governed chunks"
+      "label": "semantic ranks"
     },
     {
       "from": "evidence",
       "to": "resolve",
-      "label": "stable refs + prompt aliases"
+      "label": "stable refs"
     },
     {
       "from": "evidence",
       "to": "training",
-      "label": "stable refs + prompt aliases"
-    },
-    {
-      "from": "resolve",
-      "to": "evals",
-      "label": "artifact regression"
-    },
-    {
-      "from": "training",
-      "to": "evals",
-      "label": "grounding regression"
-    },
-    {
-      "from": "evals",
-      "to": "ci",
-      "label": "quality evidence"
+      "label": "stable refs"
     }
   ],
   "cards": [
@@ -327,40 +245,40 @@
       "dot": "cyan",
       "title": "1 · Governed knowledge before AI",
       "items": [
-        "Source acquisition, parsing, normalization, content versioning, governance refresh and chunking are deterministic application/domain concerns.",
-        "SQLite is the current durable local/test baseline; production Postgres remains planned rather than implied."
+        "Source acquisition, parsing, normalization, content versioning, governance refresh and chunking remain deterministic concerns.",
+        "SQLite is the current durable local/test baseline; production Postgres remains planned."
       ]
     },
     {
       "dot": "violet",
       "title": "2 · Retrieval strategies stay separable",
       "items": [
-        "BM25 preserves exact-term and identifier behavior; dense retrieval uses exact cosine to isolate representation quality before ANN complexity.",
-        "Hybrid V1 uses Reciprocal Rank Fusion because BM25 and cosine scores do not share a calibrated raw-score scale."
+        "BM25 preserves exact-term behavior; dense retrieval uses exact cosine before ANN complexity.",
+        "Hybrid V1 uses Reciprocal Rank Fusion because BM25 and cosine scores are not directly comparable."
       ]
     },
     {
       "dot": "emerald",
       "title": "3 · Stable evidence outside the model",
       "items": [
-        "Generated artifacts persist stable EvidenceRef objects. Temporary E1..EN aliases exist only inside one model invocation.",
-        "Exact alias resolution proves reference validity, not semantic entailment; semantic support is evaluated separately."
+        "Generated artifacts persist stable EvidenceRef objects; temporary E1..EN aliases exist only inside a model invocation.",
+        "Alias validity proves reference identity, not semantic entailment."
       ]
     },
     {
       "dot": "amber",
-      "title": "4 · Capabilities own business semantics",
+      "title": "4 · Capability-owned semantics",
       "items": [
-        "Resolve owns Knowledge Article and service-resolution policy; Training owns procedure-generation semantics.",
-        "LangChain is an adapter for structured model execution, not the owner of authorization, evidence identity, lifecycle or evaluation."
+        "Resolve owns Knowledge Article/service-resolution semantics; Training owns procedure-generation semantics.",
+        "LangChain is an adapter for structured model execution, not the owner of evidence, authorization or lifecycle."
       ]
     },
     {
       "dot": "rose",
-      "title": "5 · Quality is layered",
+      "title": "5 · Quality and deferred complexity",
       "items": [
-        "Software CI, retrieval evaluation, grounded-generation evaluation and product outcome evaluation are distinct evidence layers.",
-        "ANN/HNSW, durable workflow orchestration and hosted observability remain deferred until measured requirements justify them."
+        "Software CI, retrieval evaluation and grounded-generation evaluation are separate evidence layers.",
+        "ANN/HNSW, LangGraph-style durable orchestration and hosted observability remain deferred until measured needs justify them."
       ]
     }
   ]
