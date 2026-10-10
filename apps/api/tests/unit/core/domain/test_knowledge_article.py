@@ -87,7 +87,7 @@ def test_faq_questions_and_answers_are_structured() -> None:
         content=content,
     )
 
-    assert article.content.items[0].question == "How do I verify registration?"
+    assert content.items[0].question == "How do I verify registration?"
 
 
 def test_article_type_must_match_fixed_content_template() -> None:
