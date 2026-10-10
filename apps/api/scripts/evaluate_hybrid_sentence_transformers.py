@@ -132,9 +132,7 @@ def _access_gate(
     """Fail only when a retriever returns evidence the case is not authorized to see."""
 
     failures: list[dict[str, object]] = []
-    boundary_cases = tuple(
-        row for row in dataset["cases"] if "access-boundary" in row["tags"]
-    )
+    boundary_cases = tuple(row for row in dataset["cases"] if "access-boundary" in row["tags"])
     for row in boundary_cases:
         access = RetrievalAccessContext(
             tenant_id=row["tenant_id"],
@@ -153,9 +151,7 @@ def _access_gate(
             )
         }
         for strategy, report in reports.items():
-            result = next(
-                item for item in report.case_results if item.case_id == row["case_id"]
-            )
+            result = next(item for item in report.case_results if item.case_id == row["case_id"])
             leaked = tuple(
                 knowledge_id
                 for knowledge_id in result.retrieved_knowledge_ids
