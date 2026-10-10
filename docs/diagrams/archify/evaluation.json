@@ -2,8 +2,8 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "Tropos Evaluation | Product Quality and Experiment Runtime",
-    "subtitle": "Product-quality map plus implemented QE-103/QE-110 experiment runtime, comparison and workflow gates",
+    "title": "Tropos Evaluation | Experiment Runtime",
+    "subtitle": "Implemented QE-103 + QE-110 runtime: reproducible runs, paired comparison, uncertainty, regression gates and workflow enforcement",
     "output": "docs/diagrams/archify/tropos-evaluation.html",
     "quality_profile": "showcase",
     "repository": {
@@ -14,24 +14,7 @@
     },
     "views": [
       {
-        "id": "product-quality",
-        "label": "Product quality map",
-        "focus": [
-          "pq-source",
-          "pq-retrieval",
-          "pq-evidence",
-          "pq-generation",
-          "pq-outcome",
-          "pq-software",
-          "pq-invariants",
-          "pq-benchmark",
-          "pq-model-eval",
-          "pq-product-eval"
-        ],
-        "note": "Conceptual quality map: product behavior first, then attach the right assurance mechanism to each boundary."
-      },
-      {
-        "id": "evaluation-runtime",
+        "id": "run",
         "label": "Evaluation runtime",
         "focus": [
           "dataset",
@@ -41,14 +24,9 @@
           "runner",
           "observation",
           "eval-run",
-          "store",
-          "baseline",
-          "candidate",
-          "gate-policy",
-          "comparator",
-          "comparison"
+          "store"
         ],
-        "note": "Implemented harness: define the dataset and subject, execute cases, grade outputs, persist a run, compare, then gate."
+        "note": "Implemented harness: dataset, subject and provenance remain separate while every case produces a terminal observation."
       },
       {
         "id": "compare",
@@ -60,6 +38,17 @@
           "comparison"
         ],
         "note": "Same dataset and case IDs are compared pairwise; pass-to-fail and fail-to-pass changes stay visible."
+      },
+      {
+        "id": "uncertainty",
+        "label": "Paired uncertainty",
+        "focus": [
+          "baseline",
+          "candidate",
+          "comparator",
+          "comparison"
+        ],
+        "note": "Numeric metrics use paired candidate-minus-baseline deltas; bootstrap intervals are withheld below the minimum pair count."
       },
       {
         "id": "gates",
@@ -432,226 +421,6 @@
           "end_line": 275
         }
       ]
-    },
-    {
-      "id": "pq-source",
-      "type": "database",
-      "label": "Resolved case / source",
-      "sublabel": "governed product input",
-      "tag": "QUALITY MODEL",
-      "pos": [
-        40,
-        650
-      ],
-      "size": [
-        180,
-        76
-      ],
-      "sources": [
-        {
-          "path": "docs/architecture/EVALUATION_MODEL.md",
-          "line": 34,
-          "end_line": 48
-        }
-      ]
-    },
-    {
-      "id": "pq-retrieval",
-      "type": "backend",
-      "label": "Retrieval",
-      "sublabel": "find relevant current authorized evidence",
-      "tag": "PRODUCT STAGE",
-      "pos": [
-        280,
-        650
-      ],
-      "size": [
-        180,
-        76
-      ],
-      "sources": [
-        {
-          "path": "docs/architecture/EVALUATION_MODEL.md",
-          "line": 69,
-          "end_line": 77
-        }
-      ]
-    },
-    {
-      "id": "pq-evidence",
-      "type": "database",
-      "label": "Selected evidence",
-      "sublabel": "controlled context for generation",
-      "tag": "PRODUCT OUTPUT",
-      "pos": [
-        520,
-        650
-      ],
-      "size": [
-        180,
-        76
-      ],
-      "sources": [
-        {
-          "path": "docs/architecture/EVALUATION_MODEL.md",
-          "line": 34,
-          "end_line": 48
-        }
-      ]
-    },
-    {
-      "id": "pq-generation",
-      "type": "backend",
-      "label": "Knowledge Article generation",
-      "sublabel": "turn evidence into operational artifact",
-      "tag": "PRODUCT STAGE",
-      "pos": [
-        750,
-        650
-      ],
-      "size": [
-        210,
-        76
-      ],
-      "sources": [
-        {
-          "path": "docs/architecture/EVALUATION_MODEL.md",
-          "line": 79,
-          "end_line": 92
-        }
-      ]
-    },
-    {
-      "id": "pq-outcome",
-      "type": "external",
-      "label": "Agent / user outcome",
-      "sublabel": "future product outcome boundary",
-      "tag": "FUTURE",
-      "pos": [
-        1020,
-        650
-      ],
-      "size": [
-        180,
-        76
-      ],
-      "sources": [
-        {
-          "path": "docs/architecture/EVALUATION_MODEL.md",
-          "line": 94,
-          "end_line": 98
-        }
-      ]
-    },
-    {
-      "id": "pq-software",
-      "type": "backend",
-      "label": "Software tests",
-      "sublabel": "deterministic code correctness",
-      "tag": "ASSURANCE",
-      "pos": [
-        160,
-        810
-      ],
-      "size": [
-        160,
-        72
-      ],
-      "sources": [
-        {
-          "path": "docs/architecture/EVALUATION_MODEL.md",
-          "line": 14,
-          "end_line": 31
-        }
-      ]
-    },
-    {
-      "id": "pq-invariants",
-      "type": "security",
-      "label": "Invariant checks",
-      "sublabel": "authorization · currentness · integrity",
-      "tag": "ASSURANCE",
-      "pos": [
-        370,
-        810
-      ],
-      "size": [
-        180,
-        72
-      ],
-      "sources": [
-        {
-          "path": "docs/architecture/EVALUATION_MODEL.md",
-          "line": 69,
-          "end_line": 77
-        }
-      ]
-    },
-    {
-      "id": "pq-benchmark",
-      "type": "backend",
-      "label": "Retrieval benchmark",
-      "sublabel": "Recall · ranking · no-answer",
-      "tag": "QUALITY MEASURE",
-      "pos": [
-        600,
-        810
-      ],
-      "size": [
-        175,
-        72
-      ],
-      "sources": [
-        {
-          "path": "docs/architecture/EVALUATION_MODEL.md",
-          "line": 69,
-          "end_line": 77
-        }
-      ]
-    },
-    {
-      "id": "pq-model-eval",
-      "type": "backend",
-      "label": "Model evaluation",
-      "sublabel": "real generator output + graders",
-      "tag": "QUALITY MEASURE",
-      "pos": [
-        825,
-        810
-      ],
-      "size": [
-        175,
-        72
-      ],
-      "sources": [
-        {
-          "path": "docs/architecture/EVALUATION_MODEL.md",
-          "line": 79,
-          "end_line": 92
-        }
-      ]
-    },
-    {
-      "id": "pq-product-eval",
-      "type": "external",
-      "label": "Product evaluation",
-      "sublabel": "acceptance · edits · resolution outcome",
-      "tag": "FUTURE",
-      "pos": [
-        1050,
-        810
-      ],
-      "size": [
-        180,
-        72
-      ],
-      "sources": [
-        {
-          "path": "docs/architecture/EVALUATION_MODEL.md",
-          "line": 94,
-          "end_line": 98
-        }
-      ]
     }
   ],
   "boundaries": [
@@ -695,23 +464,6 @@
       "wraps": [
         "ci-gate",
         "nightly-gate"
-      ],
-      "pad": 24
-    },
-    {
-      "kind": "region",
-      "label": "Product quality model · conceptual",
-      "wraps": [
-        "pq-source",
-        "pq-retrieval",
-        "pq-evidence",
-        "pq-generation",
-        "pq-outcome",
-        "pq-software",
-        "pq-invariants",
-        "pq-benchmark",
-        "pq-model-eval",
-        "pq-product-eval"
       ],
       "pad": 24
     }
@@ -819,75 +571,15 @@
       "to": "nightly-gate",
       "label": "hard invariants",
       "variant": "dashed"
-    },
-    {
-      "id": "pq-source-retrieval",
-      "from": "pq-source",
-      "to": "pq-retrieval",
-      "label": "input"
-    },
-    {
-      "id": "pq-retrieval-evidence",
-      "from": "pq-retrieval",
-      "to": "pq-evidence",
-      "label": "returns"
-    },
-    {
-      "id": "pq-evidence-generation",
-      "from": "pq-evidence",
-      "to": "pq-generation",
-      "label": "grounds"
-    },
-    {
-      "id": "pq-generation-outcome",
-      "from": "pq-generation",
-      "to": "pq-outcome",
-      "label": "future use",
-      "variant": "dashed"
-    },
-    {
-      "id": "pq-software-retrieval",
-      "from": "pq-software",
-      "to": "pq-retrieval",
-      "label": "tests",
-      "variant": "dashed"
-    },
-    {
-      "id": "pq-invariants-retrieval",
-      "from": "pq-invariants",
-      "to": "pq-retrieval",
-      "label": "must hold",
-      "variant": "emphasis"
-    },
-    {
-      "id": "pq-benchmark-retrieval",
-      "from": "pq-benchmark",
-      "to": "pq-retrieval",
-      "label": "measures",
-      "variant": "dashed"
-    },
-    {
-      "id": "pq-model-generation",
-      "from": "pq-model-eval",
-      "to": "pq-generation",
-      "label": "measures",
-      "variant": "dashed"
-    },
-    {
-      "id": "pq-product-outcome",
-      "from": "pq-product-eval",
-      "to": "pq-outcome",
-      "label": "measures",
-      "variant": "dashed"
     }
   ],
   "cards": [
     {
       "dot": "cyan",
-      "title": "How to read this page",
+      "title": "Product quality map is documented separately",
       "items": [
-        "Product quality map asks what behavior matters and which assurance mechanism belongs at each product boundary.",
-        "Evaluation runtime shows the reusable engineering machinery that executes cases, grades outputs, persists runs, compares baseline/candidate, and applies gates."
+        "This page is the implemented experiment runtime, not the product-quality taxonomy.",
+        "See the Product Quality Model visualizer for software tests, invariants, benchmarks, model evals and future product outcomes."
       ]
     },
     {
