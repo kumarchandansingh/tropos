@@ -12,6 +12,7 @@ from tropos.capabilities.resolve.application.ports.knowledge_article import (
 )
 from tropos.core.domain.evidence import EvidenceRef
 from tropos.core.domain.knowledge_article import (
+    ArticleContent,
     ArticleGap,
     ArticleGapKind,
     ArticleStep,
@@ -217,59 +218,72 @@ class LangChainKnowledgeArticleGenerator:
     ) -> KnowledgeArticleDraft:
         article_type = prompt_inputs.article_type
 
+        content: ArticleContent
+
         if article_type is ArticleType.TROUBLESHOOTING:
-            draft = _TroubleshootingDraft.model_validate(result)
+            troubleshooting_draft = _TroubleshootingDraft.model_validate(result)
             content = TroubleshootingArticle(
-                issue_description=_claim(draft.issue_description, aliases),
-                symptoms=tuple(_claim(item, aliases) for item in draft.symptoms),
+                issue_description=_claim(troubleshooting_draft.issue_description, aliases),
+                symptoms=tuple(
+                    _claim(item, aliases) for item in troubleshooting_draft.symptoms
+                ),
                 prerequisites=tuple(
-                    _claim(item, aliases) for item in draft.prerequisites
+                    _claim(item, aliases) for item in troubleshooting_draft.prerequisites
                 ),
                 diagnostic_checks=tuple(
-                    _step(item, aliases) for item in draft.diagnostic_checks
+                    _step(item, aliases)
+                    for item in troubleshooting_draft.diagnostic_checks
                 ),
                 resolution_steps=tuple(
-                    _step(item, aliases) for item in draft.resolution_steps
+                    _step(item, aliases)
+                    for item in troubleshooting_draft.resolution_steps
                 ),
-                expected_result=_claim(draft.expected_result, aliases),
-                exceptions=tuple(_claim(item, aliases) for item in draft.exceptions),
+                expected_result=_claim(troubleshooting_draft.expected_result, aliases),
+                exceptions=tuple(
+                    _claim(item, aliases) for item in troubleshooting_draft.exceptions
+                ),
                 escalation_criteria=tuple(
-                    _claim(item, aliases) for item in draft.escalation_criteria
+                    _claim(item, aliases)
+                    for item in troubleshooting_draft.escalation_criteria
                 ),
-                gaps=tuple(_gap(item, aliases) for item in draft.gaps),
+                gaps=tuple(_gap(item, aliases) for item in troubleshooting_draft.gaps),
             )
-            title = draft.title
+            title = troubleshooting_draft.title
         elif article_type is ArticleType.HOW_TO:
-            draft = _HowToDraft.model_validate(result)
+            how_to_draft = _HowToDraft.model_validate(result)
             content = HowToArticle(
-                purpose=_claim(draft.purpose, aliases),
+                purpose=_claim(how_to_draft.purpose, aliases),
                 prerequisites=tuple(
-                    _claim(item, aliases) for item in draft.prerequisites
+                    _claim(item, aliases) for item in how_to_draft.prerequisites
                 ),
-                steps=tuple(_step(item, aliases) for item in draft.steps),
-                expected_result=_claim(draft.expected_result, aliases),
-                next_steps=tuple(_claim(item, aliases) for item in draft.next_steps),
-                exceptions=tuple(_claim(item, aliases) for item in draft.exceptions),
-                gaps=tuple(_gap(item, aliases) for item in draft.gaps),
+                steps=tuple(_step(item, aliases) for item in how_to_draft.steps),
+                expected_result=_claim(how_to_draft.expected_result, aliases),
+                next_steps=tuple(
+                    _claim(item, aliases) for item in how_to_draft.next_steps
+                ),
+                exceptions=tuple(
+                    _claim(item, aliases) for item in how_to_draft.exceptions
+                ),
+                gaps=tuple(_gap(item, aliases) for item in how_to_draft.gaps),
             )
-            title = draft.title
+            title = how_to_draft.title
         else:
-            draft = _FAQDraft.model_validate(result)
+            faq_draft = _FAQDraft.model_validate(result)
             content = FAQArticle(
-                introduction=_claim(draft.introduction, aliases),
+                introduction=_claim(faq_draft.introduction, aliases),
                 items=tuple(
                     FAQItem(
                         question=item.question,
                         answer=_claim(item.answer, aliases),
                     )
-                    for item in draft.items
+                    for item in faq_draft.items
                 ),
                 additional_information=tuple(
-                    _claim(item, aliases) for item in draft.additional_information
+                    _claim(item, aliases) for item in faq_draft.additional_information
                 ),
-                gaps=tuple(_gap(item, aliases) for item in draft.gaps),
+                gaps=tuple(_gap(item, aliases) for item in faq_draft.gaps),
             )
-            title = draft.title
+            title = faq_draft.title
 
         return KnowledgeArticleDraft(
             title=title,
