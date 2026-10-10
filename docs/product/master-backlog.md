@@ -109,6 +109,164 @@ A candidate prompt/model/config can be compared against a baseline with regressi
 | UI-102 | P2 | Build Knowledge Article review/publish UI | 8 | GOV-101 |
 | PLAT-103 | P2 | Add production deployment and operational dashboards | 8 | PLAT-102, OBS-102 |
 
+## Delivery metrics and sprint-control simulation
+
+The charts below are deliberately **planning/simulation artifacts** until Tropos closes real sprints. They show how the team will manage scope, blockers, burndown and velocity without pretending forecast data is actual delivery history.
+
+### Sprint 1 burndown simulation
+
+Sprint 1 starts with **29 SP** committed. The ideal line burns evenly to zero over ten working days. The simulated actual line demonstrates two real delivery events:
+
+- **Day 4:** a new urgent 5-SP story is accepted into the sprint after trade-off review, so remaining scope increases.
+- **Day 6:** a blocker prevents progress for one day, so the remaining-work line is flat.
+- The team recovers by completing/de-scoping lower-value work and still reaches zero by Day 10.
+
+```mermaid
+xychart-beta
+    title "Sprint 1 Burndown Simulation"
+    x-axis ["D0","D1","D2","D3","D4","D5","D6","D7","D8","D9","D10"]
+    y-axis "Remaining Story Points" 0 --> 35
+    line [29,26,23,20,17,15,12,9,6,3,0]
+    line [29,29,24,21,26,21,21,15,10,5,0]
+```
+
+| Day | Event | Remaining SP | Program-management response |
+|---|---|---:|---|
+| D0 | Sprint starts | 29 | Baseline committed scope |
+| D1 | No story closed | 29 | Normal; inspect task-level progress, do not panic on one day |
+| D2 | 5 SP completed | 24 | Burndown starts |
+| D3 | 3 SP completed | 21 | On track |
+| D4 | New urgent 5-SP story accepted | 26 | Scope change logged; Product Owner approves; equivalent lower-value work identified for possible de-scope |
+| D5 | 5 SP completed | 21 | Team absorbs part of added scope |
+| D6 | External dependency blocks work | 21 | Blocker owner assigned; escalation SLA starts; swarm on unblocked work |
+| D7 | Blocker removed; 6 SP completed | 15 | Recovery visible |
+| D8 | 5 SP completed | 10 | Reforecast sprint outcome |
+| D9 | 5 SP completed | 5 | Final story in progress |
+| D10 | 5 SP completed | 0 | Sprint closes; actual velocity recorded |
+
+### How new stories are handled during a sprint
+
+A new story does **not** automatically enter committed sprint scope.
+
+```text
+New requirement appears
+        ↓
+Triage: defect / compliance / urgent business need / normal enhancement?
+        ↓
+Estimate + dependency/risk check
+        ↓
+Does it need to enter this sprint?
+   ┌───────────────┴───────────────┐
+   │                               │
+  No                              Yes
+   │                               │
+Backlog + reprioritize       Product Owner approves
+for next planning                  ↓
+                             Scope trade-off
+                             ├── add + remove similar SP, OR
+                             ├── explicitly increase sprint scope, OR
+                             └── split/minimum slice
+                                   ↓
+                             Burndown baseline/change log updated
+```
+
+**Rule:** sprint scope is protected by default. Urgent work may enter, but the change is visible and has an explicit decision owner. Velocity is based on **completed work**, not on how much scope was added.
+
+### How blockers are handled
+
+A blocker changes execution, not story-point estimates merely because time has passed.
+
+```text
+Blocker identified
+      ↓
+Link blocker to affected story
+      ↓
+Name owner + source of dependency
+      ↓
+Can team unblock internally?
+   ┌──────────┴──────────┐
+  Yes                   No
+   │                     │
+Swarm/fix          External escalation
+                         ↓
+                  track age / SLA
+                         ↓
+                 work unblocked items
+                         ↓
+               reforecast sprint risk
+```
+
+For planning simulations, use these operating rules:
+
+- Blocker is surfaced the same working day.
+- Story remains in sprint while recovery is credible.
+- If the blocker threatens the Sprint Goal, escalate and re-plan immediately rather than waiting for sprint end.
+- If the story can no longer complete, move the unfinished points back to backlog; **do not count partial points as velocity**.
+- Root cause and a preventive action are captured for material blockers.
+
+### Velocity tracking
+
+Velocity means **story points actually completed and accepted in a closed sprint**. Planned scope is not velocity. Because Tropos has not yet closed this new sprint sequence, actual velocity is not available. The table establishes the tracking baseline and the chart should be updated after each sprint review.
+
+| Sprint | Planned scope | Actual completed velocity | Notes |
+|---|---:|---:|---|
+| Sprint 1 | 29 | TBD | First calibration sprint |
+| Sprint 2 | 36 | TBD | Commitment will be adjusted using Sprint 1 actual velocity |
+| Sprint 3 | 42 | TBD | Backlog estimate, not commitment yet |
+| Sprint 4 | 31 | TBD | Backlog estimate, not commitment yet |
+| Sprint 5+ | 42 | TBD | Candidate scope only |
+
+```mermaid
+xychart-beta
+    title "Tropos Velocity Tracking — Actuals Start After Sprint 1"
+    x-axis ["S1","S2","S3","S4","S5+"]
+    y-axis "Story Points" 0 --> 45
+    bar [29,36,42,31,42]
+    line [0,0,0,0,0]
+```
+
+In this initial chart, the **bars are planned backlog scope** and the zero line is intentionally not presented as delivery performance; it marks that no sprint in this new sequence has closed yet. After Sprint 1, replace the first zero with actual accepted points. After three completed sprints, use the rolling average as the initial capacity reference for future commitment.
+
+### Velocity interpretation and planning policy
+
+Do not use velocity as an individual productivity measure. Use it for team-level forecasting under broadly stable conditions.
+
+Example after three real sprints:
+
+```text
+S1 actual = 24 SP
+S2 actual = 27 SP
+S3 actual = 25 SP
+
+Rolling velocity ≈ 25 SP
+
+Next sprint:
+Backlog may contain 40+ SP of ready work,
+but planned commitment should be near demonstrated capacity,
+then adjusted for leave, risk, dependencies and Sprint Goal.
+```
+
+A rising velocity is not automatically good, and a falling velocity is not automatically bad. Changes can come from story sizing, team composition, technical debt, incident load, discovery work, or dependencies. Sprint review should examine causes, not chase the number.
+
+### Blocker and scope-change simulation for Sprint Review
+
+At Sprint Review / Retrospective the delivery record should answer:
+
+| Question | Simulation answer |
+|---|---|
+| What was original commitment? | 29 SP |
+| What scope was added? | +5 SP on D4 |
+| Why was it added? | Urgent P0 business requirement |
+| Who approved it? | Product Owner / accountable product lead |
+| What was blocked? | One delivery path on D6 |
+| Blocker duration | 1 working day |
+| Was Sprint Goal endangered? | Temporarily at risk; recovered |
+| What was completed? | 34 SP total after approved scope addition |
+| What counts as velocity? | 34 SP only if all 34 SP met DoD and were accepted; otherwise only accepted completed SP |
+| What becomes regression/process learning? | Add dependency readiness check if blocker root cause was preventable |
+
+This simulation exists to teach the operating model. Once real Sprint 1 execution starts, simulated values must not be mixed with actual delivery reporting.
+
 ## Deferred until evidence justifies them
 
 - ANN/HNSW migration or dedicated vector database
@@ -173,3 +331,5 @@ Production
 4. Golden cases are approved/versioned product specifications; synthetic LLM output is candidate data until validated.
 5. Component evals diagnose failures; end-to-end evals determine product outcome quality.
 6. Observability vendors remain adapters. Tropos owns correctness semantics, golden data and release gates.
+7. New in-sprint scope requires explicit triage, estimate, owner and trade-off decision; it is never silently added.
+8. Blocked work is visible, owned and escalated; unfinished points are never counted as completed velocity.
