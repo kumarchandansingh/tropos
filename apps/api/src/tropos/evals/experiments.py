@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from math import isclose
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -391,7 +392,13 @@ def _evaluate_gate(
             False,
             "no paired numeric observations for this metric",
         )
-    passed = comparison.mean_delta >= -rule.max_mean_regression
+    boundary = -rule.max_mean_regression
+    passed = comparison.mean_delta >= boundary or isclose(
+        comparison.mean_delta,
+        boundary,
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    )
     detail = (
         f"mean delta={comparison.mean_delta:.6f}; "
         f"allowed regression={rule.max_mean_regression:.6f}; "
