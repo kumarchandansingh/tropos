@@ -1,0 +1,543 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Tropos Resolve | Implemented Internals",
+    "subtitle": "Source-backed view of what exists on main; planned classification, NBA and publishing flows are excluded",
+    "output": "docs/diagrams/archify/tropos-resolve.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/kumarchandansingh/tropos",
+      "revision": "973b7018381df7ad3a8dcd056b7e474acd3d92eb",
+      "provider": "github",
+      "link_mode": "web"
+    },
+    "views": [
+      {
+        "id": "closure-decision",
+        "label": "Closure decision",
+        "focus": [
+          "resolved-case",
+          "closure-evaluator",
+          "closure-orchestrator",
+          "closure-ports",
+          "action-policy",
+          "knowledge-decision"
+        ],
+        "note": "Implemented deterministic path from resolved-case evidence to an auditable knowledge action."
+      },
+      {
+        "id": "article-generation",
+        "label": "Article generation",
+        "focus": [
+          "article-intake",
+          "article-orchestrator",
+          "retriever-port",
+          "evidence-excerpts",
+          "generator-port",
+          "langchain-adapter",
+          "alias-resolver",
+          "article-draft"
+        ],
+        "note": "Implemented grounded Knowledge Article path from typed intake through evidence-backed structured generation."
+      },
+      {
+        "id": "ports-adapters",
+        "label": "Ports & adapters",
+        "focus": [
+          "closure-ports",
+          "retriever-port",
+          "generator-port",
+          "langchain-adapter"
+        ],
+        "note": "Resolve keeps contracts separate from concrete infrastructure; only the LangChain article generator is concrete here."
+      },
+      {
+        "id": "grounding",
+        "label": "Evidence grounding",
+        "focus": [
+          "evidence-excerpts",
+          "langchain-adapter",
+          "alias-resolver",
+          "article-draft"
+        ],
+        "note": "Stable EvidenceRef objects are projected to E1..EN for the model and resolved exactly before domain construction."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "resolved-case",
+      "type": "backend",
+      "label": "ResolvedCase",
+      "sublabel": "resolved support-case facts",
+      "tag": "DOMAIN",
+      "pos": [
+        60,
+        120
+      ],
+      "size": [
+        150,
+        72
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/domain/resolved_case.py",
+          "line": 6,
+          "end_line": 28
+        }
+      ]
+    },
+    {
+      "id": "closure-evaluator",
+      "type": "backend",
+      "label": "Closure evidence evaluator",
+      "sublabel": "rule-based sufficiency check",
+      "tag": "ADAPTER",
+      "pos": [
+        260,
+        120
+      ],
+      "size": [
+        170,
+        72
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/adapters/evaluation/rule_based_closure_evidence.py",
+          "line": 22,
+          "end_line": 40
+        }
+      ]
+    },
+    {
+      "id": "closure-orchestrator",
+      "type": "backend",
+      "label": "EvaluateCaseClosure",
+      "sublabel": "coordinates closure decision",
+      "tag": "APPLICATION",
+      "pos": [
+        485,
+        120
+      ],
+      "size": [
+        170,
+        72
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/application/evaluate_case_closure.py",
+          "line": 17,
+          "end_line": 62
+        }
+      ]
+    },
+    {
+      "id": "closure-ports",
+      "type": "external",
+      "label": "Closure knowledge ports",
+      "sublabel": "retrieve · cover · save contracts",
+      "tag": "PORTS ONLY",
+      "pos": [
+        480,
+        265
+      ],
+      "size": [
+        185,
+        82
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/application/ports/knowledge.py",
+          "line": 12,
+          "end_line": 42
+        }
+      ]
+    },
+    {
+      "id": "action-policy",
+      "type": "security",
+      "label": "Knowledge action policy",
+      "sublabel": "deterministic business decision",
+      "tag": "DOMAIN",
+      "pos": [
+        720,
+        120
+      ],
+      "size": [
+        175,
+        72
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/domain/knowledge_action.py",
+          "line": 74,
+          "end_line": 107
+        }
+      ]
+    },
+    {
+      "id": "knowledge-decision",
+      "type": "backend",
+      "label": "KnowledgeDecision",
+      "sublabel": "action + auditable reason",
+      "tag": "DOMAIN",
+      "pos": [
+        955,
+        120
+      ],
+      "size": [
+        170,
+        72
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/domain/knowledge_action.py",
+          "line": 66,
+          "end_line": 72
+        }
+      ]
+    },
+    {
+      "id": "article-intake",
+      "type": "backend",
+      "label": "Article request + policy",
+      "sublabel": "typed business input + fixed invariants",
+      "tag": "APPLICATION",
+      "pos": [
+        60,
+        500
+      ],
+      "size": [
+        190,
+        84
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/application/knowledge_article_request.py",
+          "line": 46,
+          "end_line": 82
+        },
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/application/knowledge_article_request.py",
+          "line": 87,
+          "end_line": 147
+        }
+      ]
+    },
+    {
+      "id": "article-orchestrator",
+      "type": "backend",
+      "label": "GenerateKnowledgeArticle",
+      "sublabel": "query · access · evidence mapping",
+      "tag": "APPLICATION",
+      "pos": [
+        300,
+        500
+      ],
+      "size": [
+        185,
+        82
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/application/generate_knowledge_article.py",
+          "line": 40,
+          "end_line": 94
+        }
+      ]
+    },
+    {
+      "id": "retriever-port",
+      "type": "external",
+      "label": "KnowledgeChunkRetriever",
+      "sublabel": "authorized ranked evidence contract",
+      "tag": "PORT",
+      "pos": [
+        305,
+        650
+      ],
+      "size": [
+        175,
+        76
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/application/ports/retrieval.py",
+          "line": 9,
+          "end_line": 19
+        }
+      ]
+    },
+    {
+      "id": "evidence-excerpts",
+      "type": "security",
+      "label": "Evidence excerpts",
+      "sublabel": "chunk text + stable EvidenceRef",
+      "tag": "APPLICATION DATA",
+      "pos": [
+        545,
+        500
+      ],
+      "size": [
+        185,
+        84
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/application/generate_knowledge_article.py",
+          "line": 67,
+          "end_line": 91
+        },
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/application/ports/knowledge_article.py",
+          "line": 14,
+          "end_line": 20
+        }
+      ]
+    },
+    {
+      "id": "generator-port",
+      "type": "external",
+      "label": "KnowledgeArticleGenerator",
+      "sublabel": "provider-neutral generation contract",
+      "tag": "PORT",
+      "pos": [
+        785,
+        500
+      ],
+      "size": [
+        180,
+        76
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/application/ports/knowledge_article.py",
+          "line": 23,
+          "end_line": 30
+        }
+      ]
+    },
+    {
+      "id": "langchain-adapter",
+      "type": "backend",
+      "label": "LangChain generator",
+      "sublabel": "schema select · messages · model invoke",
+      "tag": "ADAPTER",
+      "pos": [
+        1020,
+        500
+      ],
+      "size": [
+        190,
+        90
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/adapters/langchain_knowledge_article_generator.py",
+          "line": 164,
+          "end_line": 207
+        }
+      ]
+    },
+    {
+      "id": "alias-resolver",
+      "type": "security",
+      "label": "Exact alias resolver",
+      "sublabel": "E1..EN → stable EvidenceRef",
+      "tag": "DETERMINISTIC",
+      "pos": [
+        1020,
+        650
+      ],
+      "size": [
+        190,
+        78
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/adapters/langchain_knowledge_article_generator.py",
+          "line": 113,
+          "end_line": 125
+        }
+      ]
+    },
+    {
+      "id": "article-draft",
+      "type": "backend",
+      "label": "KnowledgeArticleDraft",
+      "sublabel": "Troubleshooting · How-to · FAQ",
+      "tag": "DOMAIN",
+      "pos": [
+        785,
+        650
+      ],
+      "size": [
+        180,
+        90
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/domain/knowledge_article.py",
+          "line": 59,
+          "end_line": 142
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Implemented closure-decision baseline",
+      "wraps": [
+        "resolved-case",
+        "closure-evaluator",
+        "closure-orchestrator",
+        "closure-ports",
+        "action-policy",
+        "knowledge-decision"
+      ],
+      "pad": 26
+    },
+    {
+      "kind": "region",
+      "label": "Implemented Knowledge Article generation",
+      "wraps": [
+        "article-intake",
+        "article-orchestrator",
+        "retriever-port",
+        "evidence-excerpts",
+        "generator-port",
+        "langchain-adapter",
+        "alias-resolver",
+        "article-draft"
+      ],
+      "pad": 26
+    }
+  ],
+  "connections": [
+    {
+      "id": "case-to-evaluator",
+      "from": "resolved-case",
+      "to": "closure-evaluator",
+      "label": "evaluate evidence"
+    },
+    {
+      "id": "evaluator-to-orchestrator",
+      "from": "closure-evaluator",
+      "to": "closure-orchestrator",
+      "label": "SUFFICIENT / INSUFFICIENT"
+    },
+    {
+      "id": "orchestrator-to-ports",
+      "from": "closure-orchestrator",
+      "to": "closure-ports",
+      "label": "retrieve · cover · save",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "orchestrator-to-policy",
+      "from": "closure-orchestrator",
+      "to": "action-policy",
+      "label": "validated decision facts"
+    },
+    {
+      "id": "policy-to-decision",
+      "from": "action-policy",
+      "to": "knowledge-decision",
+      "label": "action + reason"
+    },
+    {
+      "id": "intake-to-article-orchestrator",
+      "from": "article-intake",
+      "to": "article-orchestrator",
+      "label": "request + profile + access"
+    },
+    {
+      "id": "article-to-retriever",
+      "from": "article-orchestrator",
+      "to": "retriever-port",
+      "label": "search; returns ranked chunks",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "article-to-evidence",
+      "from": "article-orchestrator",
+      "to": "evidence-excerpts",
+      "label": "map chunks to refs"
+    },
+    {
+      "id": "evidence-to-generator-port",
+      "from": "evidence-excerpts",
+      "to": "generator-port",
+      "label": "prompt inputs + excerpts"
+    },
+    {
+      "id": "port-to-langchain",
+      "from": "generator-port",
+      "to": "langchain-adapter",
+      "label": "injected implementation"
+    },
+    {
+      "id": "langchain-to-resolver",
+      "from": "langchain-adapter",
+      "to": "alias-resolver",
+      "label": "structured result + evidence IDs",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "resolver-to-draft",
+      "from": "alias-resolver",
+      "to": "article-draft",
+      "label": "stable evidence-backed domain",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "What the closure slice actually implements",
+      "items": [
+        "ResolvedCase → deterministic closure-evidence evaluator → EvaluateCaseClosure → deterministic REUSE / IMPROVE / CREATE / NO_ACTION policy.",
+        "Knowledge retrieval, coverage evaluation and decision persistence are contracts only in this Resolve slice; no concrete adapters are shown as implemented."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "What the article slice actually implements",
+      "items": [
+        "Typed request → deterministic query/access request → KnowledgeChunkRetriever port → EvidenceRef-rich excerpts → provider-neutral generator port.",
+        "A concrete LangChain adapter selects one fixed schema, builds E1..EN aliases, invokes an injected structured model and constructs KnowledgeArticleDraft."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Grounding boundary",
+      "items": [
+        "Duplicate or unknown evidence aliases fail deterministically; every persisted claim, step and gap carries stable EvidenceRef objects.",
+        "Reference validity is not semantic entailment. A valid E1 citation proves identity, not that the cited chunk supports the generated sentence."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Resolve does not hard-code a retrieval strategy",
+      "items": [
+        "Resolve depends on KnowledgeChunkRetriever. BM25, exact dense and RRF hybrid are shared Core adapters/composition choices outside the capability.",
+        "Business context influences prompt inputs but the deterministic retrieval query uses subject, product, optional module and explicit retrieval keywords."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Not implemented on current main",
+      "items": [
+        "Case taxonomy/classification, workflow routing, Next Best Action, article review/approve/publish lifecycle and agent/self-service UI are not drawn as runtime components.",
+        "The Knowledge Article deterministic evaluation dataset/graders remain outside current main until QE-102 is merged."
+      ]
+    }
+  ]
+}
