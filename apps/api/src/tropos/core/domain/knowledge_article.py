@@ -139,6 +139,4 @@ class KnowledgeArticleDraft:
             FAQArticle: ArticleType.FAQ,
         }[type(self.content)]
         if self.article_type is not expected_type:
-            raise ValueError(
-                "Knowledge Article type must match the supplied content template"
-            )
+            raise ValueError("Knowledge Article type must match the supplied content template")
