@@ -42,12 +42,14 @@ jobs:
       - name: Run pinned real-model evaluation
         run: |
           mkdir -p "$RUNNER_TEMP/tropos-real-eval"
-          uv run --with sentence-transformers==6.1.0             python scripts/evaluate_hybrid_sentence_transformers.py             --output "$RUNNER_TEMP/tropos-real-eval/report.json"
+          uv run --with sentence-transformers==6.1.0 \
+            python scripts/evaluate_hybrid_sentence_transformers.py \
+            --output "$RUNNER_TEMP/tropos-real-eval/report.json"
 
       - name: Upload real-model evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: hybrid-real-model-evidence
-          path: ${{ runner.temp }}/tropos-real-eval
+          path: \${{ runner.temp }}/tropos-real-eval
           if-no-files-found: warn
