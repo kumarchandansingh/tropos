@@ -8,7 +8,7 @@
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/kumarchandansingh/tropos",
-      "revision": "140838c89014efdbe34d11d322f417f460378b95",
+      "revision": "feat/qe-110-retrieval-regression-gates",
       "provider": "github",
       "link_mode": "web"
     },
@@ -386,12 +386,12 @@
         {
           "path": ".github/workflows/retrieval-regression-gate.yml",
           "line": 1,
-          "end_line": 91
+          "end_line": 97
         },
         {
           "path": "apps/api/src/tropos/evals/regression_gate.py",
           "line": 1,
-          "end_line": 277
+          "end_line": 326
         }
       ]
     },
@@ -413,12 +413,12 @@
         {
           "path": ".github/workflows/hybrid-real-eval.yml",
           "line": 1,
-          "end_line": 58
+          "end_line": 56
         },
         {
           "path": "apps/api/scripts/evaluate_hybrid_sentence_transformers.py",
           "line": 1,
-          "end_line": 238
+          "end_line": 252
         }
       ]
     }
