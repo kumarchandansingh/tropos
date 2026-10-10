@@ -66,11 +66,7 @@ class RetrievalGateDecision:
 
     @property
     def passed(self) -> bool:
-        return (
-            self.comparison.passed
-            and not self.case_regressions
-            and not self.candidate_errors
-        )
+        return self.comparison.passed and not self.case_regressions and not self.candidate_errors
 
     def as_dict(self) -> JsonObject:
         return {

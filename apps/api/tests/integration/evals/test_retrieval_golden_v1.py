@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypedDict, cast
 
-
 from tropos.core.adapters.chunking.deterministic import DeterministicKnowledgeChunker
 from tropos.core.adapters.normalization.deterministic import DeterministicKnowledgeNormalizer
 from tropos.core.adapters.parsing.deterministic import DeterministicKnowledgeParser

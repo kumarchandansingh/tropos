@@ -106,9 +106,7 @@ def test_known_case_and_metric_regression_fail_the_gate() -> None:
     assert decision.passed is False
     assert decision.case_regressions == ("answerable",)
     recall = next(
-        result
-        for result in decision.comparison.gate_results
-        if result.metric == "recall_at_5"
+        result for result in decision.comparison.gate_results if result.metric == "recall_at_5"
     )
     assert recall.passed is False
 
@@ -137,8 +135,6 @@ def test_hard_invariant_blocks_candidate_even_when_quality_improves() -> None:
 
     assert decision.passed is False
     authorized = next(
-        result
-        for result in decision.comparison.gate_results
-        if result.metric == "authorized_only"
+        result for result in decision.comparison.gate_results if result.metric == "authorized_only"
     )
     assert authorized.passed is False
