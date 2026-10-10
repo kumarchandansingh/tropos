@@ -2,75 +2,85 @@
   "schema_version": 1,
   "diagram_type": "dataflow",
   "meta": {
-    "title": "Tropos | Governed Knowledge Ingestion",
-    "output": "docs/diagrams/archify/tropos-ingestion.html",
+    "title": "Tropos | Governed Knowledge, Retrieval and Grounded AI",
+    "subtitle": "Current implemented architecture on main; regenerated automatically after relevant merges",
+    "output": "docs/diagrams/archify/tropos-platform.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/kumarchandansingh/tropos",
-      "revision": "8cbad1f6261bb11f16a40cfe7f77a1887d29e5ab",
+      "revision": "main",
       "provider": "github",
       "link_mode": "web"
     },
     "viewBox": [
-      940,
-      530
+      1240,
+      700
     ],
     "views": [
       {
-        "id": "source-evidence",
-        "label": "Source evidence",
+        "id": "knowledge-foundation",
+        "label": "Knowledge foundation",
         "focus": [
           "source",
-          "capture",
-          "parser"
+          "ingestion",
+          "sqlite"
         ],
-        "note": "Capture preserves exact source evidence; parsing interprets content without rewriting its raw identity."
+        "note": "Source capture, deterministic ingestion/versioning and durable local persistence form the governed knowledge foundation."
       },
       {
-        "id": "canonical-version",
-        "label": "Content versioning",
+        "id": "retrieval",
+        "label": "Retrieval",
         "focus": [
-          "parser",
-          "canonical",
-          "version",
-          "chunk"
+          "bm25",
+          "dense",
+          "hybrid",
+          "evidence"
         ],
-        "note": "Deterministic normalization produces the canonical fingerprint; only CREATE_VERSION writes a new version and chunks."
+        "note": "Lexical and exact-dense retrieval remain independent strategies; RRF fuses ranked results and EvidenceRef preserves stable lineage."
       },
       {
-        "id": "access-governance",
-        "label": "Access governance",
+        "id": "resolve",
+        "label": "Resolve",
         "focus": [
-          "version",
-          "governance",
-          "storage"
+          "evidence",
+          "resolve"
         ],
-        "note": "Access changes may refresh current permissions independently, including before new content is persisted."
+        "note": "Resolve turns governed evidence into bounded, structured Knowledge Article drafts through a provider-neutral generation port."
       },
       {
-        "id": "durability",
-        "label": "Persistence and replay",
+        "id": "training",
+        "label": "Training",
         "focus": [
-          "capture",
-          "version",
-          "storage"
+          "evidence",
+          "training"
         ],
-        "note": "SQLite records source captures, ingestion runs, state and evidence; completed identical captures are replay-safe."
+        "note": "Training reuses the same governed retrieval and stable evidence pattern to produce structured ProcedureDraft artifacts."
+      },
+      {
+        "id": "quality",
+        "label": "Evaluation",
+        "focus": [
+          "resolve",
+          "training",
+          "evals",
+          "ci"
+        ],
+        "note": "Deterministic evaluators, shared eval contracts and CI provide regression and software-quality evidence."
       }
     ]
   },
   "stages": [
     {
-      "label": "Source"
+      "label": "Source / canonical knowledge"
     },
     {
-      "label": "Capture / parse"
+      "label": "Retrieval / evidence"
     },
     {
-      "label": "Canonicalize / decide"
+      "label": "Capability generation"
     },
     {
-      "label": "Persist / govern"
+      "label": "Quality / delivery"
     }
   ],
   "nodes": [
@@ -78,119 +88,174 @@
       "id": "source",
       "type": "external",
       "label": "Source connector",
-      "sublabel": "identity + exact payload",
+      "sublabel": "capture identity + payload",
       "stage": 0,
-      "row": 1,
+      "row": 0,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/application/ingestion/ingest_from_source.py",
-          "line": 28,
+          "line": 15,
           "end_line": 58
         }
       ]
     },
     {
-      "id": "capture",
+      "id": "ingestion",
       "type": "backend",
-      "label": "Raw capture",
-      "sublabel": "immutable evidence + replay",
-      "stage": 1,
-      "row": 0,
+      "label": "Governed ingestion",
+      "sublabel": "parse · normalize · version · chunk",
+      "stage": 0,
+      "row": 1,
       "sources": [
         {
           "path": "apps/api/src/tropos/core/application/ingestion/ingest_knowledge.py",
-          "line": 72,
-          "end_line": 95
+          "line": 29,
+          "end_line": 178
         }
       ]
     },
     {
-      "id": "parser",
+      "id": "sqlite",
+      "type": "database",
+      "label": "SQLite state",
+      "sublabel": "versions · chunks · embeddings · runs",
+      "stage": 0,
+      "row": 2,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/adapters/persistence/sqlite.py",
+          "line": 32,
+          "end_line": 120
+        }
+      ]
+    },
+    {
+      "id": "bm25",
       "type": "backend",
-      "label": "Format parser",
-      "sublabel": "text / MD / HTML / DOCX",
+      "label": "BM25 retrieval",
+      "sublabel": "SQLite FTS5 lexical",
+      "stage": 1,
+      "row": 0,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/adapters/retrieval/sqlite_fts.py",
+          "line": 24,
+          "end_line": 155
+        }
+      ]
+    },
+    {
+      "id": "dense",
+      "type": "backend",
+      "label": "Dense retrieval",
+      "sublabel": "exact cosine over embeddings",
+      "stage": 1,
+      "row": 1,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/adapters/retrieval/exact_vector.py",
+          "line": 15,
+          "end_line": 88
+        }
+      ]
+    },
+    {
+      "id": "hybrid",
+      "type": "backend",
+      "label": "Hybrid retrieval",
+      "sublabel": "Reciprocal Rank Fusion",
       "stage": 1,
       "row": 2,
       "sources": [
         {
-          "path": "apps/api/src/tropos/core/adapters/parsing/deterministic.py",
-          "line": 292,
-          "end_line": 310
+          "path": "apps/api/src/tropos/core/adapters/retrieval/hybrid_rrf.py",
+          "line": 20,
+          "end_line": 102
         }
       ]
     },
     {
-      "id": "canonical",
-      "type": "backend",
-      "label": "Normalize",
-      "sublabel": "canonical text + fingerprint",
-      "stage": 2,
-      "row": 0,
-      "sources": [
-        {
-          "path": "apps/api/src/tropos/core/adapters/normalization/deterministic.py",
-          "line": 19,
-          "end_line": 64
-        }
-      ]
-    },
-    {
-      "id": "version",
-      "type": "backend",
-      "label": "Version resolver",
-      "sublabel": "content and access checked",
-      "stage": 2,
-      "row": 1,
-      "sources": [
-        {
-          "path": "apps/api/src/tropos/core/application/ingestion/versioning.py",
-          "line": 99,
-          "end_line": 145
-        }
-      ]
-    },
-    {
-      "id": "chunk",
-      "type": "backend",
-      "label": "Chunk document",
-      "sublabel": "only when version created",
-      "stage": 3,
-      "row": 0,
-      "sources": [
-        {
-          "path": "apps/api/src/tropos/core/adapters/chunking/deterministic.py",
-          "line": 11,
-          "end_line": 39
-        }
-      ]
-    },
-    {
-      "id": "storage",
-      "type": "database",
-      "label": "SQLite persistence",
-      "sublabel": "versions + governed chunks",
-      "stage": 3,
-      "row": 1,
-      "sources": [
-        {
-          "path": "apps/api/src/tropos/core/adapters/persistence/sqlite.py",
-          "line": 327,
-          "end_line": 371
-        }
-      ]
-    },
-    {
-      "id": "governance",
+      "id": "evidence",
       "type": "security",
-      "label": "Access refresh",
-      "sublabel": "access-only refresh",
+      "label": "Stable EvidenceRef",
+      "sublabel": "durable source lineage",
+      "stage": 1,
+      "row": 3,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/core/domain/evidence.py",
+          "line": 7,
+          "end_line": 30
+        }
+      ]
+    },
+    {
+      "id": "resolve",
+      "type": "backend",
+      "label": "Resolve",
+      "sublabel": "Knowledge Article generation",
+      "stage": 2,
+      "row": 0,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/application/generate_knowledge_article.py",
+          "line": 26,
+          "end_line": 94
+        },
+        {
+          "path": "apps/api/src/tropos/capabilities/resolve/adapters/langchain_knowledge_article_generator.py",
+          "line": 164,
+          "end_line": 282
+        }
+      ]
+    },
+    {
+      "id": "training",
+      "type": "backend",
+      "label": "Training",
+      "sublabel": "ProcedureDraft generation",
+      "stage": 2,
+      "row": 2,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/capabilities/training/generate_procedure.py",
+          "line": 16,
+          "end_line": 74
+        }
+      ]
+    },
+    {
+      "id": "evals",
+      "type": "backend",
+      "label": "Evaluation",
+      "sublabel": "goldens · runs · scores · provenance",
+      "stage": 3,
+      "row": 0,
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/contracts.py",
+          "line": 123,
+          "end_line": 306
+        },
+        {
+          "path": "apps/api/src/tropos/evals/training.py",
+          "line": 30,
+          "end_line": 136
+        }
+      ]
+    },
+    {
+      "id": "ci",
+      "type": "cloud",
+      "label": "CI / quality gates",
+      "sublabel": "format · lint · types · tests · build",
       "stage": 3,
       "row": 2,
       "sources": [
         {
-          "path": "apps/api/src/tropos/core/adapters/persistence/sqlite.py",
-          "line": 201,
-          "end_line": 240
+          "path": ".github/workflows/ci.yml",
+          "line": 1,
+          "end_line": 49
         }
       ]
     }
@@ -198,102 +263,104 @@
   "flows": [
     {
       "from": "source",
-      "to": "capture",
+      "to": "ingestion",
       "label": "captured source"
     },
     {
-      "from": "capture",
-      "to": "parser",
-      "label": "raw bytes",
-      "labelAt": [
-        315,
-        315
-      ]
+      "from": "ingestion",
+      "to": "sqlite",
+      "label": "canonical state + chunks"
     },
     {
-      "from": "parser",
-      "to": "canonical",
-      "label": "extracted text"
+      "from": "sqlite",
+      "to": "bm25",
+      "label": "current authorized chunks"
     },
     {
-      "from": "canonical",
-      "to": "version",
-      "label": "canonical state",
-      "variant": "emphasis",
-      "labelAt": [
-        530,
-        201
-      ]
+      "from": "sqlite",
+      "to": "dense",
+      "label": "versioned derived embeddings"
     },
     {
-      "from": "version",
-      "to": "chunk",
-      "label": "CREATE_VERSION",
-      "variant": "emphasis"
+      "from": "bm25",
+      "to": "hybrid",
+      "label": "lexical ranks"
     },
     {
-      "from": "chunk",
-      "to": "storage",
-      "label": "document + chunks",
-      "labelAt": [
-        745,
-        201
-      ]
+      "from": "dense",
+      "to": "hybrid",
+      "label": "semantic ranks"
     },
     {
-      "from": "version",
-      "to": "governance",
-      "label": "access changed",
-      "variant": "security",
-      "labelAt": [
-        637,
-        325
-      ]
+      "from": "hybrid",
+      "to": "evidence",
+      "label": "retrieved governed chunks"
     },
     {
-      "from": "governance",
-      "to": "storage",
-      "label": "governance update",
-      "variant": "security"
+      "from": "evidence",
+      "to": "resolve",
+      "label": "stable refs + prompt aliases"
+    },
+    {
+      "from": "evidence",
+      "to": "training",
+      "label": "stable refs + prompt aliases"
+    },
+    {
+      "from": "resolve",
+      "to": "evals",
+      "label": "artifact regression"
+    },
+    {
+      "from": "training",
+      "to": "evals",
+      "label": "grounding regression"
+    },
+    {
+      "from": "evals",
+      "to": "ci",
+      "label": "quality evidence"
     }
   ],
   "cards": [
     {
       "dot": "cyan",
-      "title": "1 · Preserve source evidence",
+      "title": "1 · Governed knowledge before AI",
       "items": [
-        "Source identity, source version, exact bytes, capture timestamp and access policy are retained as provenance; source_version alone does not define a content version.",
-        "Supported parsers handle UTF-8 text, Markdown, HTML and DOCX deterministically; PDF/OCR and model-assisted parsing are not part of this implemented path.",
-        "Parser output becomes canonical evidence without replacing raw capture; unsupported formats and malformed documents fail explicitly."
+        "Source acquisition, parsing, normalization, content versioning, governance refresh and chunking are deterministic application/domain concerns.",
+        "SQLite is the current durable local/test baseline; production Postgres remains planned rather than implied."
       ]
     },
     {
-      "dot": "emerald",
-      "title": "2 · Decide whether content changed",
+      "dot": "purple",
+      "title": "2 · Retrieval strategies stay separable",
       "items": [
-        "Normalize presentation noise (for example line endings, trailing spaces and repeated blank lines) before fingerprinting the canonical title and ordered blocks.",
-        "First-seen content or a different canonical fingerprint => CREATE_VERSION: materialize a KnowledgeDocument, chunk it and persist the new version.",
-        "Same canonical content and unchanged access => NO_CONTENT_VERSION: no new content version or chunks.",
-        "Normalization strategy changed => REBASELINE_REQUIRED: require deliberate rebaselining rather than treating a new algorithm as a content edit."
+        "BM25 preserves exact-term and identifier behavior; dense retrieval uses exact cosine to isolate representation quality before ANN complexity.",
+        "Hybrid V1 uses Reciprocal Rank Fusion because BM25 and cosine scores do not share a calibrated raw-score scale."
+      ]
+    },
+    {
+      "dot": "green",
+      "title": "3 · Stable evidence outside the model",
+      "items": [
+        "Generated artifacts persist stable EvidenceRef objects. Temporary E1..EN aliases exist only inside one model invocation.",
+        "Exact alias resolution proves reference validity, not semantic entailment; semantic support is evaluated separately."
       ]
     },
     {
       "dot": "amber",
-      "title": "3 · Update access independently",
+      "title": "4 · Capabilities own business semantics",
       "items": [
-        "Access fingerprint is computed separately from content, using tenant ID, authorization scope and allowed groups.",
-        "Same content with changed access => REFRESH_GOVERNANCE without creating chunks.",
-        "When both content and access change, governance refresh can run before CREATE_VERSION; state checks reject unexpected concurrent changes.",
-        "Each run records stage, outcome and failure details. The diagram is a synchronous ingestion view, not a deployed API or complete retrieval architecture."
+        "Resolve owns Knowledge Article and service-resolution policy; Training owns procedure-generation semantics.",
+        "LangChain is an adapter for structured model execution, not the owner of authorization, evidence identity, lifecycle or evaluation."
       ]
     },
     {
-      "dot": "slate",
-      "title": "4 · Replay, durability and audit",
+      "dot": "red",
+      "title": "5 · Quality is layered",
       "items": [
-        "SQLite persists immutable source captures, run stages and outcomes, current canonical state, document versions, and governed chunks.",
-        "A completed capture with the same knowledge ID and ingestion fingerprint returns its prior result instead of performing the work again.",
-        "Expected-state checks surface competing canonical updates rather than silently overwriting a newer version; failures are recorded by stage."
+        "Software CI, retrieval evaluation, grounded-generation evaluation and product outcome evaluation are distinct evidence layers.",
+        "ANN/HNSW, durable workflow orchestration and hosted observability remain deferred until measured requirements justify them."
       ]
     }
   ]
