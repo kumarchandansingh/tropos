@@ -85,9 +85,7 @@ def test_generates_grounded_troubleshooting_article_and_resolves_aliases() -> No
                 "text": "The device fails to sync.",
                 "evidence_ids": ["E1"],
             },
-            "symptoms": [
-                {"text": "The device remains disconnected.", "evidence_ids": ["E1"]}
-            ],
+            "symptoms": [{"text": "The device remains disconnected.", "evidence_ids": ["E1"]}],
             "prerequisites": [],
             "diagnostic_checks": [
                 {
