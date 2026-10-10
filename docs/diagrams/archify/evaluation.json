@@ -1,0 +1,527 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Tropos Evaluation | Experiment Method and Design",
+    "subtitle": "Implemented QE-103 architecture: run evidence, paired comparison, uncertainty and gate semantics",
+    "output": "docs/diagrams/archify/tropos-evaluation.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/kumarchandansingh/tropos",
+      "revision": "377a4c679759fdc9e0f03176e0ec319576c04898",
+      "provider": "github",
+      "link_mode": "web"
+    },
+    "views": [
+      {
+        "id": "run",
+        "label": "Run one configuration",
+        "focus": [
+          "dataset",
+          "subject",
+          "provenance",
+          "executor",
+          "runner",
+          "observation",
+          "eval-run",
+          "store"
+        ],
+        "note": "Dataset, subject and provenance are kept separate while every case produces a terminal observation."
+      },
+      {
+        "id": "compare",
+        "label": "Compare baseline vs candidate",
+        "focus": [
+          "baseline",
+          "candidate",
+          "comparator",
+          "comparison"
+        ],
+        "note": "Same dataset and case IDs are compared pairwise; pass-to-fail and fail-to-pass changes stay visible."
+      },
+      {
+        "id": "uncertainty",
+        "label": "Paired uncertainty",
+        "focus": [
+          "baseline",
+          "candidate",
+          "comparator",
+          "comparison"
+        ],
+        "note": "Numeric metrics use paired candidate-minus-baseline deltas; bootstrap intervals are withheld below the minimum pair count."
+      },
+      {
+        "id": "gates",
+        "label": "Gate semantics",
+        "focus": [
+          "gate-policy",
+          "comparator",
+          "comparison"
+        ],
+        "note": "Hard invariants require explicit candidate passes; decision metrics use an allowed mean-regression budget."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "dataset",
+      "type": "database",
+      "label": "EvalDataset",
+      "sublabel": "versioned case snapshot",
+      "tag": "CONTRACT",
+      "pos": [
+        40,
+        100
+      ],
+      "size": [
+        160,
+        72
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/contracts.py",
+          "line": 123,
+          "end_line": 164
+        }
+      ]
+    },
+    {
+      "id": "subject",
+      "type": "backend",
+      "label": "EvalSubject",
+      "sublabel": "model · prompt · retrieval config",
+      "tag": "CONTRACT",
+      "pos": [
+        40,
+        260
+      ],
+      "size": [
+        160,
+        78
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/contracts.py",
+          "line": 171,
+          "end_line": 186
+        }
+      ]
+    },
+    {
+      "id": "provenance",
+      "type": "security",
+      "label": "Run provenance",
+      "sublabel": "code · lock digest · runtime",
+      "tag": "CONTRACT",
+      "pos": [
+        40,
+        420
+      ],
+      "size": [
+        160,
+        78
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/contracts.py",
+          "line": 189,
+          "end_line": 202
+        }
+      ]
+    },
+    {
+      "id": "executor",
+      "type": "external",
+      "label": "EvalCaseExecutor",
+      "sublabel": "capability execution port",
+      "tag": "PORT",
+      "pos": [
+        270,
+        100
+      ],
+      "size": [
+        170,
+        72
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/experiments.py",
+          "line": 31,
+          "end_line": 35
+        }
+      ]
+    },
+    {
+      "id": "runner",
+      "type": "backend",
+      "label": "ExperimentRunner",
+      "sublabel": "execute all cases · catch errors",
+      "tag": "APPLICATION",
+      "pos": [
+        270,
+        260
+      ],
+      "size": [
+        170,
+        80
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/experiments.py",
+          "line": 142,
+          "end_line": 201
+        }
+      ]
+    },
+    {
+      "id": "observation",
+      "type": "backend",
+      "label": "EvalObservation + Score",
+      "sublabel": "case output · dimensions · duration",
+      "tag": "EVIDENCE",
+      "pos": [
+        500,
+        100
+      ],
+      "size": [
+        180,
+        82
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/contracts.py",
+          "line": 218,
+          "end_line": 260
+        }
+      ]
+    },
+    {
+      "id": "eval-run",
+      "type": "backend",
+      "label": "EvalRun",
+      "sublabel": "dataset + subject + provenance + cases",
+      "tag": "EVIDENCE",
+      "pos": [
+        500,
+        260
+      ],
+      "size": [
+        180,
+        82
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/contracts.py",
+          "line": 263,
+          "end_line": 292
+        }
+      ]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "SQLiteExperimentStore",
+      "sublabel": "immutable run · observations · scores",
+      "tag": "ADAPTER",
+      "pos": [
+        500,
+        420
+      ],
+      "size": [
+        180,
+        82
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/experiment_store.py",
+          "line": 26,
+          "end_line": 248
+        }
+      ]
+    },
+    {
+      "id": "baseline",
+      "type": "backend",
+      "label": "Baseline EvalRun",
+      "sublabel": "reference configuration",
+      "tag": "RUN INSTANCE",
+      "pos": [
+        730,
+        100
+      ],
+      "size": [
+        170,
+        72
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/contracts.py",
+          "line": 263,
+          "end_line": 292
+        }
+      ]
+    },
+    {
+      "id": "candidate",
+      "type": "backend",
+      "label": "Candidate EvalRun",
+      "sublabel": "changed configuration",
+      "tag": "RUN INSTANCE",
+      "pos": [
+        730,
+        260
+      ],
+      "size": [
+        170,
+        72
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/contracts.py",
+          "line": 263,
+          "end_line": 292
+        }
+      ]
+    },
+    {
+      "id": "gate-policy",
+      "type": "security",
+      "label": "ExperimentGatePolicy",
+      "sublabel": "hard invariant · decision metric",
+      "tag": "POLICY",
+      "pos": [
+        730,
+        420
+      ],
+      "size": [
+        170,
+        78
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/experiments.py",
+          "line": 53,
+          "end_line": 80
+        }
+      ]
+    },
+    {
+      "id": "comparator",
+      "type": "backend",
+      "label": "compare_runs",
+      "sublabel": "case diff · metric pairs · bootstrap",
+      "tag": "APPLICATION",
+      "pos": [
+        960,
+        180
+      ],
+      "size": [
+        175,
+        84
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/experiments.py",
+          "line": 204,
+          "end_line": 277
+        },
+        {
+          "path": "apps/api/src/tropos/evals/experiments.py",
+          "line": 280,
+          "end_line": 310
+        }
+      ]
+    },
+    {
+      "id": "comparison",
+      "type": "backend",
+      "label": "ExperimentComparison",
+      "sublabel": "regressions · metrics · gate results",
+      "tag": "OUTPUT",
+      "pos": [
+        960,
+        420
+      ],
+      "size": [
+        175,
+        84
+      ],
+      "sources": [
+        {
+          "path": "apps/api/src/tropos/evals/experiments.py",
+          "line": 85,
+          "end_line": 130
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Definition contracts",
+      "wraps": [
+        "dataset",
+        "subject",
+        "provenance"
+      ],
+      "pad": 24
+    },
+    {
+      "kind": "region",
+      "label": "Experiment execution",
+      "wraps": [
+        "executor",
+        "runner",
+        "observation",
+        "eval-run",
+        "store"
+      ],
+      "pad": 24
+    },
+    {
+      "kind": "region",
+      "label": "Baseline / candidate decision",
+      "wraps": [
+        "baseline",
+        "candidate",
+        "gate-policy",
+        "comparator",
+        "comparison"
+      ],
+      "pad": 24
+    }
+  ],
+  "connections": [
+    {
+      "id": "dataset-runner",
+      "from": "dataset",
+      "to": "runner",
+      "label": "cases"
+    },
+    {
+      "id": "subject-runner",
+      "from": "subject",
+      "to": "runner",
+      "label": "config"
+    },
+    {
+      "id": "provenance-runner",
+      "from": "provenance",
+      "to": "runner",
+      "label": "provenance"
+    },
+    {
+      "id": "runner-executor",
+      "from": "runner",
+      "to": "executor",
+      "label": "execute",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "executor-observation",
+      "from": "executor",
+      "to": "observation",
+      "label": "terminal result"
+    },
+    {
+      "id": "observation-run",
+      "from": "observation",
+      "to": "eval-run",
+      "label": "collect",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "run-store",
+      "from": "eval-run",
+      "to": "store",
+      "label": "persist",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "run-baseline",
+      "from": "eval-run",
+      "to": "baseline",
+      "label": "reference",
+      "variant": "dashed"
+    },
+    {
+      "id": "run-candidate",
+      "from": "eval-run",
+      "to": "candidate",
+      "label": "candidate",
+      "variant": "dashed"
+    },
+    {
+      "id": "baseline-compare",
+      "from": "baseline",
+      "to": "comparator",
+      "label": "before"
+    },
+    {
+      "id": "candidate-compare",
+      "from": "candidate",
+      "to": "comparator",
+      "label": "after"
+    },
+    {
+      "id": "policy-compare",
+      "from": "gate-policy",
+      "to": "comparator",
+      "label": "rules"
+    },
+    {
+      "id": "compare-output",
+      "from": "comparator",
+      "to": "comparison",
+      "label": "report",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "1 · Reproducible run identity",
+      "items": [
+        "Dataset fingerprint, subject configuration and code/dependency provenance are separate contracts.",
+        "A completed run records terminal per-case observations; completion does not mean every case passed."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "2 · Pair the same cases",
+      "items": [
+        "Baseline and candidate must use the exact same dataset snapshot and case IDs.",
+        "Pass→fail/error is a regression; fail/error→pass is an improvement; case evidence remains visible."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "3 · Uncertainty without pretending tiny sets are enough",
+      "items": [
+        "Shared numeric dimensions are compared as paired candidate-minus-baseline case deltas.",
+        "Paired-bootstrap intervals are withheld below 20 pairs by default; QE-108 supplies the larger benchmark."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "4 · Hard invariants differ from decision metrics",
+      "items": [
+        "Hard invariants require every candidate score to exist and explicitly pass.",
+        "Decision metrics compare mean movement with an allowed regression budget; QE-110 will decide real workflow thresholds."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "5 · Not claimed by this slice",
+      "items": [
+        "No locked holdout, calibrated abstention, production release gate, or calibrated LLM judge is introduced by QE-103.",
+        "Existing retrieval/Training/Knowledge Article evaluators remain capability-specific; executor wiring is explicit rather than inferred."
+      ]
+    }
+  ]
+}

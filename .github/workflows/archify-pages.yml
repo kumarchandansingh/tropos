@@ -52,6 +52,7 @@ jobs:
           specs = {
               Path("docs/diagrams/archify/candidate.json"): Path("/tmp/tropos-archify-live.json"),
               Path("docs/diagrams/archify/resolve.json"): Path("/tmp/tropos-resolve-live.json"),
+              Path("docs/diagrams/archify/evaluation.json"): Path("/tmp/tropos-evaluation-live.json"),
           }
 
           for source, target in specs.items():
@@ -80,12 +81,23 @@ jobs:
           --quality showcase
           --json
 
+      - name: Render and validate evaluation experiment architecture
+        run: >
+          node .agents/skills/archify/bin/archify.mjs
+          finalize architecture
+          /tmp/tropos-evaluation-live.json
+          docs/diagrams/archify/tropos-evaluation.html
+          --repo-root .
+          --quality showcase
+          --json
+
       - name: Prepare Pages site
         run: |
-          mkdir -p _site/architecture _site/resolve
+          mkdir -p _site/architecture _site/resolve _site/evaluation
           cp docs/diagrams/archify/tropos-platform.html _site/index.html
           cp docs/diagrams/archify/tropos-platform.html _site/architecture/index.html
           cp docs/diagrams/archify/tropos-resolve.html _site/resolve/index.html
+          cp docs/diagrams/archify/tropos-evaluation.html _site/evaluation/index.html
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

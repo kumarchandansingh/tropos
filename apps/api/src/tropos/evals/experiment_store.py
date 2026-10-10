@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from contextlib import closing
+from datetime import datetime
 from pathlib import Path
 from typing import cast
 
@@ -282,7 +283,5 @@ def _required_object(payload: JsonObject, key: str) -> JsonObject:
     return value
 
 
-def _parse_datetime(value: str):
-    from datetime import datetime
-
+def _parse_datetime(value: str) -> datetime:
     return datetime.fromisoformat(value)

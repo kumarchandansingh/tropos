@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -119,7 +120,7 @@ class _Executor:
         )
 
 
-def _clock() -> callable:
+def _clock() -> Callable[[], datetime]:
     moments = iter(
         (
             datetime(2026, 10, 10, 12, 0, tzinfo=UTC),
