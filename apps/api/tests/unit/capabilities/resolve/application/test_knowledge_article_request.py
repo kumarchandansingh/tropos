@@ -100,9 +100,7 @@ def test_request_limits_business_context_length() -> None:
 
 def test_output_preferences_reject_duplicate_terms_case_insensitively() -> None:
     with pytest.raises(ValueError, match="duplicate"):
-        OutputPreferences(
-            preferred_terms=("Device Registration", "device registration")
-        )
+        OutputPreferences(preferred_terms=("Device Registration", "device registration"))
 
 
 def test_request_rejects_blank_retrieval_keyword() -> None:
