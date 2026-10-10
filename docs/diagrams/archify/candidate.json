@@ -44,7 +44,7 @@
           "evidence",
           "resolve"
         ],
-        "note": "Resolve turns governed evidence into fixed-structure Knowledge Article drafts through a provider-neutral generation boundary."
+        "note": "Resolve consumes governed evidence; code-derived drill-down: /tropos/resolve/."
       },
       {
         "id": "training",
