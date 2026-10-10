@@ -206,8 +206,7 @@ def evaluate_knowledge_article(
     required_sections = _strings(expected["required_sections"])
     present = _section_presence(draft)
     required_section_coverage = (
-        sum(bool(present.get(section)) for section in required_sections)
-        / len(required_sections)
+        sum(bool(present.get(section)) for section in required_sections) / len(required_sections)
         if required_sections
         else 1.0
     )
