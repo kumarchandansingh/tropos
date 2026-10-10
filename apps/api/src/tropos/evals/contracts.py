@@ -163,7 +163,7 @@ class EvalDatasetRef:
         _non_blank("fingerprint", self.fingerprint)
 
     @classmethod
-    def from_dataset(cls, dataset: EvalDataset) -> "EvalDatasetRef":
+    def from_dataset(cls, dataset: EvalDataset) -> EvalDatasetRef:
         return cls(dataset.dataset_id, dataset.version, dataset.fingerprint)
 
 
