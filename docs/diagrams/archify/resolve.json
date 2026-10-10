@@ -73,8 +73,8 @@
       "sublabel": "resolved support-case facts",
       "tag": "DOMAIN",
       "pos": [
-        60,
-        120
+        40,
+        110
       ],
       "size": [
         150,
@@ -95,8 +95,8 @@
       "sublabel": "rule-based sufficiency check",
       "tag": "ADAPTER",
       "pos": [
-        260,
-        120
+        300,
+        110
       ],
       "size": [
         170,
@@ -117,8 +117,8 @@
       "sublabel": "coordinates closure decision",
       "tag": "APPLICATION",
       "pos": [
-        485,
-        120
+        600,
+        110
       ],
       "size": [
         170,
@@ -139,7 +139,7 @@
       "sublabel": "retrieve · cover · save contracts",
       "tag": "PORTS ONLY",
       "pos": [
-        480,
+        600,
         265
       ],
       "size": [
@@ -161,8 +161,8 @@
       "sublabel": "deterministic business decision",
       "tag": "DOMAIN",
       "pos": [
-        720,
-        120
+        930,
+        110
       ],
       "size": [
         175,
@@ -183,8 +183,8 @@
       "sublabel": "action + auditable reason",
       "tag": "DOMAIN",
       "pos": [
-        955,
-        120
+        930,
+        265
       ],
       "size": [
         170,
@@ -205,7 +205,7 @@
       "sublabel": "typed business input + fixed invariants",
       "tag": "APPLICATION",
       "pos": [
-        60,
+        40,
         500
       ],
       "size": [
@@ -232,7 +232,7 @@
       "sublabel": "query · access · evidence mapping",
       "tag": "APPLICATION",
       "pos": [
-        300,
+        360,
         500
       ],
       "size": [
@@ -254,8 +254,8 @@
       "sublabel": "authorized ranked evidence contract",
       "tag": "PORT",
       "pos": [
-        305,
-        650
+        360,
+        670
       ],
       "size": [
         175,
@@ -276,7 +276,7 @@
       "sublabel": "chunk text + stable EvidenceRef",
       "tag": "APPLICATION DATA",
       "pos": [
-        545,
+        680,
         500
       ],
       "size": [
@@ -303,7 +303,7 @@
       "sublabel": "provider-neutral generation contract",
       "tag": "PORT",
       "pos": [
-        785,
+        1000,
         500
       ],
       "size": [
@@ -325,8 +325,8 @@
       "sublabel": "schema select · messages · model invoke",
       "tag": "ADAPTER",
       "pos": [
-        1020,
-        500
+        1000,
+        670
       ],
       "size": [
         190,
@@ -347,8 +347,8 @@
       "sublabel": "E1..EN → stable EvidenceRef",
       "tag": "DETERMINISTIC",
       "pos": [
-        1020,
-        650
+        680,
+        670
       ],
       "size": [
         190,
@@ -369,8 +369,8 @@
       "sublabel": "Troubleshooting · How-to · FAQ",
       "tag": "DOMAIN",
       "pos": [
-        785,
-        650
+        360,
+        670
       ],
       "size": [
         180,
@@ -420,13 +420,13 @@
       "id": "case-to-evaluator",
       "from": "resolved-case",
       "to": "closure-evaluator",
-      "label": "evaluate evidence"
+      "label": "evaluate"
     },
     {
       "id": "evaluator-to-orchestrator",
       "from": "closure-evaluator",
       "to": "closure-orchestrator",
-      "label": "SUFFICIENT / INSUFFICIENT"
+      "label": "status"
     },
     {
       "id": "orchestrator-to-ports",
@@ -441,25 +441,25 @@
       "id": "orchestrator-to-policy",
       "from": "closure-orchestrator",
       "to": "action-policy",
-      "label": "validated decision facts"
+      "label": "decision input"
     },
     {
       "id": "policy-to-decision",
       "from": "action-policy",
       "to": "knowledge-decision",
-      "label": "action + reason"
+      "label": "result"
     },
     {
       "id": "intake-to-article-orchestrator",
       "from": "article-intake",
       "to": "article-orchestrator",
-      "label": "request + profile + access"
+      "label": "command"
     },
     {
       "id": "article-to-retriever",
       "from": "article-orchestrator",
       "to": "retriever-port",
-      "label": "search; returns ranked chunks",
+      "label": "search",
       "variant": "dashed",
       "fromSide": "bottom",
       "toSide": "top"
@@ -468,25 +468,25 @@
       "id": "article-to-evidence",
       "from": "article-orchestrator",
       "to": "evidence-excerpts",
-      "label": "map chunks to refs"
+      "label": "map evidence"
     },
     {
       "id": "evidence-to-generator-port",
       "from": "evidence-excerpts",
       "to": "generator-port",
-      "label": "prompt inputs + excerpts"
+      "label": "generate"
     },
     {
       "id": "port-to-langchain",
       "from": "generator-port",
       "to": "langchain-adapter",
-      "label": "injected implementation"
+      "label": "implementation"
     },
     {
       "id": "langchain-to-resolver",
       "from": "langchain-adapter",
       "to": "alias-resolver",
-      "label": "structured result + evidence IDs",
+      "label": "evidence IDs",
       "fromSide": "bottom",
       "toSide": "top"
     },
@@ -494,7 +494,7 @@
       "id": "resolver-to-draft",
       "from": "alias-resolver",
       "to": "article-draft",
-      "label": "stable evidence-backed domain",
+      "label": "stable refs",
       "variant": "emphasis"
     }
   ],
