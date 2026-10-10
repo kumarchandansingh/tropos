@@ -386,12 +386,12 @@
         {
           "path": ".github/workflows/retrieval-regression-gate.yml",
           "line": 1,
-          "end_line": 97
+          "end_line": 96
         },
         {
           "path": "apps/api/src/tropos/evals/regression_gate.py",
           "line": 1,
-          "end_line": 326
+          "end_line": 321
         }
       ]
     },
@@ -413,12 +413,12 @@
         {
           "path": ".github/workflows/hybrid-real-eval.yml",
           "line": 1,
-          "end_line": 56
+          "end_line": 55
         },
         {
           "path": "apps/api/scripts/evaluate_hybrid_sentence_transformers.py",
           "line": 1,
-          "end_line": 252
+          "end_line": 275
         }
       ]
     }
