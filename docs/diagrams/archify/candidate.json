@@ -255,7 +255,7 @@
         {
           "path": ".github/workflows/ci.yml",
           "line": 1,
-          "end_line": 49
+          "end_line": 48
         }
       ]
     }
