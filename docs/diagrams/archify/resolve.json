@@ -369,8 +369,8 @@
       "sublabel": "Troubleshooting · How-to · FAQ",
       "tag": "DOMAIN",
       "pos": [
-        360,
-        670
+        680,
+        820
       ],
       "size": [
         180,
@@ -495,7 +495,9 @@
       "from": "alias-resolver",
       "to": "article-draft",
       "label": "stable refs",
-      "variant": "emphasis"
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
     }
   ],
   "cards": [
