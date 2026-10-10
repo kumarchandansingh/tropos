@@ -1,0 +1,46 @@
+name: Delivery Metrics
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * *"
+  issues:
+    types: [opened, closed, reopened, edited]
+  pull_request:
+    types: [closed]
+  deployment_status:
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+  deployments: read
+
+concurrency:
+  group: delivery-metrics
+  cancel-in-progress: true
+
+jobs:
+  update:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate delivery and DORA metrics
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/update_delivery_metrics.py
+
+      - name: Commit refreshed metrics
+        run: |
+          if git diff --quiet -- docs/product/delivery-metrics.md; then
+            echo "No metrics changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/product/delivery-metrics.md
+          git commit -m "docs: refresh delivery metrics"
+          git push
