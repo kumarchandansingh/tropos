@@ -82,6 +82,7 @@ class BenchmarkRetrievalQuery:
     relevant_knowledge_ids: tuple[str, ...]
     tags: tuple[str, ...]
     max_rank: int
+    split: EvalSplit | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,7 +130,7 @@ class EnterpriseSupportBenchmark:
                     query=query.query,
                     access=query.access,
                     relevant_knowledge_ids=query.relevant_knowledge_ids,
-                    tags=(*case.tags, *query.tags),
+                    tags=_merge_tags(case.tags, query.tags),
                 )
                 for query in case.retrieval_queries
             )
@@ -143,7 +144,7 @@ class EnterpriseSupportBenchmark:
                 tags=query.tags,
             )
             for query in self.negative_retrieval_cases
-            if _split_from_query_id(query.query_id) is selected_split
+            if query.split is selected_split
         )
         return tuple(projected)
 
@@ -227,14 +228,8 @@ class EnterpriseSupportBenchmark:
         )
 
 
-def _split_from_query_id(query_id: str) -> EvalSplit:
-    if query_id.startswith("NEG-DEV-"):
-        return EvalSplit.DEVELOPMENT
-    if query_id.startswith("NEG-HOLD-"):
-        return EvalSplit.HOLDOUT
-    if query_id.startswith("NEG-CHAL-"):
-        return EvalSplit.CHALLENGE
-    raise ValueError("negative retrieval query ID must encode DEV, HOLD, or CHAL split")
+def _merge_tags(*groups: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(tag for group in groups for tag in group))
 
 
 def _parse_document(raw: JsonValue) -> BenchmarkKnowledgeDocument:
@@ -257,6 +252,7 @@ def _parse_query(
     raw: JsonValue,
     *,
     access: RetrievalAccessContext | None = None,
+    split: EvalSplit | None = None,
 ) -> BenchmarkRetrievalQuery:
     row = _object(raw)
     query_access = access or RetrievalAccessContext(
@@ -273,6 +269,7 @@ def _parse_query(
         relevant_knowledge_ids=_strings(row["relevant_knowledge_ids"]),
         tags=_strings(row["tags"]),
         max_rank=max_rank,
+        split=split,
     )
 
 
@@ -478,7 +475,11 @@ def load_enterprise_support_benchmark(path: Path) -> EnterpriseSupportBenchmark:
         raise ValueError("benchmark cases require unique case IDs")
 
     negative = tuple(
-        _parse_query(item) for item in _array(raw["negative_retrieval_cases"])
+        _parse_query(
+            item,
+            split=EvalSplit(_text(_object(item)["split"])),
+        )
+        for item in _array(raw["negative_retrieval_cases"])
     )
 
     all_query_ids = [
@@ -491,7 +492,8 @@ def load_enterprise_support_benchmark(path: Path) -> EnterpriseSupportBenchmark:
     for query in negative:
         if query.relevant_knowledge_ids:
             raise ValueError("negative retrieval cases cannot declare relevant knowledge")
-        _split_from_query_id(query.query_id)
+        if query.split is None:
+            raise ValueError("negative retrieval cases require an explicit split")
 
     return EnterpriseSupportBenchmark(
         dataset_id=_text(raw["dataset_id"]),
