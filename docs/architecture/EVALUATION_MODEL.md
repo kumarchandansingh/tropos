@@ -40,6 +40,10 @@ Resolved case / governed source knowledge
                 ↓
             Retrieval
                 ↓
+       Candidate evidence
+                ↓
+      Evidence sufficiency
+                ↓
        Selected evidence
                 ↓
     Knowledge Article generation
@@ -56,6 +60,10 @@ Retrieval
 ├── software tests
 ├── invariant checks
 └── retrieval benchmark
+
+Evidence sufficiency
+├── human-labelled benchmark
+└── future calibrated sufficiency subject
 
 Knowledge Article generation
 ├── software tests
@@ -75,6 +83,16 @@ The product question is: **did Tropos return the right current, authorized evide
 - Benchmarks measure quality such as Recall@K, ranking, and no-answer behavior.
 
 Security/currentness failures are not “low recall”. They are invariant failures and are reported separately from benchmark quality.
+
+### Evidence sufficiency
+
+The product question is: **does the supplied evidence set contain all information required to answer the query completely and safely?**
+
+This is distinct from retrieval relevance. A passage can be correctly retrieved and still be insufficient because a required fact is missing, coverage is partial, evidence conflicts, guidance is stale, required evidence is inaccessible, or the passage is merely on-topic.
+
+V1 stores 16 unlabelled candidates with public-source provenance. Candidates are not executable goldens. Only human-reviewed and human-adjudicated cases can project into the generic evaluation runtime.
+
+See [Evidence sufficiency benchmark V1](../quality/EVIDENCE_SUFFICIENCY.md) and [ADR-021](../decisions/ADR-021-human-approved-evidence-sufficiency-goldens.md).
 
 ### Knowledge Article generation
 
@@ -141,6 +159,7 @@ If those four answers are unclear, the test/eval definition is not ready.
 | Retrieval | BM25 in PR gate | shared deterministic invariants + Recall/MRR/no-answer metrics through generic EvalRun comparison | implemented |
 | Retrieval | BM25, dense MPNet, hybrid RRF nightly | shared retrieval executor → EvalObservation/EvalScore → EvalRun | implemented |
 | Retrieval abstention | strategy-specific top-score threshold | development calibration → frozen holdout/challenge verification | implemented V1 baseline |
+| Evidence sufficiency | unlabelled query + evidence-set candidates | human review + adjudication required before generic EvalDataset projection | contract + candidate data implemented; 0 approved goldens |
 | Knowledge Article artifact | hand-authored `KnowledgeArticleDraft` fixtures | deterministic article grader | grader validation only |
 | Knowledge Article real model output | generator + real model | not wired into generic run path | not yet implemented |
 | Product outcome | agent/user workflow | human/production outcome | not yet implemented |
@@ -181,6 +200,8 @@ See [ADR-019](../decisions/ADR-019-unified-retrieval-evaluation-runtime.md).
 - Run shared retrieval invariants against every retriever that can ship.
 - Prefer one execution/result/persistence shape across BM25, dense, and hybrid retrieval.
 - Calibrate retrieval abstention separately from ranking; keep score diagnostics strategy-native.
+- Treat retrieval relevance and evidence sufficiency as different quality questions.
+- Require human-approved labels before calibrating a model-based sufficiency grader.
 - Grow the retrieval benchmark only after the execution path is clear.
 - Introduce repeated trials when a real stochastic model is the subject.
 - Prefer deterministic graders where the desired behavior is exact.
