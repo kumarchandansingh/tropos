@@ -178,12 +178,8 @@ def test_regression_gate_markdown_exposes_revisions_and_regressed_cases() -> Non
 
 
 def test_direct_generic_run_comparison_uses_the_same_retrieval_gate_policy() -> None:
-    baseline = _to_eval_run(
-        _report("base", answerable_quality=1.0, answerable_passed=True)
-    )
-    candidate = _to_eval_run(
-        _report("head", answerable_quality=0.0, answerable_passed=False)
-    )
+    baseline = _to_eval_run(_report("base", answerable_quality=1.0, answerable_passed=True))
+    candidate = _to_eval_run(_report("head", answerable_quality=0.0, answerable_passed=False))
 
     decision = compare_retrieval_runs(baseline, candidate)
 
