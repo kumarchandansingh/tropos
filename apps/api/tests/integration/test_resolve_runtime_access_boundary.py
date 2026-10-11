@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tropos.capabilities.resolve.application.evaluate_evidence_sufficiency import (
+    JudgedSufficiency,
+)
 from tropos.capabilities.resolve.application.generate_grounded_answer import (
     GeneratedGroundedAnswer,
 )
@@ -15,7 +18,7 @@ from tropos.core.application.retrieval.models import RetrievalAccessContext
 
 
 class MustNotJudge:
-    def judge(self, evidence_set: EvidenceSet) -> object:
+    def judge(self, evidence_set: EvidenceSet) -> JudgedSufficiency:
         raise AssertionError("unauthorized evidence must not reach sufficiency")
 
 
@@ -41,7 +44,7 @@ def test_restricted_evidence_is_excluded_before_model_stages(tmp_path: Path) -> 
     sink = InMemoryTraceSink()
     runtime = ResolveQuestion(
         retriever=SQLiteFtsKnowledgeRetriever(database),
-        sufficiency_judge=MustNotJudge(),  # type: ignore[arg-type]
+        sufficiency_judge=MustNotJudge()
         answer_generator=MustNotGenerate(),
         trace_sink=sink,
     )
