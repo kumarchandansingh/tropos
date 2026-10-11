@@ -391,11 +391,15 @@ def calibrate_top_score_threshold(
         point
         for point in points
         if not any(
-            other.metrics.answerable_recall_at_5 >= point.metrics.answerable_recall_at_5
-            and other.metrics.unsupported_evidence_return_rate <= point.metrics.unsupported_evidence_return_rate
+            other.metrics.answerable_recall_at_5
+            >= point.metrics.answerable_recall_at_5
+            and other.metrics.unsupported_evidence_return_rate
+            <= point.metrics.unsupported_evidence_return_rate
             and (
-                other.metrics.answerable_recall_at_5 > point.metrics.answerable_recall_at_5
-                or other.metrics.unsupported_evidence_return_rate < point.metrics.unsupported_evidence_return_rate
+                other.metrics.answerable_recall_at_5
+                > point.metrics.answerable_recall_at_5
+                or other.metrics.unsupported_evidence_return_rate
+                < point.metrics.unsupported_evidence_return_rate
             )
             for other in points
         )
