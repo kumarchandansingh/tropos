@@ -66,7 +66,7 @@ Sprint 1 is complete. Governed evidence plus typed intake can produce a troubles
 | ID | Priority | Story | SP | Dependencies |
 |---|---|---|---:|---|
 | QE-103 | P0 | Build experiment runner and baseline-vs-candidate regression comparison, including paired uncertainty | 8 | QE-101, QE-102 |
-| QE-108 | P0 | Build retrieval benchmark v2 with locked holdout, chunk labels, scenario taxonomy and confidence intervals | 8 | existing retrieval eval |
+| QE-108 | P0 | Build retrieval benchmark v2 with locked holdout, chunk labels, scenario taxonomy and confidence intervals | 8 | existing retrieval eval — realistic enterprise-support case seed delivered; scale/chunk labels/uncertainty remain |
 | QE-109 | P0 | Calibrate retrieval abstention and false-answer risk | 8 | QE-108 |
 | QE-110 | P0 | Turn retrieval evals into reproducible CI/nightly regression gates | 5 | QE-103 |
 | QE-111 | P1 | Calibrate semantic generation judge against human-labelled claims | 8 | QE-102, QE-103 |
@@ -76,7 +76,7 @@ Sprint 1 is complete. Governed evidence plus typed intake can produce a troubles
 
 ### Sprint 2 delivery status
 
-QE-103 is delivered by PR #82: Tropos can now execute and persist generic evaluation experiments, compare baseline and candidate runs case-by-case, calculate paired metric deltas with optional bootstrap uncertainty, and distinguish hard invariants from decision metrics. QE-108 through QE-112 remain open.
+QE-103 is delivered by PR #82: Tropos can now execute and persist generic evaluation experiments, compare baseline and candidate runs case-by-case, calculate paired metric deltas with optional bootstrap uncertainty, and distinguish hard invariants from decision metrics. QE-108 is now in progress: the repository contains a 16-case realistic enterprise-support seed with 48 retrieval queries, balanced Resolve actions, split-aware projections, and 8 Knowledge Article expectations. The release-scale sample targets, chunk-level labels, blind holdout mechanics, and uncertainty reporting remain open. QE-109 through QE-112 remain open.
 
 ### Sprint 2 acceptance outcome
 
