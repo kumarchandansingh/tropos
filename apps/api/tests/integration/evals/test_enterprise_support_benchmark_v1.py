@@ -175,12 +175,9 @@ def test_benchmark_rejects_reference_article_with_unknown_evidence(
     tmp_path: Path,
 ) -> None:
     raw = json.loads(DATASET.read_text(encoding="utf-8"))
-    article_case = next(case for case in raw["cases"] if case["article_expectation"])
+    article_case = next(case for case in raw["cases"] if case["case_id"] == "ES-ENT-002")
     reference = article_case["article_expectation"]["reference_article"]
-    reference["title"] = {
-        "text": "invalid",
-        "evidence_chunk_ids": ["missing-evidence"],
-    }
+    reference["issue_description"]["evidence_chunk_ids"] = ["missing-evidence"]
     invalid = tmp_path / "invalid-reference.json"
     invalid.write_text(json.dumps(raw), encoding="utf-8")
 
