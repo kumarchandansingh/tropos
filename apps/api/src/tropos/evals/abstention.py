@@ -5,6 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import inf, isfinite, nextafter
 
+from tropos.core.application.ports.retrieval import KnowledgeChunkRetriever
+from tropos.core.application.retrieval.models import (
+    KnowledgeSearchRequest,
+    RetrievedKnowledgeChunk,
+)
 from tropos.evals.contracts import EvalObservation, EvalRun, EvalRunStatus, JsonObject
 
 _POLICY_VERSION = "top-score-threshold-v1"
@@ -71,17 +76,34 @@ class TopScoreAbstentionPolicy:
             if not value.strip():
                 raise ValueError(f"{field_name} must not be blank")
 
+    def abstains_for_score(
+        self,
+        *,
+        result_count: int,
+        top_score: float | None,
+    ) -> bool:
+        if type(result_count) is not int or result_count < 0:
+            raise ValueError("result_count must be a non-negative integer")
+        if result_count == 0:
+            return True
+        if isinstance(top_score, bool) or not isinstance(top_score, int | float):
+            raise ValueError("non-empty retrieval results require numeric top_score")
+        return float(top_score) < self.threshold
+
     def abstains(self, observation: EvalObservation) -> bool:
         diagnostics = _diagnostics(observation)
         result_count = diagnostics["result_count"]
         top_score = diagnostics["top_score"]
-        if type(result_count) is not int or result_count < 0:
-            raise ValueError("retrieval diagnostics result_count must be a non-negative integer")
-        if result_count == 0:
-            return True
-        if isinstance(top_score, bool) or not isinstance(top_score, int | float):
-            raise ValueError("non-empty retrieval diagnostics require numeric top_score")
-        return float(top_score) < self.threshold
+        if type(result_count) is not int:
+            raise ValueError("retrieval diagnostics result_count must be an integer")
+        if top_score is not None and (
+            isinstance(top_score, bool) or not isinstance(top_score, int | float)
+        ):
+            raise ValueError("retrieval diagnostics top_score must be numeric or null")
+        return self.abstains_for_score(
+            result_count=result_count,
+            top_score=None if top_score is None else float(top_score),
+        )
 
     def as_dict(self) -> JsonObject:
         return {
@@ -97,6 +119,50 @@ class TopScoreAbstentionPolicy:
                 "fingerprint": self.calibration_dataset_fingerprint,
             },
         }
+
+
+class TopScoreThresholdRetriever:
+    """Apply a calibrated score threshold without changing the base retriever."""
+
+    def __init__(
+        self,
+        *,
+        retriever: KnowledgeChunkRetriever,
+        policy: TopScoreAbstentionPolicy,
+    ) -> None:
+        if retriever.strategy_version != policy.strategy_version:
+            raise ValueError("abstention policy strategy does not match base retriever")
+        self._retriever = retriever
+        self._policy = policy
+
+    @property
+    def strategy_version(self) -> str:
+        return (
+            f"{self._retriever.strategy_version}+{self._policy.policy_version}:"
+            f"threshold={self._policy.threshold:.17g}"
+        )
+
+    def search(
+        self,
+        request: KnowledgeSearchRequest,
+    ) -> tuple[RetrievedKnowledgeChunk, ...]:
+        results = self._retriever.search(request)
+        top_score = results[0].score if results else None
+        if self._policy.abstains_for_score(
+            result_count=len(results),
+            top_score=top_score,
+        ):
+            return ()
+
+        return tuple(
+            RetrievedKnowledgeChunk(
+                chunk=result.chunk,
+                rank=result.rank,
+                score=result.score,
+                strategy_version=self.strategy_version,
+            )
+            for result in results
+        )
 
 
 @dataclass(frozen=True, slots=True)
