@@ -30,6 +30,7 @@ from tropos.evals.contracts import (
     EvalSplit,
     JsonObject,
     JsonValue,
+    fingerprint,
 )
 from tropos.evals.retrieval import RetrievalEvalCase
 
@@ -156,6 +157,20 @@ class EnterpriseSupportBenchmark:
 
         selected_split = split or self.default_split
         cases: list[EvalCase] = []
+        corpus_fingerprint = fingerprint(
+            [
+                {
+                    "knowledge_id": document.knowledge_id,
+                    "title": document.title,
+                    "text": document.text,
+                    "source_version": document.source_version,
+                    "tenant_id": document.access.tenant_id,
+                    "scope": document.access.scope.value,
+                    "allowed_groups": list(document.access.allowed_groups),
+                }
+                for document in self.knowledge_documents
+            ]
+        )
 
         for support_case in self.cases_for_split(selected_split):
             for query in support_case.retrieval_queries:
@@ -174,6 +189,7 @@ class EnterpriseSupportBenchmark:
                             "tenant_id": query.access.tenant_id,
                             "groups": list(query.access.groups),
                             "max_rank": query.max_rank,
+                            "corpus_fingerprint": corpus_fingerprint,
                         },
                         expected={
                             "relevant_knowledge_ids": list(
