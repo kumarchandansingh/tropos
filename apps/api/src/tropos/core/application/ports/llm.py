@@ -90,19 +90,19 @@ class LLMInvocationMetadata:
     provider_request_id: str | None = None
 
     def __post_init__(self) -> None:
-        for value in (
+        for identifier in (
             self.provider_id,
             self.connection_id,
             self.deployment_id,
             self.model_identifier,
             self.prompt_version,
         ):
-            if not value.strip():
+            if not identifier.strip():
                 raise ValueError("LLM invocation identifiers must not be blank")
         if self.latency_ms < 0:
             raise ValueError("latency_ms must not be negative")
-        for value in (self.input_tokens, self.output_tokens, self.total_tokens):
-            if value is not None and value < 0:
+        for token_count in (self.input_tokens, self.output_tokens, self.total_tokens):
+            if token_count is not None and token_count < 0:
                 raise ValueError("token counts must not be negative")
 
 
