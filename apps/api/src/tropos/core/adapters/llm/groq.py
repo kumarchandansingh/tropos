@@ -7,6 +7,8 @@ import socket
 from collections.abc import Mapping
 from time import monotonic
 from typing import Protocol, cast
+
+from pydantic import BaseModel
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -16,7 +18,6 @@ from tropos.core.application.ports.llm import (
     ModelDeployment,
     StructuredCompletionRequest,
     StructuredCompletionResult,
-    StructuredT,
     TextCompletionRequest,
     TextCompletionResult,
 )
@@ -141,7 +142,7 @@ class GroqLLMAdapter:
             ),
         )
 
-    def complete_structured(
+    def complete_structured[StructuredT: BaseModel](
         self,
         request: StructuredCompletionRequest[StructuredT],
     ) -> StructuredCompletionResult[StructuredT]:
@@ -171,7 +172,7 @@ class GroqLLMAdapter:
 
     def _base_payload(
         self,
-        request: TextCompletionRequest | StructuredCompletionRequest[StructuredT],
+        request: TextCompletionRequest | StructuredCompletionRequest[BaseModel],
     ) -> dict[str, object]:
         return {
             "model": self._deployment.model_identifier,
