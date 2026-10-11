@@ -23,6 +23,7 @@ Architecture Decision Records (ADRs) preserve the context, alternatives, and con
 | [ADR-015](ADR-015-evidence-led-dense-and-hybrid-retrieval.md) | Accepted | Evolve retrieval through exact dense search and RRF hybrid before ANN/reranking complexity |
 | [ADR-016](ADR-016-stable-evidence-references-with-model-local-aliases.md) | Accepted | Use temporary model aliases that resolve to stable EvidenceRef identities |
 | [ADR-017](ADR-017-bounded-business-generation-controls.md) | Accepted | Expose bounded business controls while keeping generation governance system-owned |
+| [ADR-018](ADR-018-gated-public-documentation.md) | Accepted | Treat public documentation as a gated delivery artifact |
 
 ## Scope
 
@@ -53,6 +54,10 @@ Planned technologies are not accepted decisions until the project has enough req
 ## Context
 
 Describe the problem, constraints, and decision scope.
+
+## Decision drivers and constraints
+
+Describe the quality attributes, constraints, stakeholder concerns, and evidence that shape the choice.
 
 ## Options considered
 
@@ -85,3 +90,10 @@ State the conditions that should trigger reconsideration.
 
 Accepted ADRs remain part of the decision history. When a decision changes materially, add a superseding ADR or explicitly mark the existing record as superseded rather than removing the historical context.
 
+
+
+## Public writing rule
+
+Decision records are public engineering artifacts. They explain the system and the reasoning behind durable choices; they do not contain personal preparation notes or audience-specific career framing.
+
+For the repository-wide content model, writing standard, and CI enforcement rules, see [Public documentation standard](../standards/PUBLIC_DOCUMENTATION_STANDARD.md).
