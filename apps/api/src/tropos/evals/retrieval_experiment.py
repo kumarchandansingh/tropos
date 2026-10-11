@@ -2,21 +2,29 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from time import perf_counter
 
 from tropos.core.application.ports.retrieval import KnowledgeChunkRetriever
 from tropos.core.application.retrieval.models import RetrievalAccessContext
 from tropos.core.domain.knowledge_chunk import KnowledgeChunk
 from tropos.evals.contracts import (
+    EvalApproval,
     EvalCase,
+    EvalDataset,
     EvalObservation,
+    EvalOrigin,
     EvalObservationState,
     EvalRun,
+    EvalScope,
     EvalScore,
     EvalScoreSource,
+    EvalSplit,
     JsonObject,
     JsonValue,
 )
+from tropos.evals.catalogue import Catalogue
+from tropos.evals.fixtures import prepare_fixture
 from tropos.evals.retrieval_case_evaluation import (
     RetrievalCaseSpec,
     evaluate_retrieval_case,
@@ -183,6 +191,61 @@ class RetrievalExperimentExecutor:
             scores=tuple(scores),
             duration_ms=duration_ms,
         )
+
+
+
+def catalogue_retrieval_dataset(
+    catalogue: Catalogue,
+    *,
+    split: EvalSplit = EvalSplit.DEVELOPMENT,
+) -> EvalDataset:
+    """Project approved saved-run catalogue cases into the generic dataset model."""
+
+    cases = tuple(
+        EvalCase(
+            case_id=case.case_id,
+            purpose=case.purpose,
+            scope=EvalScope.COMPONENT,
+            approval=EvalApproval.APPROVED,
+            origin=EvalOrigin.SYNTHETIC,
+            inputs={
+                "query": case.query,
+                "tenant_id": case.access.tenant_id,
+                "groups": list(case.access.groups),
+                "max_rank": case.max_rank,
+            },
+            expected={"relevant_knowledge_ids": list(case.relevant_ids)},
+            tags=case.tags,
+        )
+        for case in catalogue.cases
+        if case.status == "approved"
+    )
+    return EvalDataset(
+        dataset_id=catalogue.dataset_id,
+        version=catalogue.version,
+        capability="retrieval",
+        split=split,
+        cases=cases,
+    )
+
+
+class CatalogueRetrievalExperimentExecutor:
+    """Run saved catalogue cases through the same generic observation contract."""
+
+    def __init__(self, *, catalogue: Catalogue, directory: Path) -> None:
+        self._catalogue = catalogue
+        self._directory = directory
+        self._by_id = {case.case_id: case for case in catalogue.cases}
+
+    def execute(self, case: EvalCase) -> EvalObservation:
+        planned = self._by_id.get(case.case_id)
+        if planned is None or planned.status != "approved":
+            raise ValueError("generic catalogue run received an unknown or unapproved case")
+        context = prepare_fixture(self._catalogue, planned, self._directory)
+        return RetrievalExperimentExecutor(
+            retriever=context.retriever,
+            current_chunks=context.current_chunks,
+        ).execute(case)
 
 
 def hard_invariant_failures(run: EvalRun) -> tuple[tuple[str, str], ...]:
