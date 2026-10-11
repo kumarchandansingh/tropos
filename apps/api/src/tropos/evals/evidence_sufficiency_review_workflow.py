@@ -14,7 +14,7 @@ from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 
-from tropos.evals.contracts import EvalApproval, JsonObject
+from tropos.evals.contracts import EvalApproval, JsonObject, JsonValue
 from tropos.evals.evidence_sufficiency import (
     EvidenceSufficiencyBenchmark,
     EvidenceSufficiencyCase,
@@ -233,8 +233,8 @@ def agreement_summary(benchmark: EvidenceSufficiencyBenchmark) -> JsonObject:
         "double_reviewed_case_count": count,
         "label_agreement": None if count == 0 else label_matches / count,
         "label_reason_agreement": None if count == 0 else label_reason_matches / count,
-        "disagreement_case_ids": disagreement_case_ids,
-        "low_confidence_case_ids": low_confidence_case_ids,
+        "disagreement_case_ids": [case_id for case_id in disagreement_case_ids],
+        "low_confidence_case_ids": [case_id for case_id in low_confidence_case_ids],
     }
 
 
@@ -332,7 +332,7 @@ def import_adjudication_packet(
 def benchmark_snapshot(benchmark: EvidenceSufficiencyBenchmark) -> JsonObject:
     """Serialize the benchmark without losing review/adjudication lineage."""
 
-    cases: list[JsonObject] = []
+    cases: list[JsonValue] = []
     for case in benchmark.cases:
         cases.append(
             {
