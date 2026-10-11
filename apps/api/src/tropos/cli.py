@@ -212,9 +212,7 @@ def main() -> int:
 
         if arguments.command == "ask":
             database = arguments.database.expanduser().resolve()
-            groups = tuple(
-                sorted({group.strip() for group in arguments.group if group.strip()})
-            )
+            groups = tuple(sorted({group.strip() for group in arguments.group if group.strip()}))
             access = RetrievalAccessContext(
                 tenant_id=arguments.tenant,
                 groups=groups,

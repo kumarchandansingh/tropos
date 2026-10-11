@@ -46,11 +46,7 @@ def _evidence() -> EvidenceSet:
 
 def test_generator_resolves_alias_to_exact_evidence_ref() -> None:
     generator = LLMGroundedAnswerGenerator(
-        FakeLLM(
-            structured_outputs=(
-                AnswerFixture(answer="Restart it.", citations=["E1"]),
-            )
-        )
+        FakeLLM(structured_outputs=(AnswerFixture(answer="Restart it.", citations=["E1"]),))
     )
 
     result = generator.generate(_evidence())
@@ -61,11 +57,7 @@ def test_generator_resolves_alias_to_exact_evidence_ref() -> None:
 
 def test_generator_fails_closed_on_unknown_citation() -> None:
     generator = LLMGroundedAnswerGenerator(
-        FakeLLM(
-            structured_outputs=(
-                AnswerFixture(answer="Invented answer.", citations=["E99"]),
-            )
-        )
+        FakeLLM(structured_outputs=(AnswerFixture(answer="Invented answer.", citations=["E99"]),))
     )
 
     with pytest.raises(ValueError, match="unknown evidence citation"):

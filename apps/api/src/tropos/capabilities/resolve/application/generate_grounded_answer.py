@@ -47,13 +47,8 @@ class LLMGroundedAnswerGenerator:
         self._llm = llm
 
     def generate(self, evidence_set: EvidenceSet) -> GeneratedGroundedAnswer:
-        evidence_text = "\n\n".join(
-            f"[{item.alias}] {item.text}" for item in evidence_set.items
-        )
-        user_prompt = (
-            f"Query:\n{evidence_set.query}\n\n"
-            f"Eligible evidence:\n{evidence_text}"
-        )
+        evidence_text = "\n\n".join(f"[{item.alias}] {item.text}" for item in evidence_set.items)
+        user_prompt = f"Query:\n{evidence_set.query}\n\nEligible evidence:\n{evidence_text}"
         completion = self._llm.complete_structured(
             StructuredCompletionRequest(
                 system_prompt=_SYSTEM_PROMPT,
