@@ -178,6 +178,7 @@ class RetrievalExperimentExecutor:
             "groups": list(spec.access.groups),
             "expected_knowledge_ids": list(spec.relevant_knowledge_ids),
             "max_rank": spec.max_rank,
+            "retrieval_diagnostics": evaluation.diagnostics,
             "hits": list(evaluation.hits),
         }
         return EvalObservation(

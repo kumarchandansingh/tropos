@@ -45,6 +45,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/tropos-real-eval"
           uv run --with sentence-transformers==6.1.0 \
             python scripts/evaluate_enterprise_support_retrieval.py \
+            --minimum-answerable-recall 0.90 \
             --lockfile uv.lock \
             --database "$RUNNER_TEMP/tropos-real-eval/experiments.sqlite" \
             --output "$RUNNER_TEMP/tropos-real-eval/report.json"

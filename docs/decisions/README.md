@@ -25,6 +25,7 @@ Architecture Decision Records (ADRs) preserve the context, alternatives, and con
 | [ADR-017](ADR-017-bounded-business-generation-controls.md) | Accepted | Expose bounded business controls while keeping generation governance system-owned |
 | [ADR-018](ADR-018-gated-public-documentation.md) | Accepted | Treat public documentation as a gated delivery artifact |
 | [ADR-019](ADR-019-unified-retrieval-evaluation-runtime.md) | Accepted | Converge retrieval evaluation on the generic EvalRun runtime |
+| [ADR-020](ADR-020-calibrated-retrieval-abstention.md) | Accepted | Calibrate retrieval abstention outside the retrieval strategy |
 
 ## Scope
 

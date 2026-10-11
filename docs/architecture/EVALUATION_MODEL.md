@@ -140,6 +140,7 @@ If those four answers are unclear, the test/eval definition is not ready.
 | --- | --- | --- | --- |
 | Retrieval | BM25 in PR gate | shared deterministic invariants + Recall/MRR/no-answer metrics through generic EvalRun comparison | implemented |
 | Retrieval | BM25, dense MPNet, hybrid RRF nightly | shared retrieval executor → EvalObservation/EvalScore → EvalRun | implemented |
+| Retrieval abstention | strategy-specific top-score threshold | development calibration → frozen holdout/challenge verification | implemented V1 baseline |
 | Knowledge Article artifact | hand-authored `KnowledgeArticleDraft` fixtures | deterministic article grader | grader validation only |
 | Knowledge Article real model output | generator + real model | not wired into generic run path | not yet implemented |
 | Product outcome | agent/user workflow | human/production outcome | not yet implemented |
@@ -179,6 +180,7 @@ See [ADR-019](../decisions/ADR-019-unified-retrieval-evaluation-runtime.md).
 - Keep invariant checks separate from benchmark metrics in reports and gate semantics.
 - Run shared retrieval invariants against every retriever that can ship.
 - Prefer one execution/result/persistence shape across BM25, dense, and hybrid retrieval.
+- Calibrate retrieval abstention separately from ranking; keep score diagnostics strategy-native.
 - Grow the retrieval benchmark only after the execution path is clear.
 - Introduce repeated trials when a real stochastic model is the subject.
 - Prefer deterministic graders where the desired behavior is exact.
