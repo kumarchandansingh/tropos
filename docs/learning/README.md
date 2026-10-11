@@ -1,95 +1,52 @@
-# Tropos learning track
+# Engineering deep dives
 
-This folder turns Tropos implementation work into reusable engineering understanding.
+## Purpose
 
-The learning track is **not** product documentation and does not replace architecture docs or Architecture Decision Records (ADRs). Product docs explain what Tropos is; ADRs explain durable decisions; this folder teaches the engineering concepts behind those decisions and translates them into interview-ready reasoning.
+This folder explains selected Tropos mechanisms in more depth than the living architecture requires. The notes connect a measured system problem to the design options, trade-offs, implementation boundary, and evidence used to evaluate the decision.
 
-```mermaid
-flowchart LR
-    P[Real system problem]
-    --> F[Failure modes]
-    --> I[Invariant]
-    --> O[Design options]
-    --> T[Trade-offs]
-    --> B[Tropos build]
-    --> E[Evidence / evaluation]
-    --> Q[Interview questions]
-```
+These notes are public engineering material. They are not authoritative for implementation status; product and architecture documents remain the source of truth for the current system.
 
-## Current guides
+## Current deep dives
 
-### [Technical glossary](../GLOSSARY.md)
+### [Dense Retrieval V1](DENSE_RETRIEVAL_V1.md)
 
-Use this whenever a document introduces shorthand such as Access Control List (ACL), Approximate Nearest Neighbor (ANN), Reciprocal Rank Fusion (RRF), Mean Reciprocal Rank (MRR), or Hierarchical Navigable Small World (HNSW). Guides should expand technical abbreviations on first use and use the shorthand only after the meaning is established.
+Explains:
 
-
-### [Enterprise Knowledge Systems — Interview Playbook](ENTERPRISE_KNOWLEDGE_SYSTEMS_INTERVIEW_GUIDE.md)
-
-Use this for:
-
-- hashing, fingerprints, canonicalization, and versioning;
-- idempotency, concurrency, ordering, transactions, and consistency;
-- parsing, chunking, lexical retrieval, embeddings, and vector indexing;
-- access control, enterprise synchronization, retries, checkpoints, and observability;
-- retrieval evaluation, migration, scale, and retrieval-augmented generation (RAG) failure modes;
-- interview-style questions and sample answers grounded in the Tropos architecture.
-
-### [Dense Retrieval V1 — System Design, Decisions, and Evidence Plan](DENSE_RETRIEVAL_V1.md)
-
-Use this for the semantic-retrieval design exercise and implementation boundary:
-
-- why embeddings are derived from canonical chunks rather than part of canonical identity;
+- why embeddings are derived state rather than canonical knowledge;
 - embedding model/version lineage and idempotent materialization;
-- revised/deleted/access-control-changed document behavior;
+- revised, deleted, and access-control-changed document behavior;
 - governed candidate filtering before similarity ranking;
 - exact cosine search before approximate nearest-neighbor (ANN) indexing;
-- no-answer trade-offs, hybrid/reranking/Maximum Marginal Relevance (MMR) deferrals, and real-model evaluation evidence.
+- measured no-answer behavior and the evidence required before adding more retrieval complexity.
 
-### [Hybrid Retrieval V1 — Reciprocal Rank Fusion](HYBRID_RETRIEVAL_V1.md)
+### [Hybrid Retrieval V1](HYBRID_RETRIEVAL_V1.md)
 
-Use this for the next measured retrieval experiment:
+Explains:
 
-- sparse/lexical BM25 versus dense/semantic retrieval;
-- why raw BM25 and cosine scores are not directly comparable;
-- Reciprocal Rank Fusion (RRF) mechanics;
-- candidate-depth trade-offs;
-- the distinction between hybrid ranking and no-answer/abstention policy;
-- the evidence required before adding reranking or thresholds.
+- lexical BM25 and dense semantic retrieval as complementary rankers;
+- Reciprocal Rank Fusion (RRF);
+- candidate-depth and fusion trade-offs;
+- the boundary between ranking and abstention;
+- evidence required before adding reranking or approximate vector search.
 
-### [Enterprise Knowledge Systems — Decision & Trade-off Matrix](DECISION_TRADEOFFS.md)
+### [Evaluation evidence](EVALUATION_EVIDENCE.md)
 
-Use this when the interviewer pushes beyond **what did you build?** into:
+Explains the current retrieval evidence, limitations of the synthetic corpus, and how evaluation evidence informs subsequent design work.
 
-- what alternatives did you consider?
-- why did you select this option at the current scale?
-- what did you give up by choosing it?
-- what production signal would make you revisit the decision?
-- how would the design migrate as scale, reliability, security, or product requirements change?
+### [Engineering decision register](DECISION_TRADEOFFS.md)
 
-The matrix covers the current and planned Tropos decisions around identity, idempotency, parsing, canonicalization, hashing, versioning, governance, concurrency, ordering, transactions, chunking, retrieval, authorization, evaluation, vector search, hybrid search, persistence, and enterprise synchronization.
+Summarizes important design choices across identity, versioning, governance, concurrency, chunking, retrieval, evaluation, persistence, and synchronization. Durable architecture decisions remain canonical in the Architecture Decision Record index.
 
-## Working rule for future feature PRs
+## Working rule
 
-When a feature introduces a meaningful reusable engineering concept, the same PR should update the relevant learning material with:
+A deep dive is appropriate when a mechanism benefits from more explanation than the living architecture should carry. It should answer:
 
-1. the concept and vocabulary;
-2. the real-world failure mode it solves;
-3. the invariant being protected;
-4. realistic alternatives considered;
-5. the selected decision and why it fits the current constraints;
-6. the downside / cost of the choice;
-7. the explicit revisit trigger;
-8. the Tropos implementation;
-9. test/evaluation evidence;
-10. interview probes;
-11. scale, release, or migration implications.
+1. What system problem motivated the mechanism?
+2. What constraints and quality attributes matter?
+3. Which credible options exist?
+4. What did Tropos choose at the current scale?
+5. What does that choice give up?
+6. What evidence supports the choice?
+7. What would trigger a different design?
 
-Do not duplicate implementation reference material here. Link back to architecture docs and ADRs for the authoritative system state.
-
-## Local cleanup and external-operation consistency
-
-The [Katharo learning track](../../katharo/docs/learning/README.md) and [decision matrix](../../katharo/docs/learning/DECISION_TRADEOFFS.md) apply these concepts to exact file identity, document review, stale approvals, quarantine manifests, restore conflicts, and database/filesystem consistency.
-
-## Evaluation evidence
-
-[Evaluation evidence](EVALUATION_EVIDENCE.md) explains versioned test plans, immutable observations, errors versus relevance failures, independent evidence checks and the cost of isolated fixtures.
+A feature is not complete merely because a deep dive exists. Material changes must also update the authoritative product, architecture, quality, delivery, or decision documentation identified in the [public documentation standard](../standards/PUBLIC_DOCUMENTATION_STANDARD.md).

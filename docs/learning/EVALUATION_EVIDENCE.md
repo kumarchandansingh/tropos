@@ -1,6 +1,6 @@
-# Learning: a test plan is not a test result
+# Evaluation evidence: a test plan is not a test result
 
-> **Terminology note:** See the [Technical glossary](../GLOSSARY.md) for abbreviations used across the learning track.
+> **Terminology note:** See the [Technical glossary](../GLOSSARY.md) for abbreviations used in this note.
 
 Authoritative behavior: [Saved evaluation architecture](../architecture/EVALUATION_RUNS.md).
 Decision: [Architecture Decision Record (ADR) 012](../decisions/ADR-012-versioned-evaluation-catalogues-and-saved-runs.md).
@@ -26,14 +26,6 @@ Isolated per-case ingestion costs execution time but prevents one access-revocat
 The standalone Windows command exposed a resource-lifecycle bug: SQLite's connection context commits or rolls back a transaction but does not close the connection. Temporary fixture cleanup could therefore fail after an otherwise completed run. Both ingestion and retrieval adapters now close connections explicitly after transaction completion, including exception paths. The command regression disables garbage collection and verifies saved results plus immediate temporary-directory cleanup, preventing success that depends on incidental collection timing.
 
 `test_saved_runs.py` covers changed-definition rejection, lifecycle scenarios, unauthorized/old/forged returned evidence, error continuation, interruption, terminal-state protection and read-only reporting. The unchanged V1 test preserves the earlier lexical baseline. V2 records 15 expected Best Matching 25 (BM25) lexical-retrieval passes, two semantic misses and one unexecuted draft; honest failure data is the input to the future vector comparison.
-
-## Interview probes
-
-- Why can a completed run fail? All queries can execute successfully while returning the wrong evidence.
-- Why is a missing result not always a no-answer pass? A backend error is absence of observation, not successful abstention.
-- Why exclude invalid observations from relevance metrics? A score computed from unauthorized or fabricated evidence is not a valid quality measurement. The invalid case still blocks the outcome.
-- Why not trust the returned access policy? A broken adapter could attach an incorrect policy; the evaluator checks authoritative fixture state separately.
-- Why keep draft cases visible? They expose planned coverage without pretending it has been tested.
 
 ## Scale and release implications
 

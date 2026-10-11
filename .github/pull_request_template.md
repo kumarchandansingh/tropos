@@ -43,10 +43,16 @@ Mark each relevant item. Use N/A only when the change genuinely does not affect 
 - [ ] Product/capability status updated
 - [ ] Living architecture/codebase map updated
 - [ ] Quality/evaluation documentation updated
+- [ ] Delivery/process documentation updated
 - [ ] Build history updated for a material delivered slice
 - [ ] Backlog/status updated where delivery state changed
 - [ ] ADR added/updated for a durable architecture decision
-- [ ] Decision/trade-off learning material updated when reusable reasoning changed
+- [ ] ADR / engineering decision record updated when durable reasoning changed
 - [ ] Documentation impact is N/A
 
-A material build is not complete when code/tests merge but product state, architecture state, or a durable decision remains stale in documentation.
+## Documentation rationale
+State which public source of truth changed and why. If documentation impact is N/A, explain why the implementation does not change product capability, architecture, quality semantics, delivery controls, or a durable decision.
+
+A material build is not complete when code/tests merge but product state, architecture state, quality evidence, delivery controls, or a durable decision remains stale in documentation.
+
+Public documentation must follow [the Tropos public documentation standard](../docs/standards/PUBLIC_DOCUMENTATION_STANDARD.md).

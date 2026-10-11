@@ -1,6 +1,10 @@
 # Tropos documentation
 
-This documentation is organized by **decision purpose**, not by implementation date. Each question should have one canonical place to answer it.
+## Purpose
+
+Tropos documentation is organized by the question a stakeholder needs answered. Product, architecture, decisions, quality evidence, and delivery controls have separate canonical owners so that implementation status, design rationale, and future work do not drift into one another.
+
+The [public documentation standard](standards/PUBLIC_DOCUMENTATION_STANDARD.md) defines the writing, evidence, and change-control rules for this repository.
 
 ## Start here
 
@@ -9,31 +13,32 @@ This documentation is organized by **decision purpose**, not by implementation d
 | What is Tropos as a product? | [Tropos platform](product/TROPOS_PLATFORM.md) |
 | What does Resolve do? | [Resolve](product/RESOLVE.md) |
 | What does Training do? | [Training](product/TRAINING.md) |
-| What has already been built and why? | [Build history](product/BUILD_HISTORY.md) |
+| What has already been built? | [Build history](product/BUILD_HISTORY.md) |
 | What is the current technical architecture? | [Architecture overview](architecture/ARCHITECTURE_OVERVIEW.md) |
 | Why were durable design choices made? | [Architecture decisions](decisions/README.md) |
-| How do product quality and the eval runtime fit together? | [Evaluation product model](architecture/EVALUATION_MODEL.md) |
-| How is quality/evaluation designed? | [Evaluation strategy](quality/EVAL_STRATEGY.md) |
+| How do product quality and the evaluation runtime fit together? | [Evaluation product model](architecture/EVALUATION_MODEL.md) |
+| How is quality evaluated? | [Evaluation strategy](quality/EVAL_STRATEGY.md) |
 | What is planned next? | [Master backlog](product/master-backlog.md) |
 | How is delivery governed? | [Delivery governance](product/delivery-governance.md) |
-| Where are live delivery metrics? | [Delivery metrics](product/delivery-metrics.md) |
+| Where are delivery metrics defined? | [Delivery metrics](product/delivery-metrics.md) |
+| What standard governs public documentation? | [Public documentation standard](standards/PUBLIC_DOCUMENTATION_STANDARD.md) |
 
 ## Documentation model
 
 ```mermaid
 flowchart LR
-    Product[Product]
-    --> Architecture[Architecture]
-    Architecture --> ADR[Architecture decisions]
-    Architecture --> Quality[Quality / evaluation]
-    Product --> Backlog[Backlog / delivery]
-    ADR --> Learning[Learning / interview translation]
-    Architecture --> Learning
+    Product[Product state and outcomes]
+    --> Architecture[Current architecture]
+    Architecture --> Decisions[Architecture decisions]
+    Architecture --> Quality[Quality and evidence]
+    Product --> Delivery[Backlog and delivery]
+    Decisions --> DeepDives[Engineering deep dives]
+    Architecture --> DeepDives
 ```
 
 ### Product
 
-Product documents define user problems, capability boundaries, product principles, current product maturity, and roadmap.
+Product documents define the user problem, capability boundary, current maturity, product principles, and roadmap.
 
 - [Product entry point](product/PRODUCT_MODEL.md)
 - [Tropos platform](product/TROPOS_PLATFORM.md)
@@ -44,7 +49,7 @@ Product documents define user problems, capability boundaries, product principle
 
 ### Architecture
 
-Architecture documents describe the system **as it exists now**. They should not present already implemented features as future work.
+Architecture documents describe the system as it exists now. They do not present implemented capability as future work.
 
 - [Architecture overview](architecture/ARCHITECTURE_OVERVIEW.md)
 - [Codebase map](architecture/CODEBASE_MAP.md)
@@ -61,7 +66,7 @@ Architecture documents describe the system **as it exists now**. They should not
 
 ### Architecture decisions
 
-[Architecture Decision Records](decisions/README.md) preserve durable choices, alternatives, consequences, evidence, and revisit triggers. An accepted ADR remains historical evidence even after a later ADR supersedes it.
+[Architecture Decision Records](decisions/README.md) preserve durable choices, credible alternatives, consequences, evidence, and revisit triggers. Accepted records remain part of the history when later decisions supersede them.
 
 ### Quality and delivery
 
@@ -71,16 +76,9 @@ Architecture documents describe the system **as it exists now**. They should not
 - [Delivery governance](product/delivery-governance.md)
 - [Delivery metrics](product/delivery-metrics.md)
 
-### Learning
+### Engineering deep dives
 
-Learning material explains concepts, trade-offs and interview translation. It is **not** the authoritative implementation-status source.
-
-- [Learning track](learning/README.md)
-- [Decision & trade-off matrix](learning/DECISION_TRADEOFFS.md)
-- [Dense Retrieval V1](learning/DENSE_RETRIEVAL_V1.md)
-- [Hybrid Retrieval V1](learning/HYBRID_RETRIEVAL_V1.md)
-- [Evaluation evidence](learning/EVALUATION_EVIDENCE.md)
-- [Enterprise knowledge systems interview guide](learning/ENTERPRISE_KNOWLEDGE_SYSTEMS_INTERVIEW_GUIDE.md)
+[Engineering deep dives](learning/README.md) explain selected mechanisms and cross-cutting trade-offs in more detail than living architecture should carry. They are public technical material but are not authoritative for implementation status.
 
 ## Status vocabulary
 
@@ -89,8 +87,9 @@ Learning material explains concepts, trade-offs and interview translation. It is
 | **Implemented** | Executable behavior exists in the repository |
 | **Implemented baseline / V1** | Executable but deliberately bounded; not production-complete |
 | **Contract only** | Stable interface/domain contract exists without the concrete production adapter |
+| **Evaluated** | The named subject was executed against the stated dataset or test |
 | **Planned** | Prioritized or intended work with no executable implementation |
-| **Deferred** | Intentionally postponed until an explicit trigger/evidence justifies it |
+| **Deferred** | Intentionally postponed until an explicit trigger or evidence justifies it |
 
 ## Source-of-truth hierarchy
 
@@ -98,33 +97,31 @@ When documents disagree, reconcile them using this order:
 
 1. executable code and tests establish what behavior exists;
 2. living architecture describes the intended current technical state;
-3. ADRs explain why durable choices were made;
-4. product documents describe capability/product state;
-5. backlog/issues describe future work;
-6. learning documents explain concepts and may preserve older design discussion.
+3. Architecture Decision Records explain why durable choices were made;
+4. product documents describe capability and product state;
+5. quality evidence supports or limits measured claims;
+6. backlog and issues describe future work;
+7. engineering deep dives explain mechanisms but do not override current-state sources.
 
-Stale documentation is a defect. A feature PR that materially changes product capability, architecture, quality boundaries, or a durable trade-off should update the relevant document in the same delivery slice.
+Stale documentation is a defect.
 
-## Documentation completeness rule for future builds
+## Documentation completeness rule
 
-A material build should leave behind:
+A material build should leave behind the public record required by the [documentation standard](standards/PUBLIC_DOCUMENTATION_STANDARD.md):
 
-- current product/capability status;
-- architecture/runtime change;
-- key alternatives and selected trade-off;
-- downside/cost;
-- revisit trigger;
-- tests/evaluation evidence;
-- backlog status;
-- ADR when the decision is durable.
+- current product/capability status when it changes;
+- current architecture/runtime state when it changes;
+- the decision, credible alternatives, consequences, evidence, and revisit trigger for durable choices;
+- quality/evaluation evidence when a claim changes;
+- delivery/backlog state when sequencing changes.
 
-See [Build history](product/BUILD_HISTORY.md) for the implementation chronology and [Decision & trade-off matrix](learning/DECISION_TRADEOFFS.md) for reusable reasoning.
+Pull requests must update the appropriate public source of truth or explicitly justify why documentation impact is N/A. CI audits that requirement.
 
 ## Glossary and diagrams
 
 - [Technical glossary](GLOSSARY.md)
 - [Archify diagrams](diagrams/archify/README.md)
 
-## Katharo companion project
+## Repository boundary
 
-Katharo has separate documentation under [katharo/docs](../katharo/docs/README.md). Its local cleanup/review workflow is not part of the Tropos ingestion or product architecture.
+Examples and fixtures are synthetic. Secrets, real customer/support records, confidential employer/client material, production credentials, and personal career material do not belong in the public repository.

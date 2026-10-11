@@ -19,6 +19,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Test documentation governance control
+        working-directory: .
+        run: python -m unittest discover -s scripts/tests -v
+
+      - name: Documentation governance
+        working-directory: .
+        run: python scripts/check_public_docs.py
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6

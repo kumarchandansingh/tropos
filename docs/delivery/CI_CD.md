@@ -70,7 +70,8 @@ The main CI still performs format/lint checks. Auto-formatting removes mechanica
 The workflow runs on every pull request and every push to `main`.
 
 ```text
-checkout
+checkout (full history)
+→ documentation governance
 → install uv
 → install Python 3.14
 → uv sync --dev --locked
@@ -83,6 +84,25 @@ checkout
 
 The workflow definition is `.github/workflows/ci.yml`.
 
+
+## Documentation governance
+
+Public documentation is part of the delivery control surface.
+
+The required CI job runs `scripts/check_public_docs.py` before the API quality checks. On pull requests, the script compares the base and head revisions and classifies material changes across product/runtime code, evaluation code, and delivery controls.
+
+A material change must either update an authoritative public documentation surface or use the explicit documentation-impact N/A path in the pull-request template with a substantive rationale. The exception is visible in the change record and is therefore auditable.
+
+The same check also enforces deterministic public-documentation rules:
+
+- public Markdown starts with one top-level title;
+- changed Architecture Decision Records contain the required decision sections;
+- personal preparation language is absent from the public documentation surface.
+
+The check does not score prose or architecture reasoning. Reviewers remain responsible for whether a document is accurate, sufficiently evidenced, and useful to its intended stakeholders.
+
+See [Public documentation standard](../standards/PUBLIC_DOCUMENTATION_STANDARD.md) and [ADR-018](../decisions/ADR-018-gated-public-documentation.md).
+
 ## Local validation
 
 From the repository root:
@@ -91,7 +111,13 @@ From the repository root:
 python scripts/format_api.py
 ```
 
-Then run the same non-mutating gates from `apps/api`:
+Run the documentation control from the repository root:
+
+```bash
+python scripts/check_public_docs.py
+```
+
+Then run the same non-mutating application gates from `apps/api`:
 
 ```bash
 uv sync --dev --locked
@@ -132,7 +158,7 @@ Deployment controls will be added with the first hosted runtime rather than infe
 | Capability | Additional gate |
 | --- | --- |
 | Persistence | Migration and persistence integration tests |
-| Retrieval | Retrieval integration tests and evaluation suite |
+| Release-grade retrieval | Locked holdout evidence, abstention calibration, and release thresholds |
 | External adapters | Contract/schema tests |
 | LLM prompts/models | Schema validation and applicable AI evaluations |
 | API | Request/response and smoke tests |

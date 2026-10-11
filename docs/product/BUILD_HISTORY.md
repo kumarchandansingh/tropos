@@ -99,8 +99,19 @@ The backlog uses P0/P1/P2/deferred priority, sprint-ready user stories, estimate
 | --- | --- | --- | --- |
 | PR #68 | Knowledge Article deterministic regression V1 | Keep section/citation/gap/forbidden checks deterministic and explicit; semantic entailment remains separate | `tropos.evals.knowledge_article`, `knowledge_article_v1.json` |
 | PR #82 | Generic baseline-versus-candidate experiment runtime | Compare the same dataset/cases pairwise; separate hard invariants from decision metrics; withhold paired-bootstrap intervals below the minimum pair count | `tropos.evals.experiments`, `SQLiteExperimentStore`, `EVALUATION_EXPERIMENTS.md`, Archify evaluation view |
+| PR #83 | Retrieval regression gate | Run base and candidate code against the same saved retrieval catalogue and block case/invariant/metric regressions | `retrieval-regression-gate.yml`, `regression_gate.py`, saved run evidence |
+| PR #84 | Evaluation product-quality model | Separate product quality questions from the experiment runtime so tests, invariants, benchmarks, model evaluations, and product outcomes retain distinct semantics | `EVALUATION_MODEL.md`, `EVALUATION_CONTRACTS.md`, Archify quality/runtime views |
+| PR #85 | Critical semantic test hardening and shared retriever contracts | Protect mutation-surviving behavior before expanding the benchmark; apply common authorization/lifecycle/result contracts to BM25, dense, and hybrid retrieval | shared retriever contract tests, fingerprint/comparison/vector/regression-gate tests |
 
-QE-103 deliberately adds comparison infrastructure without claiming that the current small synthetic datasets are release-quality evidence. Larger holdout data, abstention calibration, workflow gates and semantic-judge calibration remain separate work.
+The evaluation foundation now has an automated PR regression gate and common retrieval assurance semantics. Larger holdout data, abstention calibration, generic real-model Knowledge Article execution, and semantic-judge calibration remain separate work.
+
+## Phase 9 — Documentation governance
+
+| Build | Outcome | Key decision / trade-off | Evidence |
+| --- | --- | --- | --- |
+| PR #86 | CI-gated public documentation governance | Require an authoritative public record or audited N/A rationale for material changes; keep semantic writing quality in review rather than introducing a model dependency into base CI | ADR-018, `PUBLIC_DOCUMENTATION_STANDARD.md`, `check_public_docs.py`, required CI job |
+
+This phase corrects a process gap identified during repository review: documentation impact had been visible in the pull-request template but was not enforced, allowing current-state and author-facing material to drift from the executable system.
 
 ## Current architecture maturity
 
@@ -137,7 +148,7 @@ A material future build is not considered fully documented until these are captu
 - test/evaluation evidence;
 - product/architecture status update.
 
-Durable architecture choices belong in an ADR. Capability-specific mechanics belong in the relevant architecture document. Learning/interview translation belongs under `docs/learning/`.
+Durable architecture choices belong in an ADR. Capability-specific mechanics belong in the relevant architecture document. Engineering deep dives belong under `docs/learning/` and must remain stakeholder-facing public technical material rather than personal preparation notes.
 
 ## Related documents
 
@@ -146,5 +157,5 @@ Durable architecture choices belong in an ADR. Capability-specific mechanics bel
 - [Training](TRAINING.md)
 - [Architecture overview](../architecture/ARCHITECTURE_OVERVIEW.md)
 - [Decision register](../decisions/README.md)
-- [Decision & trade-off matrix](../learning/DECISION_TRADEOFFS.md)
+- [Engineering decision and trade-off register](../learning/DECISION_TRADEOFFS.md)
 - [Evaluation strategy](../quality/EVAL_STRATEGY.md)
