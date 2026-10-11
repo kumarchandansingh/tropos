@@ -213,6 +213,8 @@ def catalogue_retrieval_dataset(
                 "tenant_id": case.access.tenant_id,
                 "groups": list(case.access.groups),
                 "max_rank": case.max_rank,
+                "catalogue_fingerprint": catalogue.fingerprint,
+                "corpus_fingerprint": catalogue.corpus_fingerprint,
             },
             expected={"relevant_knowledge_ids": list(case.relevant_ids)},
             tags=case.tags,
