@@ -23,12 +23,19 @@ from tropos.core.adapters.retrieval.hybrid_rrf import HybridRrfKnowledgeRetrieve
 from tropos.core.adapters.retrieval.sqlite_fts import SQLiteFtsKnowledgeRetriever
 from tropos.core.application.embeddings.materialize import MaterializeEmbeddings
 from tropos.core.application.embeddings.models import EmbeddingVector, SimilarityMetric
+from tropos.core.application.ports.retrieval import KnowledgeChunkRetriever
 from tropos.core.application.ingestion.ingest_knowledge import (
     IngestKnowledge,
     IngestKnowledgeCommand,
 )
 from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
+from tropos.evals.abstention import (
+    TopScoreAbstentionPolicy,
+    TopScoreThresholdRetriever,
+    calibrate_top_score_threshold,
+)
 from tropos.evals.contracts import (
+    EvalDataset,
     EvalRun,
     EvalScore,
     EvalSplit,
@@ -178,33 +185,113 @@ def _comparison(baseline: EvalRun, candidate: EvalRun) -> JsonObject:
     }
 
 
+def _run_retrievers(
+    *,
+    dataset: EvalDataset,
+    split: EvalSplit,
+    retrievers: dict[str, KnowledgeChunkRetriever],
+    current_chunks: dict[str, object],
+    repository_root: Path,
+    lockfile: Path,
+    sink: SQLiteExperimentStore | None,
+    abstention_policies: dict[str, TopScoreAbstentionPolicy] | None = None,
+) -> dict[str, EvalRun]:
+    runs: dict[str, EvalRun] = {}
+    for name, base_retriever in retrievers.items():
+        policy = None if abstention_policies is None else abstention_policies[name]
+        retriever: KnowledgeChunkRetriever = (
+            base_retriever
+            if policy is None
+            else TopScoreThresholdRetriever(
+                retriever=base_retriever,
+                policy=policy,
+            )
+        )
+        runtime: JsonObject = {
+            "evaluator": RETRIEVAL_EVALUATOR_VERSION,
+            "retrieval_strategy": retriever.strategy_version,
+            "base_retrieval_strategy": base_retriever.strategy_version,
+            "dataset_kind": "enterprise-support",
+            "dataset_split": split.value,
+            "embedding_model": MODEL_IDENTIFIER,
+            "embedding_model_revision": MODEL_REVISION,
+            "sentence_transformers_version": sentence_transformers.__version__,
+            "limit": 5,
+        }
+        configuration: JsonObject = {
+            "strategy_name": name,
+            "retrieval_strategy": retriever.strategy_version,
+            "base_retrieval_strategy": base_retriever.strategy_version,
+            "embedding_model": MODEL_IDENTIFIER,
+            "embedding_model_revision": MODEL_REVISION,
+            "limit": 5,
+        }
+        if policy is not None:
+            runtime["abstention_policy"] = policy.as_dict()
+            configuration["abstention_policy"] = policy.as_dict()
+
+        provenance = build_eval_provenance(
+            repository_root=repository_root,
+            lockfile=lockfile,
+            runtime=runtime,
+        )
+        subject = EvalSubject(
+            subject_id="retrieval",
+            version=retriever.strategy_version,
+            configuration=configuration,
+        )
+        runs[name] = ExperimentRunner(sink=sink).run(
+            dataset=dataset,
+            subject=subject,
+            provenance=provenance,
+            executor=RetrievalExperimentExecutor(
+                retriever=retriever,
+                current_chunks=current_chunks,
+            ),
+        )
+    return runs
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Evaluate BM25, dense MPNet and hybrid RRF through the same "
-            "enterprise-support EvalRun contract"
+            "Evaluate BM25, dense MPNet and hybrid RRF, calibrate top-score "
+            "abstention on development data, then verify the selected policy "
+            "without recalibration on holdout and challenge splits"
         )
     )
     parser.add_argument(
         "--dataset",
         type=Path,
         default=(
-            Path(__file__).parents[1] / "evals" / "resolve" / "enterprise_support_benchmark_v1.json"
+            Path(__file__).parents[1]
+            / "evals"
+            / "resolve"
+            / "enterprise_support_benchmark_v1.json"
         ),
     )
     parser.add_argument(
-        "--split",
-        choices=tuple(split.value for split in EvalSplit),
-        default=EvalSplit.DEVELOPMENT.value,
+        "--minimum-answerable-recall",
+        type=float,
+        required=True,
+        help=(
+            "Development-set Recall@5 floor that calibration must preserve. "
+            "This is an explicit evaluation operating point, not a production default."
+        ),
     )
     parser.add_argument("--lockfile", type=Path, default=Path("uv.lock"))
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--database", type=Path)
     arguments = parser.parse_args()
 
+    if not 0.0 <= arguments.minimum_answerable_recall <= 1.0:
+        parser.error("--minimum-answerable-recall must be between 0 and 1")
+
     benchmark = load_enterprise_support_benchmark(arguments.dataset)
-    split = EvalSplit(arguments.split)
-    dataset = benchmark.retrieval_dataset(split)
+    datasets = {
+        split: benchmark.retrieval_dataset(split)
+        for split in EvalSplit
+    }
 
     repository_root = Path(__file__).parents[2]
     sink = None if arguments.database is None else SQLiteExperimentStore(arguments.database)
@@ -248,78 +335,140 @@ def main() -> int:
             lexical=lexical,
             dense=dense,
         )
-        retrievers = {
+        retrievers: dict[str, KnowledgeChunkRetriever] = {
             "bm25": lexical,
             "dense": dense,
             "hybrid": hybrid,
         }
 
-        runs: dict[str, EvalRun] = {}
-        for name, retriever in retrievers.items():
-            provenance = build_eval_provenance(
+        raw_runs = {
+            split.value: _run_retrievers(
+                dataset=datasets[split],
+                split=split,
+                retrievers=retrievers,
+                current_chunks=current_chunks,
                 repository_root=repository_root,
                 lockfile=arguments.lockfile,
-                runtime={
-                    "evaluator": RETRIEVAL_EVALUATOR_VERSION,
-                    "retrieval_strategy": retriever.strategy_version,
-                    "dataset_kind": "enterprise-support",
-                    "dataset_split": split.value,
-                    "embedding_model": MODEL_IDENTIFIER,
-                    "embedding_model_revision": MODEL_REVISION,
-                    "sentence_transformers_version": sentence_transformers.__version__,
-                    "limit": 5,
-                },
+                sink=sink,
             )
-            subject = EvalSubject(
-                subject_id="retrieval",
-                version=retriever.strategy_version,
-                configuration={
-                    "strategy_name": name,
-                    "retrieval_strategy": retriever.strategy_version,
-                    "embedding_model": MODEL_IDENTIFIER,
-                    "embedding_model_revision": MODEL_REVISION,
-                    "limit": 5,
-                },
-            )
-            runs[name] = ExperimentRunner(sink=sink).run(
-                dataset=dataset,
-                subject=subject,
-                provenance=provenance,
-                executor=RetrievalExperimentExecutor(
-                    retriever=retriever,
-                    current_chunks=current_chunks,
-                ),
-            )
+            for split in EvalSplit
+        }
 
-    gate_passed = all(not hard_invariant_failures(run) for run in runs.values())
+        development_runs = raw_runs[EvalSplit.DEVELOPMENT.value]
+        calibrations = {
+            name: calibrate_top_score_threshold(
+                development_runs[name],
+                minimum_answerable_recall=arguments.minimum_answerable_recall,
+            )
+            for name in retrievers
+        }
+        policies = {
+            name: calibration.policy
+            for name, calibration in calibrations.items()
+        }
+
+        abstained_runs = {
+            split.value: _run_retrievers(
+                dataset=datasets[split],
+                split=split,
+                retrievers=retrievers,
+                current_chunks=current_chunks,
+                repository_root=repository_root,
+                lockfile=arguments.lockfile,
+                sink=sink,
+                abstention_policies=policies,
+            )
+            for split in EvalSplit
+        }
+
+    all_runs = tuple(
+        run
+        for split_runs in (*raw_runs.values(), *abstained_runs.values())
+        for run in split_runs.values()
+    )
+    gate_passed = all(not hard_invariant_failures(run) for run in all_runs)
 
     output: JsonObject = {
-        "schema_version": 2,
-        "dataset": {
-            "dataset_id": dataset.dataset_id,
-            "version": dataset.version,
-            "fingerprint": dataset.fingerprint,
-            "split": split.value,
-            "case_count": len(dataset.cases),
+        "schema_version": 3,
+        "datasets": {
+            split.value: {
+                "dataset_id": datasets[split].dataset_id,
+                "version": datasets[split].version,
+                "fingerprint": datasets[split].fingerprint,
+                "split": split.value,
+                "case_count": len(datasets[split].cases),
+            }
+            for split in EvalSplit
         },
         "embedding_materialization": {
             "embedded_count": materialization.embedded_count,
             "strategy_version": materialization.strategy_version,
             "model_identifier": materialization.model_identifier,
         },
-        "runs": {name: eval_run_to_dict(run) for name, run in runs.items()},
-        "summaries": {name: _summary(run) for name, run in runs.items()},
-        "comparisons": {
-            "bm25_to_dense": _comparison(runs["bm25"], runs["dense"]),
-            "bm25_to_hybrid": _comparison(runs["bm25"], runs["hybrid"]),
+        "raw_runs": {
+            split: {
+                name: eval_run_to_dict(run)
+                for name, run in split_runs.items()
+            }
+            for split, split_runs in raw_runs.items()
+        },
+        "raw_summaries": {
+            split: {
+                name: _summary(run)
+                for name, run in split_runs.items()
+            }
+            for split, split_runs in raw_runs.items()
+        },
+        "development_comparisons": {
+            "bm25_to_dense": _comparison(
+                development_runs["bm25"],
+                development_runs["dense"],
+            ),
+            "bm25_to_hybrid": _comparison(
+                development_runs["bm25"],
+                development_runs["hybrid"],
+            ),
+        },
+        "abstention": {
+            "policy_family": "top-score-threshold-v1",
+            "signal": "strategy-native top retrieval score",
+            "calibration_split": EvalSplit.DEVELOPMENT.value,
+            "validation_splits": [
+                EvalSplit.HOLDOUT.value,
+                EvalSplit.CHALLENGE.value,
+            ],
+            "minimum_answerable_recall": arguments.minimum_answerable_recall,
+            "selection_objective": (
+                "Preserve the requested development Recall@5 floor, then minimize "
+                "expected-empty false-answer rate. Holdout/challenge never select "
+                "the threshold."
+            ),
+            "strategies": {
+                name: {
+                    "calibration": calibrations[name].as_dict(),
+                    "applied_run_summaries": {
+                        split: _summary(abstained_runs[split][name])
+                        for split in abstained_runs
+                    },
+                }
+                for name in retrievers
+            },
+        },
+        "abstained_runs": {
+            split: {
+                name: eval_run_to_dict(run)
+                for name, run in split_runs.items()
+            }
+            for split, split_runs in abstained_runs.items()
         },
         "gate": {
             "policy": "retrieval-hard-invariants-v2",
             "passed": gate_passed,
             "note": (
-                "Expected-evidence and no-answer misses remain benchmark outcomes. "
-                "Authorization, currentness, evidence integrity, and result-contract "
-                "failures are blocking invariants."
+                "Abstention calibration changes relevance selection, not access "
+                "control. Authorization, currentness, evidence integrity, and "
+                "result-contract failures remain blocking invariants on raw and "
+                "abstention-applied runs."
             ),
         },
     }
