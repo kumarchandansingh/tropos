@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime
+from hashlib import sha256
 from pathlib import Path
 
 from tropos.core.application.retrieval.models import (
@@ -9,7 +10,7 @@ from tropos.core.application.retrieval.models import (
     RetrievedKnowledgeChunk,
 )
 from tropos.core.domain.access import AccessPolicy, AccessScope
-from tropos.core.domain.knowledge_chunk import KnowledgeChunk
+from tropos.core.domain.knowledge_chunk import KnowledgeChunk, text_fingerprint
 from tropos.evals.catalogue import Catalogue
 from tropos.evals.contracts import (
     EvalApproval,
@@ -32,6 +33,7 @@ from tropos.evals.run_io import eval_run_from_dict, eval_run_to_dict
 
 
 def _chunk() -> KnowledgeChunk:
+    text = "Unlock the account after verifying the identity."
     return KnowledgeChunk(
         chunk_id="chunk-1",
         knowledge_id="kb-1",
@@ -39,13 +41,13 @@ def _chunk() -> KnowledgeChunk:
         source_record_id="kb-1.md",
         source_version="1",
         document_title="Reset a locked account",
-        sequence_number=1,
-        text="Unlock the account after verifying the identity.",
+        sequence_number=0,
+        text=text,
         start_offset=0,
-        end_offset=48,
-        content_fingerprint="content",
-        ingestion_fingerprint="ingestion",
-        normalized_content_fingerprint="normalized",
+        end_offset=len(text),
+        content_fingerprint=text_fingerprint(text),
+        ingestion_fingerprint=sha256(b"ingestion").hexdigest(),
+        normalized_content_fingerprint=sha256(text.encode("utf-8")).hexdigest(),
         normalization_strategy_version="norm-v1",
         access_policy=AccessPolicy("tenant-a", AccessScope.TENANT),
         strategy_version="chunk-v1",
