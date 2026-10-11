@@ -59,6 +59,13 @@ class ResolveQuestion:
 
     def execute(self, request: RuntimeRequest) -> ResolveResult:
         trace_id = f"trace_{uuid4().hex}"
+        runtime_config_fingerprint = sha256(
+            (
+                f"{self._retriever.strategy_version}|"
+                f"limit={request.retrieval_limit}|"
+                f"threshold={request.retrieval_threshold!r}"
+            ).encode()
+        ).hexdigest()
         spans: list[TraceSpan] = [
             TraceSpan(
                 name="resolve.request",
@@ -69,6 +76,7 @@ class ResolveQuestion:
                     "tenant_id": request.access.tenant_id,
                     "group_count": len(request.access.groups),
                     "retrieval_limit": request.retrieval_limit,
+                    "runtime_config_fingerprint": runtime_config_fingerprint,
                 },
             )
         ]
