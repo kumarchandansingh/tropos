@@ -39,6 +39,7 @@ def _fill_review_packet(path: Path, *, reviewer: str, label: str, reason: str) -
         row["Would you answer?"] = "YES" if label == "SUFFICIENT" else "NO"
         row["Notes"] = "independent review"
     output = StringIO()
+    assert reader.fieldnames is not None
     writer = csv.DictWriter(output, fieldnames=reader.fieldnames)
     writer.writeheader()
     writer.writerows(rows)
