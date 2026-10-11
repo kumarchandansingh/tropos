@@ -81,7 +81,7 @@ class ResolveQuestion:
                     limit=request.retrieval_limit,
                 )
             )
-        except Exception as exc:
+        except (ValueError, RuntimeError, OSError) as exc:
             spans.append(
                 TraceSpan(
                     name="resolve.retrieval",
@@ -145,7 +145,7 @@ class ResolveQuestion:
 
         try:
             judged = self._sufficiency_judge.judge(evidence_set)
-        except Exception as exc:
+        except (ValueError, RuntimeError, OSError) as exc:
             spans.append(
                 TraceSpan(
                     name="resolve.sufficiency",
@@ -197,7 +197,7 @@ class ResolveQuestion:
             )
             self._fail_trace(trace_id, request, spans)
             raise
-        except Exception as exc:
+        except (ValueError, RuntimeError, OSError) as exc:
             spans.append(
                 TraceSpan(
                     name="resolve.generation",
