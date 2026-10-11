@@ -71,12 +71,13 @@ Sprint 1 is complete. Governed evidence plus typed intake can produce a troubles
 | QE-110 | P0 | Turn retrieval evals into reproducible CI/nightly regression gates | 5 | QE-103 — generic base/head PR gate and unified pinned real-model workflow delivered; quality-baseline gating for real-model runs remains |
 | QE-111 | P1 | Calibrate semantic generation judge against human-labelled claims | 8 | QE-102, QE-103 |
 | QE-112 | P1 | Harden Training deterministic grader for paraphrases and valid extra citations | 5 | existing Training eval |
+| QE-113 | P0 | Build human-labelled evidence sufficiency benchmark V1 | 5 | QE-109 V1 + human review — contract and 16 unlabelled candidates implemented; human adjudication pending |
 | OBS-101 | P1 | Add vendor-neutral trace/eval sink contracts and OpenTelemetry instrumentation boundary | 5 | QE-101 |
 | OBS-102 | P1 | Add LangSmith adapter for experiments/traces without domain coupling | 5 | OBS-101, QE-103 |
 
 ### Sprint 2 delivery status
 
-QE-103 is delivered by PR #82 and retrieval convergence now reuses that runtime: Tropos can execute and persist generic evaluation experiments, compare baseline and candidate runs case-by-case, calculate paired metric deltas with optional bootstrap uncertainty, and distinguish hard invariants from decision metrics. QE-108 is now in progress: the repository contains a 16-case realistic enterprise-support seed with 48 retrieval queries, balanced Resolve actions, split-aware projections, and 8 grounded Knowledge Article expectations with complete reference articles. The release-scale sample targets, chunk-level labels, blind holdout mechanics, and uncertainty reporting remain open. QE-109 is in progress with a development-only strategy-specific top-score calibration baseline and frozen holdout/challenge verification. QE-110 through QE-112 remain open.
+QE-103 is delivered by PR #82 and retrieval convergence now reuses that runtime: Tropos can execute and persist generic evaluation experiments, compare baseline and candidate runs case-by-case, calculate paired metric deltas with optional bootstrap uncertainty, and distinguish hard invariants from decision metrics. QE-108 is now in progress: the repository contains a 16-case realistic enterprise-support seed with 48 retrieval queries, balanced Resolve actions, split-aware projections, and 8 grounded Knowledge Article expectations with complete reference articles. The release-scale sample targets, chunk-level labels, blind holdout mechanics, and uncertainty reporting remain open. QE-109 V1 is delivered with development calibration and frozen holdout/challenge evidence. QE-113 is in progress: the repository now has a human-gated evidence-sufficiency contract plus 16 unlabelled review candidates; approved goldens remain at zero until human adjudication. QE-110 through QE-112 remain open.
 
 ### Sprint 2 acceptance outcome
 
