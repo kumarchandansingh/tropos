@@ -26,18 +26,13 @@ from tropos.evals.experiments import (
     compare_runs,
 )
 
-_HARD_INVARIANTS = (
-    "authorized_only",
-    "current_only",
-    "evidence_integrity",
-    "result_contract",
+from tropos.evals.retrieval_experiment import (
+    RETRIEVAL_DECISION_METRICS,
+    RETRIEVAL_HARD_INVARIANTS,
 )
-_NUMERIC_DECISION_METRICS = (
-    "recall_at_1",
-    "recall_at_3",
-    "recall_at_5",
-    "precision_at_5",
-    "reciprocal_rank",
+
+_NUMERIC_DECISION_METRICS = tuple(
+    metric for metric in RETRIEVAL_DECISION_METRICS if metric != "no_answer_accuracy"
 )
 _NO_ANSWER_METRIC = "no_answer_accuracy"
 
@@ -47,7 +42,7 @@ def retrieval_gate_policy() -> ExperimentGatePolicy:
 
     return ExperimentGatePolicy(
         rules=(
-            *(HardInvariantGate(metric) for metric in _HARD_INVARIANTS),
+            *(HardInvariantGate(metric) for metric in RETRIEVAL_HARD_INVARIANTS),
             *(
                 DecisionMetricGate(metric, max_mean_regression=0.0)
                 for metric in (*_NUMERIC_DECISION_METRICS, _NO_ANSWER_METRIC)
@@ -153,6 +148,15 @@ class RetrievalGateDecision:
             ]
         )
         return "\n".join(lines) + "\n"
+
+
+def compare_retrieval_runs(
+    baseline: EvalRun,
+    candidate: EvalRun,
+) -> RetrievalGateDecision:
+    """Apply the retrieval regression policy to two generic EvalRun records."""
+
+    return compare_retrieval_runs(baseline, candidate)
 
 
 def compare_retrieval_reports(
