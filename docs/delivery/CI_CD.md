@@ -158,7 +158,7 @@ Deployment controls will be added with the first hosted runtime rather than infe
 | Capability | Additional gate |
 | --- | --- |
 | Persistence | Migration and persistence integration tests |
-| Retrieval | Retrieval integration tests and evaluation suite |
+| Release-grade retrieval | Locked holdout evidence, abstention calibration, and release thresholds |
 | External adapters | Contract/schema tests |
 | LLM prompts/models | Schema validation and applicable AI evaluations |
 | API | Request/response and smoke tests |
