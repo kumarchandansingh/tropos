@@ -98,7 +98,9 @@ class SufficiencyDecision:
             if self.failure_type is not SufficiencyFailureType.NONE:
                 raise ValueError("SUFFICIENT decision must use failure type NONE")
             if self.missing_facts or self.contradictions:
-                raise ValueError(\n                    "SUFFICIENT decision cannot declare missing facts or contradictions"\n                )
+                raise ValueError(
+                    "SUFFICIENT decision cannot declare missing facts or contradictions"
+                )
         elif self.failure_type is SufficiencyFailureType.NONE:
             raise ValueError("INSUFFICIENT decision requires a failure type")
 
