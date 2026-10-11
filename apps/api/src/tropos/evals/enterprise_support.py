@@ -148,6 +148,74 @@ class EnterpriseSupportBenchmark:
         )
         return tuple(projected)
 
+    def retrieval_dataset(
+        self,
+        split: EvalSplit | None = None,
+    ) -> EvalDataset:
+        """Project complete case packs into the generic retrieval EvalDataset."""
+
+        selected_split = split or self.default_split
+        cases: list[EvalCase] = []
+
+        for support_case in self.cases_for_split(selected_split):
+            for query in support_case.retrieval_queries:
+                cases.append(
+                    EvalCase(
+                        case_id=query.query_id,
+                        purpose=(
+                            "Retrieve the current authorized knowledge expected for "
+                            "this resolved support scenario."
+                        ),
+                        scope=EvalScope.COMPONENT,
+                        approval=support_case.approval,
+                        origin=support_case.origin,
+                        inputs={
+                            "query": query.query,
+                            "tenant_id": query.access.tenant_id,
+                            "groups": list(query.access.groups),
+                            "max_rank": query.max_rank,
+                        },
+                        expected={
+                            "relevant_knowledge_ids": list(
+                                query.relevant_knowledge_ids
+                            )
+                        },
+                        tags=_merge_tags(support_case.tags, query.tags),
+                    )
+                )
+
+        for query in self.negative_retrieval_cases:
+            if query.split is not selected_split:
+                continue
+            cases.append(
+                EvalCase(
+                    case_id=query.query_id,
+                    purpose=(
+                        "Return no evidence for an unsupported, ambiguous, "
+                        "cross-tenant, or unauthorized retrieval request."
+                    ),
+                    scope=EvalScope.COMPONENT,
+                    approval=EvalApproval.APPROVED,
+                    origin=EvalOrigin.SYNTHETIC,
+                    inputs={
+                        "query": query.query,
+                        "tenant_id": query.access.tenant_id,
+                        "groups": list(query.access.groups),
+                        "max_rank": query.max_rank,
+                    },
+                    expected={"relevant_knowledge_ids": []},
+                    tags=query.tags,
+                )
+            )
+
+        return EvalDataset(
+            dataset_id=f"{self.dataset_id}-retrieval",
+            version=f"{self.version}-{selected_split.value}",
+            capability="retrieval",
+            split=selected_split,
+            cases=tuple(cases),
+        )
+
     def resolve_decision_dataset(
         self,
         split: EvalSplit | None = None,
