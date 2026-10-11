@@ -5,8 +5,8 @@ import pytest
 
 from tropos.core.application.retrieval.models import (
     KnowledgeSearchRequest,
-    RetrievedKnowledgeChunk,
     RetrievalAccessContext,
+    RetrievedKnowledgeChunk,
 )
 from tropos.core.domain.access import AccessPolicy, AccessScope
 from tropos.core.domain.knowledge_chunk import KnowledgeChunk, text_fingerprint
