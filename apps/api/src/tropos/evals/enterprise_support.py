@@ -161,7 +161,10 @@ class EnterpriseSupportBenchmark:
             cases=tuple(
                 EvalCase(
                     case_id=case.case_id,
-                    purpose="Decide whether resolved-case knowledge should be reused, improved, created, or skipped.",
+                    purpose=(
+                        "Decide whether resolved-case knowledge should be reused, "
+                        "improved, created, or skipped."
+                    ),
                     scope=EvalScope.COMPONENT,
                     approval=case.approval,
                     origin=case.origin,
@@ -199,7 +202,10 @@ class EnterpriseSupportBenchmark:
             article_cases.append(
                 EvalCase(
                     case_id=case.case_id,
-                    purpose="Generate or improve a grounded operational Knowledge Article from the resolved-case evidence.",
+                    purpose=(
+                        "Generate or improve a grounded operational Knowledge Article "
+                        "from the resolved-case evidence."
+                    ),
                     scope=EvalScope.COMPONENT,
                     approval=case.approval,
                     origin=case.origin,
