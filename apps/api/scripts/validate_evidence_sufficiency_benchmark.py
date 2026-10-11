@@ -12,8 +12,7 @@ from tropos.evals.evidence_sufficiency import load_evidence_sufficiency_benchmar
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Validate evidence-sufficiency cases and report candidate/approved "
-            "human-label status."
+            "Validate evidence-sufficiency cases and report candidate/approved human-label status."
         )
     )
     parser.add_argument(

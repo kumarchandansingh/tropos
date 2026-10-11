@@ -170,10 +170,7 @@ def test_approved_dataset_excludes_candidate_cases() -> None:
 
 def test_candidate_benchmark_loads_without_promoting_ai_preparation_to_gold() -> None:
     path = (
-        Path(__file__).parents[3]
-        / "evals"
-        / "resolve"
-        / "evidence_sufficiency_candidates_v1.json"
+        Path(__file__).parents[3] / "evals" / "resolve" / "evidence_sufficiency_candidates_v1.json"
     )
 
     benchmark = load_evidence_sufficiency_benchmark(path)

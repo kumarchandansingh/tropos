@@ -219,9 +219,7 @@ class EvidenceSufficiencyCase:
                 "evidence_set_id": self.evidence_set_id,
                 "evidence": [item.snapshot() for item in self.evidence],
                 "pattern_ids": list(self.pattern_ids),
-                "source_references": [
-                    source.snapshot() for source in self.source_references
-                ],
+                "source_references": [source.snapshot() for source in self.source_references],
             },
             expected={
                 "label": adjudication.label.value,
@@ -275,20 +273,12 @@ class EvidenceSufficiencyBenchmark:
         for split in EvalSplit:
             split_cases = tuple(case for case in self.cases if case.split is split)
             by_split[split.value] = {
-                "candidate": sum(
-                    case.approval is EvalApproval.CANDIDATE for case in split_cases
-                ),
-                "approved": sum(
-                    case.approval is EvalApproval.APPROVED for case in split_cases
-                ),
+                "candidate": sum(case.approval is EvalApproval.CANDIDATE for case in split_cases),
+                "approved": sum(case.approval is EvalApproval.APPROVED for case in split_cases),
             }
 
-        approved_labels: dict[str, int] = {
-            label.value: 0 for label in EvidenceSufficiencyLabel
-        }
-        approved_reasons: dict[str, int] = {
-            reason.value: 0 for reason in EvidenceSufficiencyReason
-        }
+        approved_labels: dict[str, int] = {label.value: 0 for label in EvidenceSufficiencyLabel}
+        approved_reasons: dict[str, int] = {reason.value: 0 for reason in EvidenceSufficiencyReason}
         for case in self.cases:
             if case.approval is not EvalApproval.APPROVED or case.adjudication is None:
                 continue
@@ -412,9 +402,7 @@ def _parse_case(raw: JsonValue) -> EvidenceSufficiencyCase:
     )
     reviews = tuple(_parse_review(value) for value in _array(row.get("reviews", [])))
     adjudication_raw = row.get("adjudication")
-    adjudication = (
-        None if adjudication_raw is None else _parse_review(adjudication_raw)
-    )
+    adjudication = None if adjudication_raw is None else _parse_review(adjudication_raw)
     return EvidenceSufficiencyCase(
         case_id=_text(row["case_id"]),
         evidence_set_id=_text(row["evidence_set_id"]),
