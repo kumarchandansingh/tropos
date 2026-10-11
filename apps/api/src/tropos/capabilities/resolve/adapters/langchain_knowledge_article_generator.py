@@ -1,6 +1,6 @@
 """LangChain adapter for grounded Knowledge Article generation."""
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -10,6 +10,7 @@ from tropos.capabilities.resolve.application.knowledge_article_request import (
 from tropos.capabilities.resolve.application.ports.knowledge_article import (
     KnowledgeArticleEvidenceExcerpt,
 )
+from tropos.core.application.ports.langchain_compat import SupportsStructuredOutput
 from tropos.core.domain.evidence import EvidenceRef
 from tropos.core.domain.knowledge_article import (
     ArticleContent,
@@ -164,7 +165,7 @@ def _business_payload(prompt_inputs: KnowledgeArticlePromptInputs) -> str:
 class LangChainKnowledgeArticleGenerator:
     """Use an injected LangChain-compatible model behind the generator port."""
 
-    def __init__(self, model: Any) -> None:
+    def __init__(self, model: SupportsStructuredOutput) -> None:
         self._model = model
 
     def generate(
