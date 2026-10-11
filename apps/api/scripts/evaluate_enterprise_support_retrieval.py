@@ -237,10 +237,7 @@ def main() -> int:
                 ),
             )
 
-    gate_passed = all(
-        not hard_invariant_failures(run)
-        for run in runs.values()
-    )
+    gate_passed = all(not hard_invariant_failures(run) for run in runs.values())
 
     output: JsonObject = {
         "schema_version": 2,
