@@ -17,7 +17,10 @@ from tropos.core.application.ingestion.ingest_knowledge import (
 )
 from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
 from tropos.evals.contracts import EvalSplit
-from tropos.evals.enterprise_support import load_enterprise_support_benchmark
+from tropos.evals.enterprise_support import (
+    EnterpriseSupportBenchmark,
+    load_enterprise_support_benchmark,
+)
 from tropos.evals.retrieval import evaluate_retrieval
 
 DATASET = (
@@ -39,7 +42,7 @@ def _orchestrator(store: SQLiteIngestionStore) -> IngestKnowledge:
     )
 
 
-def _ingest_benchmark(tmp_path: Path) -> tuple[Path, object]:
+def _ingest_benchmark(tmp_path: Path) -> tuple[Path, EnterpriseSupportBenchmark]:
     benchmark = load_enterprise_support_benchmark(DATASET)
     database = tmp_path / "tropos.db"
     store = SQLiteIngestionStore(database)
