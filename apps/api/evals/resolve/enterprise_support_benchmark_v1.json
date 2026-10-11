@@ -1,0 +1,2194 @@
+{
+  "schema_version": 1,
+  "dataset_id": "tropos-enterprise-support-benchmark",
+  "version": "1.0",
+  "data_classification": "synthetic",
+  "notes": "Human-authored synthetic enterprise support cases derived from public troubleshooting and KCS failure patterns. No customer records or vendor article text are copied. This is a realistic development seed, not a production-quality benchmark.",
+  "default_split": "development",
+  "knowledge_documents": [
+    {
+      "knowledge_id": "kb-entra-device-compliance-remediation",
+      "title": "Troubleshoot device-compliance Conditional Access blocks",
+      "text": "# Device compliance access troubleshooting\n\nWhen a user is blocked because a device is not compliant, confirm the device is enrolled, identify the failing compliance setting, remediate it, then run a fresh device access/compliance check. Allow the updated compliance state to register before retrying the protected application. A device-compliance error is different from a domain-join or approved-app error.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-entra-approved-app",
+      "title": "Approved application Conditional Access failures",
+      "text": "# Approved application access\n\nIf a sign-in is blocked because the application is not approved, verify the Conditional Access error and retry with an application that satisfies the approved-app policy. Do not treat an approved-app failure as a device-compliance failure.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-intune-device-limit",
+      "title": "Enrollment blocked by device limit",
+      "text": "# Device enrollment limit\n\nWhen enrollment fails because a user has reached the permitted device count, compare the configured enrollment limit with the user's enrolled devices. Remove obsolete device records or change the approved limit before retrying enrollment.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-intune-company-portal-repair",
+      "title": "Company Portal unavailable or corrupted",
+      "text": "# Company Portal repair\n\nFor a Company Portal unavailable error, confirm the user can sign in through the management web portal and test another network. If web sign-in succeeds, update or reinstall Company Portal and retry enrollment. If the symptom persists, continue diagnosis instead of repeatedly reinstalling the app.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-intune-enrollment-basics",
+      "title": "Baseline Intune enrollment checks",
+      "text": "# Enrollment baseline checks\n\nConfirm that the user has the required license, the device is eligible for enrollment, management authority is configured, and the user can authenticate to the enrollment service. Capture the exact enrollment error before changing policy.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-cloud-policy-evaluation",
+      "title": "Cloud IAM policy evaluation checklist",
+      "text": "# IAM policy evaluation\n\nWhen an identity policy appears to allow an action but the request is denied, inspect all policy layers that contribute to effective permissions. Identity policies are only one layer; organization controls, resource policies, boundaries, and service-specific controls can further restrict access.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-cloud-explicit-deny",
+      "title": "Explicit deny overrides an allow",
+      "text": "# Explicit deny handling\n\nAn explicit deny in an applicable policy overrides an allow. For an unexpected access-denied result, identify the principal, resource, action, and all applicable organization, identity, and resource policies. Remove or narrow a deny only through the approved change process.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-cloud-role-trust",
+      "title": "Role assumption and trust-policy troubleshooting",
+      "text": "# Role trust troubleshooting\n\nIf a principal cannot assume a role, verify the role trust relationship, caller permission to assume the role, external-ID or condition requirements, and the principal identity used by the workload.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-cloud-network-endpoint",
+      "title": "Cloud endpoint policy and network access",
+      "text": "# Endpoint access controls\n\nRequests routed through a private service endpoint can be restricted by the endpoint policy in addition to identity permissions. Confirm the network path and endpoint policy when access differs between network locations.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-jsm-request-type",
+      "title": "Customer portal request requires a valid request type",
+      "text": "# Request type and portal visibility\n\nA service request must have a valid customer request type to open correctly in the customer portal. Requests created from generic issue-creation paths or moved between projects can lose that mapping. Set a request type compatible with the issue type and verify the customer portal link.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-jsm-portal-access",
+      "title": "Customer portal access checklist",
+      "text": "# Customer portal access\n\nFor a customer who cannot view a request, confirm the request has a valid request type, the customer can access the service project, and the customer is the reporter, a request participant, or a member of an organization with which the request is shared.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-jsm-reporter-field",
+      "title": "Reporter visibility and portal request lists",
+      "text": "# Reporter field and request lists\n\nCustomer request lists depend on the reporter relationship. If the reporter field is hidden by configuration, portal request lists can fail to show the expected requests. Restore the reporter field and re-test the customer view.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-jsm-notifications",
+      "title": "Customer notification troubleshooting",
+      "text": "# Customer notifications\n\nIf a customer can open a request but does not receive notifications, verify notification rules, customer notification settings, the request participant/reporting relationship, and email delivery status.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-security-emergency-account-rotation",
+      "title": "Emergency access account credential rotation",
+      "text": "# Emergency account credential rotation\n\nRotate emergency access credentials through the privileged identity process, verify monitored sign-in capability, and store recovery material according to the security runbook.",
+      "tenant_id": "tenant-a",
+      "scope": "restricted",
+      "allowed_groups": [
+        "identity-admins"
+      ],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-cloud-org-policy-admin",
+      "title": "Organization policy administrator runbook",
+      "text": "# Organization policy administration\n\nChanges to organization-wide deny controls require cloud governance approval, an impact review, and a rollback plan. Validate the target scope before applying a deny to production.",
+      "tenant_id": "tenant-a",
+      "scope": "restricted",
+      "allowed_groups": [
+        "cloud-admins"
+      ],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-jsm-automation-admin",
+      "title": "Service-management automation administration",
+      "text": "# Automation administration\n\nChanges to service-project automation rules require an administrator role. Validate trigger scope, conditions, and audit-log execution before enabling a rule for all projects.",
+      "tenant_id": "tenant-a",
+      "scope": "restricted",
+      "allowed_groups": [
+        "service-admins"
+      ],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-vpn-certificate-renewal",
+      "title": "Corporate VPN certificate renewal",
+      "text": "# VPN certificate renewal\n\nIf VPN authentication fails because the device certificate is expired, renew the managed certificate and verify the new certificate is presented by the VPN client before reconnecting.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    },
+    {
+      "knowledge_id": "kb-sap-po-approval",
+      "title": "Purchase-order approval routing",
+      "text": "# Purchase-order routing\n\nPurchase orders above the configured threshold require finance approval before release. Routing problems should be checked against the approval matrix and cost-center ownership.",
+      "tenant_id": "tenant-a",
+      "scope": "tenant",
+      "allowed_groups": [],
+      "source_version": "1"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "ES-ENT-001",
+      "split": "development",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "identity",
+        "conditional-access",
+        "device-compliance",
+        "reuse"
+      ],
+      "research_pattern_ids": [
+        "ms-ca-errors",
+        "ms-intune-ca"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P2",
+        "channel": "service_portal",
+        "opened_at": "2026-08-03T09:10:00Z",
+        "resolved_at": "2026-08-03T10:05:00Z",
+        "short_description": "SharePoint blocked with AADSTS53000 after BitLocker remediation",
+        "description": "A managed Windows 11 laptop was denied access to SharePoint with AADSTS53000. The user had enabled BitLocker after Company Portal reported encryption as the only failed compliance setting.",
+        "environment": {
+          "product": "Microsoft Entra / Intune",
+          "module": "Conditional Access",
+          "platform": "Windows 11",
+          "user_scope": "single user"
+        },
+        "comments": [
+          "User confirmed browser sign-in worked until the compliance policy began enforcing encryption."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-ENT-001-N1",
+            "author_role": "support_agent",
+            "text": "Intune showed the device as noncompliant because encryption was not detected."
+          },
+          {
+            "note_id": "ES-ENT-001-N2",
+            "author_role": "requester",
+            "text": "BitLocker was enabled and encryption completed, but SharePoint still returned AADSTS53000."
+          },
+          {
+            "note_id": "ES-ENT-001-N3",
+            "author_role": "support_agent",
+            "text": "Ran Check access in Company Portal. The compliance state changed to compliant after synchronization; the next SharePoint sign-in succeeded."
+          }
+        ],
+        "resolution_notes": "Confirmed the device was enrolled, remediated the failed encryption control, forced a fresh compliance/access check, and validated successful SharePoint access after the compliant state registered."
+      },
+      "expected": {
+        "closure_evidence": "SUFFICIENT",
+        "knowledge_coverage": "SUFFICIENT",
+        "action": "REUSE",
+        "reason": "RELATED_KNOWLEDGE_SUFFICIENT"
+      },
+      "retrieval_queries": [
+        {
+          "query_id": "ES-ENT-001-Q1",
+          "query": "AADSTS53000 device noncompliant after BitLocker enabled",
+          "relevant_knowledge_ids": [
+            "kb-entra-device-compliance-remediation"
+          ],
+          "tags": [
+            "semantic",
+            "error-code",
+            "identity"
+          ],
+          "max_rank": 3
+        },
+        {
+          "query_id": "ES-ENT-001-Q2",
+          "query": "Company Portal says encryption fixed but SharePoint still blocks the laptop",
+          "relevant_knowledge_ids": [
+            "kb-entra-device-compliance-remediation"
+          ],
+          "tags": [
+            "paraphrase",
+            "device-compliance"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-ENT-001-Q3",
+          "query": "how to refresh compliance after fixing a noncompliant Windows device",
+          "relevant_knowledge_ids": [
+            "kb-entra-device-compliance-remediation"
+          ],
+          "tags": [
+            "how-to",
+            "device-compliance"
+          ],
+          "max_rank": 5
+        }
+      ],
+      "article_expectation": null
+    },
+    {
+      "case_id": "ES-ENT-002",
+      "split": "development",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "identity",
+        "conditional-access",
+        "desktop-client",
+        "improve"
+      ],
+      "research_pattern_ids": [
+        "ms-ca-errors",
+        "ms-intune-ca"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P2",
+        "channel": "chat",
+        "opened_at": "2026-08-07T12:20:00Z",
+        "resolved_at": "2026-08-07T13:35:00Z",
+        "short_description": "Teams desktop remains blocked after device is compliant",
+        "description": "A Windows laptop had become compliant and Microsoft 365 web access worked, but Teams desktop continued to fail with AADSTS53000 using an older session.",
+        "environment": {
+          "product": "Microsoft Entra / Intune",
+          "module": "Conditional Access",
+          "platform": "Windows 11 / Teams desktop",
+          "user_scope": "single user"
+        },
+        "comments": [
+          "User could open the protected service in a browser after the compliance check."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-ENT-002-N1",
+            "author_role": "support_agent",
+            "text": "Confirmed Company Portal reported the device compliant and browser access succeeded."
+          },
+          {
+            "note_id": "ES-ENT-002-N2",
+            "author_role": "support_agent",
+            "text": "Teams desktop was still using an earlier sign-in session created before compliance was refreshed."
+          },
+          {
+            "note_id": "ES-ENT-002-N3",
+            "author_role": "support_agent",
+            "text": "Signed out of the desktop client, closed it, reopened it, and completed a fresh modern-authentication sign-in. Access succeeded."
+          }
+        ],
+        "resolution_notes": "After confirming current device compliance and successful browser access, forced a fresh desktop-client sign-in so the application evaluated the current device state. Teams access then succeeded."
+      },
+      "expected": {
+        "closure_evidence": "SUFFICIENT",
+        "knowledge_coverage": "PARTIAL",
+        "action": "IMPROVE",
+        "reason": "RELATED_KNOWLEDGE_INCOMPLETE"
+      },
+      "retrieval_queries": [
+        {
+          "query_id": "ES-ENT-002-Q1",
+          "query": "Teams desktop AADSTS53000 but browser works and device is compliant",
+          "relevant_knowledge_ids": [
+            "kb-entra-device-compliance-remediation"
+          ],
+          "tags": [
+            "semantic",
+            "desktop-client",
+            "identity"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-ENT-002-Q2",
+          "query": "compliant laptop web access works desktop app still blocked conditional access",
+          "relevant_knowledge_ids": [
+            "kb-entra-device-compliance-remediation"
+          ],
+          "tags": [
+            "paraphrase",
+            "device-compliance"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-ENT-002-Q3",
+          "query": "desktop app still sees old noncompliant device state after Company Portal check access",
+          "relevant_knowledge_ids": [
+            "kb-entra-device-compliance-remediation"
+          ],
+          "tags": [
+            "diagnostic",
+            "device-compliance"
+          ],
+          "max_rank": 5
+        }
+      ],
+      "article_expectation": {
+        "article_type": "troubleshooting",
+        "subject": "Desktop application remains blocked after device becomes compliant",
+        "product": "Microsoft Entra / Intune",
+        "module": "Conditional Access",
+        "evidence": [
+          {
+            "chunk_id": "kb-entra-device-compliance-remediation",
+            "text": "# Device compliance access troubleshooting\n\nWhen a user is blocked because a device is not compliant, confirm the device is enrolled, identify the failing compliance setting, remediate it, then run a fresh device access/compliance check. Allow the updated compliance state to register before retrying the protected application. A device-compliance error is different from a domain-join or approved-app error."
+          },
+          {
+            "chunk_id": "ES-ENT-002-resolution",
+            "text": "The device was compliant and browser access succeeded. The desktop client was signed out and restarted so a fresh modern-authentication sign-in evaluated the current device state; access then succeeded."
+          }
+        ],
+        "expected": {
+          "article_type": "troubleshooting",
+          "required_sections": [
+            "issue_description",
+            "symptoms",
+            "diagnostic_checks",
+            "resolution_steps",
+            "expected_result"
+          ],
+          "claims": [
+            {
+              "contains": "compliant",
+              "evidence_chunk_ids": [
+                "kb-entra-device-compliance-remediation"
+              ]
+            },
+            {
+              "contains": "browser access",
+              "evidence_chunk_ids": [
+                "ES-ENT-002-resolution"
+              ]
+            },
+            {
+              "contains": "fresh",
+              "evidence_chunk_ids": [
+                "ES-ENT-002-resolution"
+              ]
+            }
+          ],
+          "gaps": [],
+          "forbidden_terms": [
+            "disable conditional access",
+            "delete the device"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "ES-ENT-003",
+      "split": "development",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "identity",
+        "conditional-access",
+        "policy-change",
+        "create"
+      ],
+      "research_pattern_ids": [
+        "ms-ca-lockout",
+        "ms-ca-errors"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "identity-admins"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P1",
+        "channel": "phone",
+        "opened_at": "2026-08-12T07:40:00Z",
+        "resolved_at": "2026-08-12T08:25:00Z",
+        "short_description": "New Conditional Access policy blocked administrator access",
+        "description": "A policy requiring compliant devices was enabled for all administrators and all cloud resources. Two administrators on unmanaged recovery workstations received AADSTS53003 and could no longer enter the admin portals.",
+        "environment": {
+          "product": "Microsoft Entra",
+          "module": "Conditional Access",
+          "platform": "cloud admin portals",
+          "user_scope": "multiple administrators"
+        },
+        "comments": [
+          "A monitored emergency account retained access because it had been excluded by a separate emergency-access control."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-ENT-003-N1",
+            "author_role": "identity_admin",
+            "text": "Sign-in diagnostics showed the newly enabled device-compliance policy as the blocking control."
+          },
+          {
+            "note_id": "ES-ENT-003-N2",
+            "author_role": "identity_admin",
+            "text": "Used the emergency account to place the policy back into a non-enforcing state and add the approved emergency-access exclusions."
+          },
+          {
+            "note_id": "ES-ENT-003-N3",
+            "author_role": "identity_admin",
+            "text": "Re-enabled the policy for a pilot admin group, validated sign-ins, then expanded scope after review."
+          }
+        ],
+        "resolution_notes": "Recovered administrator access through the monitored emergency account, corrected emergency-access exclusions, and changed the rollout from all-admin enforcement to a validated pilot before broader scope."
+      },
+      "expected": {
+        "closure_evidence": "SUFFICIENT",
+        "knowledge_coverage": "NONE",
+        "action": "CREATE",
+        "reason": "NO_RELATED_KNOWLEDGE"
+      },
+      "retrieval_queries": [
+        {
+          "query_id": "ES-ENT-003-Q1",
+          "query": "conditional access policy locked administrators out after requiring compliant devices",
+          "relevant_knowledge_ids": [],
+          "tags": [
+            "no-answer",
+            "policy-change",
+            "identity"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-ENT-003-Q2",
+          "query": "AADSTS53003 admins cannot open Entra portal after all-user policy rollout",
+          "relevant_knowledge_ids": [],
+          "tags": [
+            "no-answer",
+            "error-code",
+            "identity"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-ENT-003-Q3",
+          "query": "safe rollout and emergency account exclusions for device compliance policy",
+          "relevant_knowledge_ids": [],
+          "tags": [
+            "no-answer",
+            "policy-safety",
+            "identity"
+          ],
+          "max_rank": 5
+        }
+      ],
+      "article_expectation": {
+        "article_type": "how_to",
+        "subject": "Roll out a device-compliance Conditional Access policy without locking out administrators",
+        "product": "Microsoft Entra",
+        "module": "Conditional Access",
+        "evidence": [
+          {
+            "chunk_id": "ES-ENT-003-N1",
+            "text": "Sign-in diagnostics identified the newly enabled device-compliance policy as the blocking control for administrator sign-ins."
+          },
+          {
+            "chunk_id": "ES-ENT-003-N2",
+            "text": "Recovery used a monitored emergency account; the policy was returned to a non-enforcing state and approved emergency-access exclusions were added."
+          },
+          {
+            "chunk_id": "ES-ENT-003-N3",
+            "text": "The policy was re-enabled for a pilot administrator group, sign-ins were validated, and scope was expanded only after review."
+          }
+        ],
+        "expected": {
+          "article_type": "how_to",
+          "required_sections": [
+            "purpose",
+            "prerequisites",
+            "steps",
+            "expected_result",
+            "exceptions"
+          ],
+          "claims": [
+            {
+              "contains": "emergency",
+              "evidence_chunk_ids": [
+                "ES-ENT-003-N2"
+              ]
+            },
+            {
+              "contains": "pilot",
+              "evidence_chunk_ids": [
+                "ES-ENT-003-N3"
+              ]
+            },
+            {
+              "contains": "diagnostic",
+              "evidence_chunk_ids": [
+                "ES-ENT-003-N1"
+              ]
+            }
+          ],
+          "gaps": [],
+          "forbidden_terms": [
+            "disable conditional access permanently",
+            "share emergency credentials"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "ES-ENT-004",
+      "split": "development",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "identity",
+        "insufficient-evidence",
+        "no-action"
+      ],
+      "research_pattern_ids": [
+        "kcs-capture"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P3",
+        "channel": "email",
+        "opened_at": "2026-08-15T11:00:00Z",
+        "resolved_at": "2026-08-15T13:30:00Z",
+        "short_description": "User could not sign in after laptop restart",
+        "description": "The user reported that sign-in failed after restarting a laptop but did not capture an error message or affected application.",
+        "environment": {
+          "product": "unknown",
+          "module": "authentication",
+          "platform": "Windows",
+          "user_scope": "single user"
+        },
+        "comments": [
+          "User later reported that access had started working without another change."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-ENT-004-N1",
+            "author_role": "support_agent",
+            "text": "Asked the user to retry and capture an error if the issue returned."
+          }
+        ],
+        "resolution_notes": "Working now."
+      },
+      "expected": {
+        "closure_evidence": "INSUFFICIENT",
+        "knowledge_coverage": null,
+        "action": "NO_ACTION",
+        "reason": "INSUFFICIENT_CLOSURE_EVIDENCE"
+      },
+      "retrieval_queries": [],
+      "article_expectation": null
+    },
+    {
+      "case_id": "ES-END-001",
+      "split": "holdout",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "endpoint",
+        "intune",
+        "device-limit",
+        "reuse"
+      ],
+      "research_pattern_ids": [
+        "ms-intune-enrollment"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P3",
+        "channel": "service_portal",
+        "opened_at": "2026-08-18T09:00:00Z",
+        "resolved_at": "2026-08-18T09:40:00Z",
+        "short_description": "New phone enrollment fails with DeviceCapReached",
+        "description": "A user replacing a mobile phone could not enroll the new device. Company Portal reported DeviceCapReached.",
+        "environment": {
+          "product": "Microsoft Intune",
+          "module": "Device enrollment",
+          "platform": "mobile",
+          "user_scope": "single user"
+        },
+        "comments": [
+          "The user had replaced several phones during the previous year."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-END-001-N1",
+            "author_role": "support_agent",
+            "text": "The user's enrolled-device count equaled the configured device limit."
+          },
+          {
+            "note_id": "ES-END-001-N2",
+            "author_role": "support_agent",
+            "text": "Three retired phone records were still present; two stale records were removed after confirming they were no longer used."
+          },
+          {
+            "note_id": "ES-END-001-N3",
+            "author_role": "requester",
+            "text": "Retried enrollment and the replacement phone enrolled successfully."
+          }
+        ],
+        "resolution_notes": "Confirmed the device-limit restriction was reached, removed verified stale device records, retried enrollment, and validated that the replacement phone enrolled successfully."
+      },
+      "expected": {
+        "closure_evidence": "SUFFICIENT",
+        "knowledge_coverage": "SUFFICIENT",
+        "action": "REUSE",
+        "reason": "RELATED_KNOWLEDGE_SUFFICIENT"
+      },
+      "retrieval_queries": [
+        {
+          "query_id": "ES-END-001-Q1",
+          "query": "DeviceCapReached Company Portal new phone enrollment",
+          "relevant_knowledge_ids": [
+            "kb-intune-device-limit"
+          ],
+          "tags": [
+            "identifier",
+            "endpoint"
+          ],
+          "max_rank": 3
+        },
+        {
+          "query_id": "ES-END-001-Q2",
+          "query": "cannot enroll replacement phone because too many old devices are registered",
+          "relevant_knowledge_ids": [
+            "kb-intune-device-limit"
+          ],
+          "tags": [
+            "paraphrase",
+            "endpoint"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-END-001-Q3",
+          "query": "remove stale Intune device records when user hits enrollment limit",
+          "relevant_knowledge_ids": [
+            "kb-intune-device-limit"
+          ],
+          "tags": [
+            "how-to",
+            "endpoint"
+          ],
+          "max_rank": 5
+        }
+      ],
+      "article_expectation": null
+    },
+    {
+      "case_id": "ES-END-002",
+      "split": "holdout",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "endpoint",
+        "intune",
+        "ambiguous-symptom",
+        "improve"
+      ],
+      "research_pattern_ids": [
+        "ms-intune-enrollment"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P3",
+        "channel": "chat",
+        "opened_at": "2026-08-21T10:15:00Z",
+        "resolved_at": "2026-08-21T11:20:00Z",
+        "short_description": "Company Portal temporarily unavailable during enrollment",
+        "description": "Company Portal displayed a temporary-unavailable message. Reinstalling the app did not change the error, while web sign-in worked normally.",
+        "environment": {
+          "product": "Microsoft Intune",
+          "module": "Device enrollment",
+          "platform": "Android",
+          "user_scope": "single user"
+        },
+        "comments": [
+          "The same user had recently enrolled several test devices."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-END-002-N1",
+            "author_role": "support_agent",
+            "text": "Web sign-in succeeded, so credentials and basic service reachability were not the immediate failure."
+          },
+          {
+            "note_id": "ES-END-002-N2",
+            "author_role": "support_agent",
+            "text": "Reinstalling Company Portal did not change the symptom."
+          },
+          {
+            "note_id": "ES-END-002-N3",
+            "author_role": "support_agent",
+            "text": "The user was at the configured device limit. After one verified stale test device was removed, enrollment completed."
+          }
+        ],
+        "resolution_notes": "Used web sign-in to rule out an authentication outage, then checked the enrollment count after app repair did not help. Removing a stale device brought the user below the limit and enrollment completed."
+      },
+      "expected": {
+        "closure_evidence": "SUFFICIENT",
+        "knowledge_coverage": "PARTIAL",
+        "action": "IMPROVE",
+        "reason": "RELATED_KNOWLEDGE_INCOMPLETE"
+      },
+      "retrieval_queries": [
+        {
+          "query_id": "ES-END-002-Q1",
+          "query": "Company Portal temporarily unavailable but web login works",
+          "relevant_knowledge_ids": [
+            "kb-intune-company-portal-repair",
+            "kb-intune-device-limit"
+          ],
+          "tags": [
+            "ambiguous",
+            "endpoint"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-END-002-Q2",
+          "query": "reinstalling Company Portal did not fix enrollment and user has many registered devices",
+          "relevant_knowledge_ids": [
+            "kb-intune-company-portal-repair",
+            "kb-intune-device-limit"
+          ],
+          "tags": [
+            "multi-document",
+            "endpoint"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-END-002-Q3",
+          "query": "temporary unavailable enrollment error caused by device cap",
+          "relevant_knowledge_ids": [
+            "kb-intune-device-limit",
+            "kb-intune-company-portal-repair"
+          ],
+          "tags": [
+            "semantic",
+            "endpoint"
+          ],
+          "max_rank": 5
+        }
+      ],
+      "article_expectation": {
+        "article_type": "troubleshooting",
+        "subject": "Company Portal reports temporary unavailability during enrollment",
+        "product": "Microsoft Intune",
+        "module": "Device enrollment",
+        "evidence": [
+          {
+            "chunk_id": "kb-intune-company-portal-repair",
+            "text": "# Company Portal repair\n\nFor a Company Portal unavailable error, confirm the user can sign in through the management web portal and test another network. If web sign-in succeeds, update or reinstall Company Portal and retry enrollment. If the symptom persists, continue diagnosis instead of repeatedly reinstalling the app."
+          },
+          {
+            "chunk_id": "kb-intune-device-limit",
+            "text": "# Device enrollment limit\n\nWhen enrollment fails because a user has reached the permitted device count, compare the configured enrollment limit with the user's enrolled devices. Remove obsolete device records or change the approved limit before retrying enrollment."
+          },
+          {
+            "chunk_id": "ES-END-002-resolution",
+            "text": "Web sign-in worked and reinstalling Company Portal did not help. The enrolled-device count was at the configured limit; removing a verified stale device allowed enrollment to complete."
+          }
+        ],
+        "expected": {
+          "article_type": "troubleshooting",
+          "required_sections": [
+            "issue_description",
+            "symptoms",
+            "diagnostic_checks",
+            "resolution_steps",
+            "expected_result"
+          ],
+          "claims": [
+            {
+              "contains": "web sign-in",
+              "evidence_chunk_ids": [
+                "ES-END-002-resolution"
+              ]
+            },
+            {
+              "contains": "device limit",
+              "evidence_chunk_ids": [
+                "kb-intune-device-limit"
+              ]
+            },
+            {
+              "contains": "reinstall",
+              "evidence_chunk_ids": [
+                "kb-intune-company-portal-repair"
+              ]
+            }
+          ],
+          "gaps": [],
+          "forbidden_terms": [
+            "delete all enrolled devices",
+            "increase the limit without approval"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "ES-END-003",
+      "split": "holdout",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "endpoint",
+        "intune",
+        "ade",
+        "create"
+      ],
+      "research_pattern_ids": [
+        "ms-ade-ca"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P2",
+        "channel": "service_portal",
+        "opened_at": "2026-08-25T08:30:00Z",
+        "resolved_at": "2026-08-25T10:10:00Z",
+        "short_description": "ADE-enrolled iPhone is managed but cloud apps still reject it",
+        "description": "An iPhone enrolled through Automated Device Enrollment completed Setup Assistant, but opening a protected cloud app said the administrator required the device to be managed.",
+        "environment": {
+          "product": "Microsoft Intune",
+          "module": "Automated Device Enrollment / Conditional Access",
+          "platform": "iOS",
+          "user_scope": "single user"
+        },
+        "comments": [
+          "The device appeared in the management console but had not completed the Company Portal registration step."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-END-003-N1",
+            "author_role": "support_agent",
+            "text": "Enrollment used Setup Assistant and no Company Portal assignment was present for the device."
+          },
+          {
+            "note_id": "ES-END-003-N2",
+            "author_role": "endpoint_admin",
+            "text": "Assigned Company Portal to the enrollment profile/device group and waited for installation."
+          },
+          {
+            "note_id": "ES-END-003-N3",
+            "author_role": "requester",
+            "text": "Signed in to Company Portal, completed registration, and then opened the protected application successfully."
+          }
+        ],
+        "resolution_notes": "Deployed Company Portal to the ADE device, completed the user registration step, and validated that the protected cloud application recognized the device as managed."
+      },
+      "expected": {
+        "closure_evidence": "SUFFICIENT",
+        "knowledge_coverage": "NONE",
+        "action": "CREATE",
+        "reason": "NO_RELATED_KNOWLEDGE"
+      },
+      "retrieval_queries": [
+        {
+          "query_id": "ES-END-003-Q1",
+          "query": "ADE iPhone says admin requires device to be managed although enrollment completed",
+          "relevant_knowledge_ids": [],
+          "tags": [
+            "no-answer",
+            "endpoint",
+            "semantic"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-END-003-Q2",
+          "query": "Setup Assistant enrollment protected app blocked Company Portal not deployed",
+          "relevant_knowledge_ids": [],
+          "tags": [
+            "no-answer",
+            "endpoint",
+            "configuration"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-END-003-Q3",
+          "query": "Intune automated device enrollment managed error after setup assistant",
+          "relevant_knowledge_ids": [],
+          "tags": [
+            "no-answer",
+            "endpoint"
+          ],
+          "max_rank": 5
+        }
+      ],
+      "article_expectation": {
+        "article_type": "troubleshooting",
+        "subject": "ADE device is enrolled but Conditional Access does not recognize it as managed",
+        "product": "Microsoft Intune",
+        "module": "Automated Device Enrollment",
+        "evidence": [
+          {
+            "chunk_id": "ES-END-003-N1",
+            "text": "The device completed Setup Assistant enrollment, but Company Portal was not assigned and user registration had not completed."
+          },
+          {
+            "chunk_id": "ES-END-003-N2",
+            "text": "Company Portal was assigned to the enrollment profile/device group and allowed to install."
+          },
+          {
+            "chunk_id": "ES-END-003-N3",
+            "text": "After the user signed in to Company Portal and completed registration, the protected application opened successfully."
+          }
+        ],
+        "expected": {
+          "article_type": "troubleshooting",
+          "required_sections": [
+            "issue_description",
+            "symptoms",
+            "diagnostic_checks",
+            "resolution_steps",
+            "expected_result"
+          ],
+          "claims": [
+            {
+              "contains": "Company Portal",
+              "evidence_chunk_ids": [
+                "ES-END-003-N1"
+              ]
+            },
+            {
+              "contains": "assigned",
+              "evidence_chunk_ids": [
+                "ES-END-003-N2"
+              ]
+            },
+            {
+              "contains": "protected application",
+              "evidence_chunk_ids": [
+                "ES-END-003-N3"
+              ]
+            }
+          ],
+          "gaps": [],
+          "forbidden_terms": [
+            "factory reset the device",
+            "disable conditional access"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "ES-END-004",
+      "split": "holdout",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "endpoint",
+        "intune",
+        "insufficient-evidence",
+        "no-action"
+      ],
+      "research_pattern_ids": [
+        "kcs-capture"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P3",
+        "channel": "email",
+        "opened_at": "2026-08-27T14:05:00Z",
+        "resolved_at": "2026-08-27T14:40:00Z",
+        "short_description": "Mobile management profile installation failed",
+        "description": "The user reported that profile installation failed during enrollment. No error code, device state, or failing step was recorded.",
+        "environment": {
+          "product": "Microsoft Intune",
+          "module": "Device enrollment",
+          "platform": "mobile",
+          "user_scope": "single user"
+        },
+        "comments": [
+          "The user removed an old profile and retried."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-END-004-N1",
+            "author_role": "support_agent",
+            "text": "No diagnostic screenshot or management log was captured before the retry."
+          }
+        ],
+        "resolution_notes": "Retried; succeeded."
+      },
+      "expected": {
+        "closure_evidence": "INSUFFICIENT",
+        "knowledge_coverage": null,
+        "action": "NO_ACTION",
+        "reason": "INSUFFICIENT_CLOSURE_EVIDENCE"
+      },
+      "retrieval_queries": [],
+      "article_expectation": null
+    },
+    {
+      "case_id": "ES-IAM-001",
+      "split": "development",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "cloud-iam",
+        "aws",
+        "explicit-deny",
+        "reuse"
+      ],
+      "research_pattern_ids": [
+        "aws-access-denied"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "cloud-support"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P2",
+        "channel": "service_portal",
+        "opened_at": "2026-09-01T06:50:00Z",
+        "resolved_at": "2026-09-01T08:15:00Z",
+        "short_description": "S3 PutObject denied although role policy allows it",
+        "description": "A deployment role had an identity policy allowing PutObject to the release bucket, but uploads returned AccessDenied after an organization-policy change.",
+        "environment": {
+          "product": "AWS IAM / S3",
+          "module": "Policy evaluation",
+          "platform": "cloud",
+          "user_scope": "deployment role"
+        },
+        "comments": [
+          "The failure started immediately after an organization control was tightened."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-IAM-001-N1",
+            "author_role": "cloud_support",
+            "text": "Confirmed the role identity policy allowed PutObject to the expected bucket path."
+          },
+          {
+            "note_id": "ES-IAM-001-N2",
+            "author_role": "cloud_admin",
+            "text": "An organization-level service control policy contained an explicit deny matching the release account."
+          },
+          {
+            "note_id": "ES-IAM-001-N3",
+            "author_role": "cloud_admin",
+            "text": "Narrowed the deny through the approved change process and re-ran the deployment upload successfully."
+          }
+        ],
+        "resolution_notes": "The identity allow was overridden by an organization-level explicit deny. The deny scope was corrected through approved change control and the PutObject operation then succeeded."
+      },
+      "expected": {
+        "closure_evidence": "SUFFICIENT",
+        "knowledge_coverage": "SUFFICIENT",
+        "action": "REUSE",
+        "reason": "RELATED_KNOWLEDGE_SUFFICIENT"
+      },
+      "retrieval_queries": [
+        {
+          "query_id": "ES-IAM-001-Q1",
+          "query": "S3 PutObject AccessDenied even though IAM role has allow policy",
+          "relevant_knowledge_ids": [
+            "kb-cloud-explicit-deny",
+            "kb-cloud-policy-evaluation"
+          ],
+          "tags": [
+            "cloud-iam",
+            "explicit-deny"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-IAM-001-Q2",
+          "query": "organization SCP deny overrides role permission for release bucket",
+          "relevant_knowledge_ids": [
+            "kb-cloud-explicit-deny",
+            "kb-cloud-policy-evaluation"
+          ],
+          "tags": [
+            "identifier",
+            "cloud-iam"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-IAM-001-Q3",
+          "query": "why an allowed AWS action is still denied by organization policy",
+          "relevant_knowledge_ids": [
+            "kb-cloud-explicit-deny",
+            "kb-cloud-policy-evaluation"
+          ],
+          "tags": [
+            "paraphrase",
+            "cloud-iam"
+          ],
+          "max_rank": 5
+        }
+      ],
+      "article_expectation": null
+    },
+    {
+      "case_id": "ES-IAM-002",
+      "split": "development",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "cloud-iam",
+        "aws",
+        "permissions-boundary",
+        "improve"
+      ],
+      "research_pattern_ids": [
+        "aws-access-denied"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "cloud-support"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P2",
+        "channel": "chat",
+        "opened_at": "2026-09-04T09:25:00Z",
+        "resolved_at": "2026-09-04T10:30:00Z",
+        "short_description": "DynamoDB update denied after adding allow to application role",
+        "description": "An application role was granted dynamodb:UpdateItem in its identity policy, but the operation remained denied.",
+        "environment": {
+          "product": "AWS IAM / DynamoDB",
+          "module": "Permissions boundary",
+          "platform": "cloud",
+          "user_scope": "application role"
+        },
+        "comments": [
+          "Read operations on the same table continued to work."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-IAM-002-N1",
+            "author_role": "cloud_support",
+            "text": "Verified the identity policy allowed UpdateItem on the target table."
+          },
+          {
+            "note_id": "ES-IAM-002-N2",
+            "author_role": "cloud_support",
+            "text": "The role had a permissions boundary that allowed read actions but did not allow UpdateItem."
+          },
+          {
+            "note_id": "ES-IAM-002-N3",
+            "author_role": "cloud_admin",
+            "text": "Updated the approved boundary policy to include the required write action and validated the application update."
+          }
+        ],
+        "resolution_notes": "The permissions boundary capped the role's effective permissions below the identity policy. After the approved boundary was updated to allow UpdateItem, the application write succeeded."
+      },
+      "expected": {
+        "closure_evidence": "SUFFICIENT",
+        "knowledge_coverage": "PARTIAL",
+        "action": "IMPROVE",
+        "reason": "RELATED_KNOWLEDGE_INCOMPLETE"
+      },
+      "retrieval_queries": [
+        {
+          "query_id": "ES-IAM-002-Q1",
+          "query": "DynamoDB UpdateItem denied although role identity policy allows it permissions boundary",
+          "relevant_knowledge_ids": [
+            "kb-cloud-policy-evaluation"
+          ],
+          "tags": [
+            "cloud-iam",
+            "permissions-boundary"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-IAM-002-Q2",
+          "query": "role can read DynamoDB but cannot write after adding allow policy",
+          "relevant_knowledge_ids": [
+            "kb-cloud-policy-evaluation"
+          ],
+          "tags": [
+            "semantic",
+            "cloud-iam"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-IAM-002-Q3",
+          "query": "effective permissions limited by boundary despite IAM allow",
+          "relevant_knowledge_ids": [
+            "kb-cloud-policy-evaluation"
+          ],
+          "tags": [
+            "paraphrase",
+            "cloud-iam"
+          ],
+          "max_rank": 5
+        }
+      ],
+      "article_expectation": {
+        "article_type": "faq",
+        "subject": "Why can an AWS role remain denied after an allow is added?",
+        "product": "AWS IAM",
+        "module": "Policy evaluation",
+        "evidence": [
+          {
+            "chunk_id": "kb-cloud-policy-evaluation",
+            "text": "# IAM policy evaluation\n\nWhen an identity policy appears to allow an action but the request is denied, inspect all policy layers that contribute to effective permissions. Identity policies are only one layer; organization controls, resource policies, boundaries, and service-specific controls can further restrict access."
+          },
+          {
+            "chunk_id": "ES-IAM-002-resolution",
+            "text": "The role identity policy allowed UpdateItem, but a permissions boundary allowed only read actions. Updating the approved boundary to include UpdateItem made the write succeed."
+          }
+        ],
+        "expected": {
+          "article_type": "faq",
+          "required_sections": [
+            "introduction",
+            "items"
+          ],
+          "claims": [
+            {
+              "contains": "policy layers",
+              "evidence_chunk_ids": [
+                "kb-cloud-policy-evaluation"
+              ]
+            },
+            {
+              "contains": "permissions boundary",
+              "evidence_chunk_ids": [
+                "ES-IAM-002-resolution"
+              ]
+            }
+          ],
+          "gaps": [],
+          "forbidden_terms": [
+            "remove all boundaries",
+            "administrator access"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "ES-IAM-003",
+      "split": "development",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "cloud-iam",
+        "aws",
+        "kms",
+        "create"
+      ],
+      "research_pattern_ids": [
+        "aws-access-denied"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "cloud-support"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P2",
+        "channel": "service_portal",
+        "opened_at": "2026-09-08T05:45:00Z",
+        "resolved_at": "2026-09-08T07:20:00Z",
+        "short_description": "Application can read S3 object but cannot decrypt it with KMS",
+        "description": "A workload successfully retrieved an encrypted object from S3 but failed with KMS AccessDenied during decryption after a key was replaced.",
+        "environment": {
+          "product": "AWS KMS / S3",
+          "module": "Key policy",
+          "platform": "cloud",
+          "user_scope": "application role"
+        },
+        "comments": [
+          "The role already had kms:Decrypt in an IAM policy."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-IAM-003-N1",
+            "author_role": "cloud_support",
+            "text": "S3 GetObject succeeded, isolating the failure to the encryption/decryption path."
+          },
+          {
+            "note_id": "ES-IAM-003-N2",
+            "author_role": "cloud_admin",
+            "text": "The replacement KMS key policy did not include the application role used by the workload."
+          },
+          {
+            "note_id": "ES-IAM-003-N3",
+            "author_role": "cloud_admin",
+            "text": "Added the role through the approved key-policy change, then validated decryption from the application."
+          }
+        ],
+        "resolution_notes": "The replacement KMS key policy omitted the application role. After the approved key policy granted the role access, the same object could be retrieved and decrypted successfully."
+      },
+      "expected": {
+        "closure_evidence": "SUFFICIENT",
+        "knowledge_coverage": "NONE",
+        "action": "CREATE",
+        "reason": "NO_RELATED_KNOWLEDGE"
+      },
+      "retrieval_queries": [
+        {
+          "query_id": "ES-IAM-003-Q1",
+          "query": "S3 GetObject works but KMS decrypt AccessDenied on encrypted object",
+          "relevant_knowledge_ids": [],
+          "tags": [
+            "no-answer",
+            "cloud-iam",
+            "kms"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-IAM-003-Q2",
+          "query": "role has kms Decrypt IAM permission but key policy omits role",
+          "relevant_knowledge_ids": [],
+          "tags": [
+            "no-answer",
+            "cloud-iam",
+            "semantic"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-IAM-003-Q3",
+          "query": "new KMS key causes application decryption failure while S3 access succeeds",
+          "relevant_knowledge_ids": [],
+          "tags": [
+            "no-answer",
+            "cloud-iam"
+          ],
+          "max_rank": 5
+        }
+      ],
+      "article_expectation": {
+        "article_type": "troubleshooting",
+        "subject": "S3 object retrieval succeeds but KMS decryption is denied",
+        "product": "AWS KMS / S3",
+        "module": "Key policy",
+        "evidence": [
+          {
+            "chunk_id": "ES-IAM-003-N1",
+            "text": "S3 GetObject succeeded, isolating the problem to the encryption/decryption path."
+          },
+          {
+            "chunk_id": "ES-IAM-003-N2",
+            "text": "The replacement KMS key policy did not include the application role used by the workload."
+          },
+          {
+            "chunk_id": "ES-IAM-003-N3",
+            "text": "After an approved key-policy change added the role, application decryption succeeded."
+          }
+        ],
+        "expected": {
+          "article_type": "troubleshooting",
+          "required_sections": [
+            "issue_description",
+            "symptoms",
+            "diagnostic_checks",
+            "resolution_steps",
+            "expected_result"
+          ],
+          "claims": [
+            {
+              "contains": "GetObject",
+              "evidence_chunk_ids": [
+                "ES-IAM-003-N1"
+              ]
+            },
+            {
+              "contains": "key policy",
+              "evidence_chunk_ids": [
+                "ES-IAM-003-N2"
+              ]
+            },
+            {
+              "contains": "decryption succeeded",
+              "evidence_chunk_ids": [
+                "ES-IAM-003-N3"
+              ]
+            }
+          ],
+          "gaps": [],
+          "forbidden_terms": [
+            "disable encryption",
+            "use administrator credentials"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "ES-IAM-004",
+      "split": "development",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "cloud-iam",
+        "insufficient-evidence",
+        "no-action"
+      ],
+      "research_pattern_ids": [
+        "kcs-capture"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "cloud-support"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P3",
+        "channel": "email",
+        "opened_at": "2026-09-10T10:00:00Z",
+        "resolved_at": "2026-09-10T10:50:00Z",
+        "short_description": "AWS workload returned AccessDenied",
+        "description": "A workload returned AccessDenied. The ticket did not identify the service action, resource, principal, or policy layer involved.",
+        "environment": {
+          "product": "AWS",
+          "module": "IAM",
+          "platform": "cloud",
+          "user_scope": "unknown workload"
+        },
+        "comments": [
+          "Cloud team replied that permissions had been corrected."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-IAM-004-N1",
+            "author_role": "support_agent",
+            "text": "No policy diff or diagnostic evidence was attached to the ticket."
+          }
+        ],
+        "resolution_notes": "Permissions fixed."
+      },
+      "expected": {
+        "closure_evidence": "INSUFFICIENT",
+        "knowledge_coverage": null,
+        "action": "NO_ACTION",
+        "reason": "INSUFFICIENT_CLOSURE_EVIDENCE"
+      },
+      "retrieval_queries": [],
+      "article_expectation": null
+    },
+    {
+      "case_id": "ES-JSM-001",
+      "split": "challenge",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "service-management",
+        "jsm",
+        "portal",
+        "request-type",
+        "reuse"
+      ],
+      "research_pattern_ids": [
+        "atlassian-request-visibility"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P3",
+        "channel": "service_portal",
+        "opened_at": "2026-09-14T08:05:00Z",
+        "resolved_at": "2026-09-14T08:35:00Z",
+        "short_description": "Customer sees Incorrect RequestType for agent-created request",
+        "description": "An agent created a Jira Service Management request on behalf of a customer using the generic create screen. The customer could not open the portal link and saw Incorrect RequestType.",
+        "environment": {
+          "product": "Jira Service Management Cloud",
+          "module": "Customer portal",
+          "platform": "cloud",
+          "user_scope": "single request"
+        },
+        "comments": [
+          "The request was visible to agents in the project."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-JSM-001-N1",
+            "author_role": "support_agent",
+            "text": "The Customer Request Type field was empty on the affected issue."
+          },
+          {
+            "note_id": "ES-JSM-001-N2",
+            "author_role": "service_admin",
+            "text": "Selected a request type that matched the issue type."
+          },
+          {
+            "note_id": "ES-JSM-001-N3",
+            "author_role": "requester",
+            "text": "Confirmed the same portal link opened after the request type was set."
+          }
+        ],
+        "resolution_notes": "The agent-created issue had no customer request type. A compatible request type was assigned and the customer verified that the request became visible in the portal."
+      },
+      "expected": {
+        "closure_evidence": "SUFFICIENT",
+        "knowledge_coverage": "SUFFICIENT",
+        "action": "REUSE",
+        "reason": "RELATED_KNOWLEDGE_SUFFICIENT"
+      },
+      "retrieval_queries": [
+        {
+          "query_id": "ES-JSM-001-Q1",
+          "query": "Incorrect RequestType customer cannot open agent-created JSM request",
+          "relevant_knowledge_ids": [
+            "kb-jsm-request-type"
+          ],
+          "tags": [
+            "identifier",
+            "service-management"
+          ],
+          "max_rank": 3
+        },
+        {
+          "query_id": "ES-JSM-001-Q2",
+          "query": "ticket visible to agents but customer portal link fails because request type is empty",
+          "relevant_knowledge_ids": [
+            "kb-jsm-request-type"
+          ],
+          "tags": [
+            "semantic",
+            "service-management"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-JSM-001-Q3",
+          "query": "Jira request created from generic create screen missing from customer portal",
+          "relevant_knowledge_ids": [
+            "kb-jsm-request-type"
+          ],
+          "tags": [
+            "paraphrase",
+            "service-management"
+          ],
+          "max_rank": 5
+        }
+      ],
+      "article_expectation": null
+    },
+    {
+      "case_id": "ES-JSM-002",
+      "split": "challenge",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "service-management",
+        "jsm",
+        "issue-security",
+        "improve"
+      ],
+      "research_pattern_ids": [
+        "atlassian-request-visibility",
+        "atlassian-security-level"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P2",
+        "channel": "service_portal",
+        "opened_at": "2026-09-16T07:55:00Z",
+        "resolved_at": "2026-09-16T09:05:00Z",
+        "short_description": "Reporter cannot see request even though request type and portal access are valid",
+        "description": "A customer had portal access and the request had a valid request type, but the request was absent from My Requests while agents could open it.",
+        "environment": {
+          "product": "Jira Service Management",
+          "module": "Issue security / portal visibility",
+          "platform": "cloud-like synthetic tenant",
+          "user_scope": "single project"
+        },
+        "comments": [
+          "The customer was the reporter and could open other requests in the same service project."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-JSM-002-N1",
+            "author_role": "support_agent",
+            "text": "Verified request type, portal access, and reporter relationship were correct."
+          },
+          {
+            "note_id": "ES-JSM-002-N2",
+            "author_role": "service_admin",
+            "text": "The issue security level on this request did not include the reporter/portal-customer role."
+          },
+          {
+            "note_id": "ES-JSM-002-N3",
+            "author_role": "service_admin",
+            "text": "Updated the security-level membership and verified the reporter could see the request."
+          }
+        ],
+        "resolution_notes": "The portal prerequisites were valid, but the issue security level excluded the customer. Updating the security level to include the reporter/portal-customer role restored request visibility."
+      },
+      "expected": {
+        "closure_evidence": "SUFFICIENT",
+        "knowledge_coverage": "PARTIAL",
+        "action": "IMPROVE",
+        "reason": "RELATED_KNOWLEDGE_INCOMPLETE"
+      },
+      "retrieval_queries": [
+        {
+          "query_id": "ES-JSM-002-Q1",
+          "query": "JSM request type set and customer has portal access but My Requests still hides ticket",
+          "relevant_knowledge_ids": [
+            "kb-jsm-portal-access"
+          ],
+          "tags": [
+            "near-duplicate",
+            "service-management"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-JSM-002-Q2",
+          "query": "reporter cannot see request because issue security level excludes portal customer",
+          "relevant_knowledge_ids": [
+            "kb-jsm-portal-access"
+          ],
+          "tags": [
+            "semantic",
+            "service-management",
+            "security"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-JSM-002-Q3",
+          "query": "ticket visible to agents but not reporter after checking request type and permissions",
+          "relevant_knowledge_ids": [
+            "kb-jsm-portal-access"
+          ],
+          "tags": [
+            "diagnostic",
+            "service-management"
+          ],
+          "max_rank": 5
+        }
+      ],
+      "article_expectation": {
+        "article_type": "troubleshooting",
+        "subject": "Customer cannot see a JSM request after basic portal checks pass",
+        "product": "Jira Service Management",
+        "module": "Customer portal visibility",
+        "evidence": [
+          {
+            "chunk_id": "kb-jsm-portal-access",
+            "text": "# Customer portal access\n\nFor a customer who cannot view a request, confirm the request has a valid request type, the customer can access the service project, and the customer is the reporter, a request participant, or a member of an organization with which the request is shared."
+          },
+          {
+            "chunk_id": "ES-JSM-002-resolution",
+            "text": "Request type, portal access, and reporter relationship were valid. The issue security level excluded the reporter/portal-customer role; adding that role restored visibility."
+          }
+        ],
+        "expected": {
+          "article_type": "troubleshooting",
+          "required_sections": [
+            "issue_description",
+            "symptoms",
+            "diagnostic_checks",
+            "resolution_steps",
+            "expected_result"
+          ],
+          "claims": [
+            {
+              "contains": "request type",
+              "evidence_chunk_ids": [
+                "kb-jsm-portal-access"
+              ]
+            },
+            {
+              "contains": "issue security",
+              "evidence_chunk_ids": [
+                "ES-JSM-002-resolution"
+              ]
+            },
+            {
+              "contains": "reporter",
+              "evidence_chunk_ids": [
+                "ES-JSM-002-resolution"
+              ]
+            }
+          ],
+          "gaps": [],
+          "forbidden_terms": [
+            "make the project public",
+            "remove all issue security"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "ES-JSM-003",
+      "split": "challenge",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "service-management",
+        "jsm",
+        "email-channel",
+        "create"
+      ],
+      "research_pattern_ids": [
+        "atlassian-email-request-type"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "service-admins"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P2",
+        "channel": "email",
+        "opened_at": "2026-09-19T06:20:00Z",
+        "resolved_at": "2026-09-19T07:10:00Z",
+        "short_description": "JSM email channel stopped creating requests after request-type change",
+        "description": "Incoming support email stopped creating service requests after the default email request type was changed to require a custom field that email messages could not populate.",
+        "environment": {
+          "product": "Jira Service Management Cloud",
+          "module": "Email channel",
+          "platform": "cloud",
+          "user_scope": "service project"
+        },
+        "comments": [
+          "Portal-created requests using the same issue type still worked."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-JSM-003-N1",
+            "author_role": "service_admin",
+            "text": "Email-channel diagnostics reported that no suitable request type was available."
+          },
+          {
+            "note_id": "ES-JSM-003-N2",
+            "author_role": "service_admin",
+            "text": "The configured default request type required a custom business-impact field in addition to summary and description."
+          },
+          {
+            "note_id": "ES-JSM-003-N3",
+            "author_role": "service_admin",
+            "text": "Created an email-compatible request type with summary and description visible and all additional fields optional, then validated a new inbound email."
+          }
+        ],
+        "resolution_notes": "The email channel's default request type required a field that email could not populate. An email-compatible request type was configured and inbound email request creation succeeded."
+      },
+      "expected": {
+        "closure_evidence": "SUFFICIENT",
+        "knowledge_coverage": "NONE",
+        "action": "CREATE",
+        "reason": "NO_RELATED_KNOWLEDGE"
+      },
+      "retrieval_queries": [
+        {
+          "query_id": "ES-JSM-003-Q1",
+          "query": "no suitable request type for the email channel JSM",
+          "relevant_knowledge_ids": [],
+          "tags": [
+            "no-answer",
+            "identifier",
+            "service-management"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-JSM-003-Q2",
+          "query": "email requests stopped after making a custom request-type field required",
+          "relevant_knowledge_ids": [],
+          "tags": [
+            "no-answer",
+            "semantic",
+            "service-management"
+          ],
+          "max_rank": 5
+        },
+        {
+          "query_id": "ES-JSM-003-Q3",
+          "query": "configure email compatible request type summary description optional fields",
+          "relevant_knowledge_ids": [],
+          "tags": [
+            "no-answer",
+            "how-to",
+            "service-management"
+          ],
+          "max_rank": 5
+        }
+      ],
+      "article_expectation": {
+        "article_type": "how_to",
+        "subject": "Configure a request type that can be used by the JSM email channel",
+        "product": "Jira Service Management",
+        "module": "Email channel",
+        "evidence": [
+          {
+            "chunk_id": "ES-JSM-003-N1",
+            "text": "Email-channel diagnostics reported that no suitable request type was available."
+          },
+          {
+            "chunk_id": "ES-JSM-003-N2",
+            "text": "The configured default request type required a custom business-impact field that an incoming email could not populate."
+          },
+          {
+            "chunk_id": "ES-JSM-003-N3",
+            "text": "An email-compatible request type was created with summary and description visible and all additional fields optional; a new inbound email then created a request."
+          }
+        ],
+        "expected": {
+          "article_type": "how_to",
+          "required_sections": [
+            "purpose",
+            "prerequisites",
+            "steps",
+            "expected_result"
+          ],
+          "claims": [
+            {
+              "contains": "summary",
+              "evidence_chunk_ids": [
+                "ES-JSM-003-N3"
+              ]
+            },
+            {
+              "contains": "optional",
+              "evidence_chunk_ids": [
+                "ES-JSM-003-N3"
+              ]
+            },
+            {
+              "contains": "no suitable request type",
+              "evidence_chunk_ids": [
+                "ES-JSM-003-N1"
+              ]
+            }
+          ],
+          "gaps": [],
+          "forbidden_terms": [
+            "disable required fields across every request type",
+            "forward mail to a personal mailbox"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "ES-JSM-004",
+      "split": "challenge",
+      "approval": "approved",
+      "origin": "synthetic",
+      "tags": [
+        "service-management",
+        "jsm",
+        "insufficient-evidence",
+        "no-action"
+      ],
+      "research_pattern_ids": [
+        "kcs-capture"
+      ],
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "case_record": {
+        "status": "resolved",
+        "priority": "P3",
+        "channel": "chat",
+        "opened_at": "2026-09-22T15:00:00Z",
+        "resolved_at": "2026-09-22T15:50:00Z",
+        "short_description": "Customer portal request list was empty after configuration changes",
+        "description": "Several service-project settings were changed during the morning. Customers later reported an empty request list, but the ticket does not identify which setting caused the behavior.",
+        "environment": {
+          "product": "Jira Service Management",
+          "module": "Customer portal",
+          "platform": "cloud",
+          "user_scope": "multiple customers"
+        },
+        "comments": [
+          "An administrator reverted one of several changes and users said the list returned."
+        ],
+        "work_notes": [
+          {
+            "note_id": "ES-JSM-004-N1",
+            "author_role": "support_agent",
+            "text": "No before/after configuration capture or affected-request sample was attached."
+          }
+        ],
+        "resolution_notes": "Rolled back; fixed."
+      },
+      "expected": {
+        "closure_evidence": "INSUFFICIENT",
+        "knowledge_coverage": null,
+        "action": "NO_ACTION",
+        "reason": "INSUFFICIENT_CLOSURE_EVIDENCE"
+      },
+      "retrieval_queries": [],
+      "article_expectation": null
+    }
+  ],
+  "negative_retrieval_cases": [
+    {
+      "query_id": "NEG-DEV-001",
+      "split": "development",
+      "query": "self service password reset registration fails after phone number change",
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer",
+        "identity",
+        "out-of-corpus"
+      ],
+      "max_rank": 5
+    },
+    {
+      "query_id": "NEG-DEV-002",
+      "split": "development",
+      "query": "Android work profile blocks camera after compliance policy change",
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer",
+        "endpoint",
+        "out-of-corpus"
+      ],
+      "max_rank": 5
+    },
+    {
+      "query_id": "NEG-DEV-003",
+      "split": "development",
+      "query": "EC2 instance cannot resolve private DNS name",
+      "tenant_id": "tenant-a",
+      "groups": [
+        "cloud-support"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer",
+        "cloud",
+        "out-of-corpus"
+      ],
+      "max_rank": 5
+    },
+    {
+      "query_id": "NEG-DEV-004",
+      "split": "development",
+      "query": "JSM SLA timer pauses unexpectedly while ticket waits for customer",
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer",
+        "service-management",
+        "out-of-corpus"
+      ],
+      "max_rank": 5
+    },
+    {
+      "query_id": "NEG-DEV-005",
+      "split": "development",
+      "query": "AADSTS53000 device compliance troubleshooting",
+      "tenant_id": "tenant-b",
+      "groups": [
+        "support-agents"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer",
+        "tenant-isolation",
+        "access-boundary"
+      ],
+      "max_rank": 5
+    },
+    {
+      "query_id": "NEG-DEV-006",
+      "split": "development",
+      "query": "rotate emergency access account credentials",
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer",
+        "restricted",
+        "access-boundary"
+      ],
+      "max_rank": 5
+    },
+    {
+      "query_id": "NEG-HOLD-001",
+      "split": "holdout",
+      "query": "macOS FileVault recovery key is not escrowed after enrollment",
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer",
+        "endpoint",
+        "out-of-corpus"
+      ],
+      "max_rank": 5
+    },
+    {
+      "query_id": "NEG-HOLD-002",
+      "split": "holdout",
+      "query": "RDS connection timeout from application subnet",
+      "tenant_id": "tenant-a",
+      "groups": [
+        "cloud-support"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer",
+        "cloud",
+        "out-of-corpus"
+      ],
+      "max_rank": 5
+    },
+    {
+      "query_id": "NEG-HOLD-003",
+      "split": "holdout",
+      "query": "customer request missing because request type is empty",
+      "tenant_id": "tenant-b",
+      "groups": [
+        "support-agents"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer",
+        "tenant-isolation",
+        "service-management"
+      ],
+      "max_rank": 5
+    },
+    {
+      "query_id": "NEG-CHAL-001",
+      "split": "challenge",
+      "query": "access denied",
+      "tenant_id": "tenant-a",
+      "groups": [
+        "cloud-support"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer",
+        "ambiguous",
+        "abstention"
+      ],
+      "max_rank": 5
+    },
+    {
+      "query_id": "NEG-CHAL-002",
+      "split": "challenge",
+      "query": "portal issue",
+      "tenant_id": "tenant-a",
+      "groups": [
+        "support-agents"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer",
+        "ambiguous",
+        "abstention"
+      ],
+      "max_rank": 5
+    },
+    {
+      "query_id": "NEG-CHAL-003",
+      "split": "challenge",
+      "query": "change organization-wide deny policy",
+      "tenant_id": "tenant-a",
+      "groups": [
+        "cloud-support"
+      ],
+      "relevant_knowledge_ids": [],
+      "tags": [
+        "no-answer",
+        "restricted",
+        "access-boundary"
+      ],
+      "max_rank": 5
+    }
+  ]
+}
