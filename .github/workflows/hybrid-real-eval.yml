@@ -6,7 +6,8 @@ on:
       - "apps/api/src/tropos/core/**"
       - "apps/api/src/tropos/evals/**"
       - "apps/api/evals/retrieval/**"
-      - "apps/api/scripts/evaluate_hybrid_sentence_transformers.py"
+      - "apps/api/evals/resolve/enterprise_support_benchmark_v1.json"
+      - "apps/api/scripts/evaluate_enterprise_support_retrieval.py"
       - ".github/workflows/hybrid-real-eval.yml"
   schedule:
     - cron: "17 1 * * *"
@@ -43,7 +44,9 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/tropos-real-eval"
           uv run --with sentence-transformers==6.1.0 \
-            python scripts/evaluate_hybrid_sentence_transformers.py \
+            python scripts/evaluate_enterprise_support_retrieval.py \
+            --lockfile uv.lock \
+            --database "$RUNNER_TEMP/tropos-real-eval/experiments.sqlite" \
             --output "$RUNNER_TEMP/tropos-real-eval/report.json"
 
       - name: Upload real-model evidence
