@@ -10,6 +10,7 @@ from tropos.capabilities.resolve.application.evaluate_evidence_sufficiency impor
     JudgedSufficiency,
 )
 from tropos.capabilities.resolve.application.generate_grounded_answer import (
+    CitationResolutionError,
     GeneratedGroundedAnswer,
 )
 from tropos.capabilities.resolve.domain.evidence_sufficiency import (
@@ -72,13 +73,24 @@ class ResolveQuestion:
             )
         ]
 
-        results = self._retriever.search(
-            KnowledgeSearchRequest(
-                query=request.query,
-                access=request.access,
-                limit=request.retrieval_limit,
+        try:
+            results = self._retriever.search(
+                KnowledgeSearchRequest(
+                    query=request.query,
+                    access=request.access,
+                    limit=request.retrieval_limit,
+                )
             )
-        )
+        except Exception as exc:
+            spans.append(
+                TraceSpan(
+                    name="resolve.retrieval",
+                    status="ERROR",
+                    attributes={"error_type": type(exc).__name__},
+                )
+            )
+            self._fail_trace(trace_id, request, spans)
+            raise
         spans.append(
             TraceSpan(
                 name="resolve.retrieval",
@@ -131,7 +143,18 @@ class ResolveQuestion:
             )
         )
 
-        judged = self._sufficiency_judge.judge(evidence_set)
+        try:
+            judged = self._sufficiency_judge.judge(evidence_set)
+        except Exception as exc:
+            spans.append(
+                TraceSpan(
+                    name="resolve.sufficiency",
+                    status="ERROR",
+                    attributes={"error_type": type(exc).__name__},
+                )
+            )
+            self._fail_trace(trace_id, request, spans)
+            raise
         decision = judged.decision
         spans.append(
             TraceSpan(
@@ -162,7 +185,28 @@ class ResolveQuestion:
             self._finish_trace(trace_id, request, result, spans)
             return result
 
-        generated = self._answer_generator.generate(evidence_set)
+        try:
+            generated = self._answer_generator.generate(evidence_set)
+        except CitationResolutionError as exc:
+            spans.append(
+                TraceSpan(
+                    name="resolve.citation_validation",
+                    status="ERROR",
+                    attributes={"error_type": type(exc).__name__},
+                )
+            )
+            self._fail_trace(trace_id, request, spans)
+            raise
+        except Exception as exc:
+            spans.append(
+                TraceSpan(
+                    name="resolve.generation",
+                    status="ERROR",
+                    attributes={"error_type": type(exc).__name__},
+                )
+            )
+            self._fail_trace(trace_id, request, spans)
+            raise
         spans.append(
             TraceSpan(
                 name="resolve.generation",
@@ -199,6 +243,21 @@ class ResolveQuestion:
         )
         self._finish_trace(trace_id, request, result, spans)
         return result
+
+    def _fail_trace(
+        self,
+        trace_id: str,
+        request: RuntimeRequest,
+        spans: list[TraceSpan],
+    ) -> None:
+        self._trace_sink.write(
+            RuntimeTrace(
+                trace_id=trace_id,
+                request_id=request.request_id,
+                outcome="RUNTIME_FAILED",
+                spans=tuple(spans),
+            )
+        )
 
     def _finish_trace(
         self,
