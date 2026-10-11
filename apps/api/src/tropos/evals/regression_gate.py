@@ -156,17 +156,6 @@ def compare_retrieval_runs(
 ) -> RetrievalGateDecision:
     """Apply the retrieval regression policy to two generic EvalRun records."""
 
-    return compare_retrieval_runs(baseline, candidate)
-
-
-def compare_retrieval_reports(
-    baseline_report: JsonObject,
-    candidate_report: JsonObject,
-) -> RetrievalGateDecision:
-    """Compare two saved retrieval reports using the generic experiment layer."""
-
-    baseline = _to_eval_run(baseline_report)
-    candidate = _to_eval_run(candidate_report, baseline_run_id=baseline.run_id)
     comparison = compare_runs(
         baseline,
         candidate,
@@ -185,6 +174,17 @@ def compare_retrieval_reports(
         case_regressions=regressions,
         candidate_errors=errors,
     )
+
+
+def compare_retrieval_reports(
+    baseline_report: JsonObject,
+    candidate_report: JsonObject,
+) -> RetrievalGateDecision:
+    """Compare two saved retrieval reports using the generic experiment layer."""
+
+    baseline = _to_eval_run(baseline_report)
+    candidate = _to_eval_run(candidate_report, baseline_run_id=baseline.run_id)
+    return compare_retrieval_runs(baseline, candidate)
 
 
 def _to_eval_run(report: JsonObject, *, baseline_run_id: str | None = None) -> EvalRun:
