@@ -78,7 +78,7 @@ Persist
 Ensure lexical FTS projection exists
 ```
 
-Failure states remain distinct: unsupported artifact, source not found, parse failure, persistence/runtime failure, and rebaseline-required.
+Run presentation must also distinguish queued/processing from completed outcomes when execution becomes asynchronous. Failure states remain distinct: unsupported artifact, source not found, parse failure, persistence/runtime failure, and rebaseline-required.
 
 ## UI state contract
 
