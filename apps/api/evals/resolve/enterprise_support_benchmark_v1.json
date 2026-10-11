@@ -427,6 +427,62 @@
             "disable conditional access",
             "delete the device"
           ]
+        },
+        "reference_article": {
+          "article_type": "troubleshooting",
+          "title": "Desktop application remains blocked after device compliance is restored",
+          "issue_description": {
+            "text": "A desktop application can continue to reject access even after the device has returned to a compliant state.",
+            "evidence_chunk_ids": [
+              "ES-ENT-002-resolution"
+            ]
+          },
+          "symptoms": [
+            {
+              "text": "Company Portal reports the device as compliant.",
+              "evidence_chunk_ids": [
+                "kb-entra-device-compliance-remediation"
+              ]
+            },
+            {
+              "text": "Browser access succeeds while the desktop client still fails.",
+              "evidence_chunk_ids": [
+                "ES-ENT-002-resolution"
+              ]
+            }
+          ],
+          "diagnostic_checks": [
+            {
+              "text": "Confirm the device currently reports compliant and test the protected service in a browser.",
+              "evidence_chunk_ids": [
+                "ES-ENT-002-resolution"
+              ]
+            }
+          ],
+          "resolution_steps": [
+            {
+              "text": "After compliance is confirmed, sign out of the affected desktop client, close it, reopen it, and complete a fresh sign-in.",
+              "evidence_chunk_ids": [
+                "ES-ENT-002-resolution"
+              ]
+            }
+          ],
+          "expected_result": {
+            "text": "The desktop application evaluates the current device state and access succeeds.",
+            "evidence_chunk_ids": [
+              "ES-ENT-002-resolution"
+            ]
+          },
+          "exceptions": [
+            {
+              "text": "If browser access is also blocked, continue the base device-compliance remediation path first.",
+              "evidence_chunk_ids": [
+                "kb-entra-device-compliance-remediation"
+              ]
+            }
+          ],
+          "escalation_criteria": [],
+          "gaps": []
         }
       }
     },
@@ -579,6 +635,61 @@
             "disable conditional access permanently",
             "share emergency credentials"
           ]
+        },
+        "reference_article": {
+          "article_type": "how_to",
+          "title": "Roll out device-compliance Conditional Access safely for administrators",
+          "purpose": {
+            "text": "Apply a device-compliance access policy without losing administrative recovery access.",
+            "evidence_chunk_ids": [
+              "ES-ENT-003-N2",
+              "ES-ENT-003-N3"
+            ]
+          },
+          "prerequisites": [
+            {
+              "text": "A monitored emergency-access path must be available before enforcing the policy broadly.",
+              "evidence_chunk_ids": [
+                "ES-ENT-003-N2"
+              ]
+            }
+          ],
+          "steps": [
+            {
+              "text": "Validate which Conditional Access policy would block the administrator sign-in.",
+              "evidence_chunk_ids": [
+                "ES-ENT-003-N1"
+              ]
+            },
+            {
+              "text": "Keep approved emergency-access accounts outside the blocking scope.",
+              "evidence_chunk_ids": [
+                "ES-ENT-003-N2"
+              ]
+            },
+            {
+              "text": "Enable enforcement for a pilot administrator group and validate sign-ins.",
+              "evidence_chunk_ids": [
+                "ES-ENT-003-N3"
+              ]
+            },
+            {
+              "text": "Expand scope only after the pilot behavior has been reviewed.",
+              "evidence_chunk_ids": [
+                "ES-ENT-003-N3"
+              ]
+            }
+          ],
+          "expected_result": {
+            "text": "Administrator access is protected by the new control while the approved emergency path remains available.",
+            "evidence_chunk_ids": [
+              "ES-ENT-003-N2",
+              "ES-ENT-003-N3"
+            ]
+          },
+          "next_steps": [],
+          "exceptions": [],
+          "gaps": []
         }
       }
     },
@@ -888,6 +999,64 @@
             "delete all enrolled devices",
             "increase the limit without approval"
           ]
+        },
+        "reference_article": {
+          "article_type": "troubleshooting",
+          "title": "Company Portal temporarily unavailable during enrollment",
+          "issue_description": {
+            "text": "Enrollment can present the same temporary-unavailable symptom for both application problems and device-limit problems.",
+            "evidence_chunk_ids": [
+              "kb-intune-company-portal-repair",
+              "kb-intune-device-limit",
+              "ES-END-002-resolution"
+            ]
+          },
+          "symptoms": [
+            {
+              "text": "Company Portal reports temporary unavailability while enrollment cannot complete.",
+              "evidence_chunk_ids": [
+                "kb-intune-company-portal-repair"
+              ]
+            }
+          ],
+          "diagnostic_checks": [
+            {
+              "text": "Confirm whether the user can sign in through the management web portal.",
+              "evidence_chunk_ids": [
+                "kb-intune-company-portal-repair"
+              ]
+            },
+            {
+              "text": "If app repair does not resolve the problem, compare the user's enrolled-device count with the configured limit.",
+              "evidence_chunk_ids": [
+                "kb-intune-device-limit",
+                "ES-END-002-resolution"
+              ]
+            }
+          ],
+          "resolution_steps": [
+            {
+              "text": "Repair or reinstall Company Portal when the application is the failing component.",
+              "evidence_chunk_ids": [
+                "kb-intune-company-portal-repair"
+              ]
+            },
+            {
+              "text": "When the device limit is reached, remove only verified obsolete records or follow the approved limit-change process.",
+              "evidence_chunk_ids": [
+                "kb-intune-device-limit"
+              ]
+            }
+          ],
+          "expected_result": {
+            "text": "Enrollment completes after the actual failing condition is corrected.",
+            "evidence_chunk_ids": [
+              "ES-END-002-resolution"
+            ]
+          },
+          "exceptions": [],
+          "escalation_criteria": [],
+          "gaps": []
         }
       }
     },
@@ -1038,6 +1207,55 @@
             "factory reset the device",
             "disable conditional access"
           ]
+        },
+        "reference_article": {
+          "article_type": "troubleshooting",
+          "title": "ADE device is enrolled but protected apps do not recognize it as managed",
+          "issue_description": {
+            "text": "A device can complete Setup Assistant enrollment while the user-registration step required for protected app access is still incomplete.",
+            "evidence_chunk_ids": [
+              "ES-END-003-N1"
+            ]
+          },
+          "symptoms": [
+            {
+              "text": "A protected application reports that the administrator requires the device to be managed.",
+              "evidence_chunk_ids": [
+                "ES-END-003-N3"
+              ]
+            }
+          ],
+          "diagnostic_checks": [
+            {
+              "text": "Confirm that the enrollment used Setup Assistant and check whether Company Portal is assigned and user registration is complete.",
+              "evidence_chunk_ids": [
+                "ES-END-003-N1"
+              ]
+            }
+          ],
+          "resolution_steps": [
+            {
+              "text": "Assign Company Portal to the applicable enrollment profile or device group.",
+              "evidence_chunk_ids": [
+                "ES-END-003-N2"
+              ]
+            },
+            {
+              "text": "Have the user sign in to Company Portal and complete registration.",
+              "evidence_chunk_ids": [
+                "ES-END-003-N3"
+              ]
+            }
+          ],
+          "expected_result": {
+            "text": "The protected application recognizes the enrolled device and opens successfully.",
+            "evidence_chunk_ids": [
+              "ES-END-003-N3"
+            ]
+          },
+          "exceptions": [],
+          "escalation_criteria": [],
+          "gaps": []
         }
       }
     },
@@ -1335,6 +1553,39 @@
             "remove all boundaries",
             "administrator access"
           ]
+        },
+        "reference_article": {
+          "article_type": "faq",
+          "title": "Why can an AWS role remain denied after an allow is added?",
+          "introduction": {
+            "text": "Effective permissions are determined across multiple policy layers, so an identity-policy allow does not by itself guarantee access.",
+            "evidence_chunk_ids": [
+              "kb-cloud-policy-evaluation"
+            ]
+          },
+          "items": [
+            {
+              "question": "What should I check when the identity policy already allows the action?",
+              "answer": {
+                "text": "Inspect the other policy layers that constrain effective permissions, including a permissions boundary when one is attached to the role.",
+                "evidence_chunk_ids": [
+                  "kb-cloud-policy-evaluation",
+                  "ES-IAM-002-resolution"
+                ]
+              }
+            },
+            {
+              "question": "What happened in the example case?",
+              "answer": {
+                "text": "The role's permissions boundary allowed reads but not DynamoDB UpdateItem; after the approved boundary was extended, the write succeeded.",
+                "evidence_chunk_ids": [
+                  "ES-IAM-002-resolution"
+                ]
+              }
+            }
+          ],
+          "additional_information": [],
+          "gaps": []
         }
       }
     },
@@ -1485,6 +1736,56 @@
             "disable encryption",
             "use administrator credentials"
           ]
+        },
+        "reference_article": {
+          "article_type": "troubleshooting",
+          "title": "S3 object retrieval succeeds but KMS decryption is denied",
+          "issue_description": {
+            "text": "A workload can have permission to retrieve an encrypted S3 object while separately lacking authorization to decrypt it with the KMS key.",
+            "evidence_chunk_ids": [
+              "ES-IAM-003-N1",
+              "ES-IAM-003-N2"
+            ]
+          },
+          "symptoms": [
+            {
+              "text": "S3 GetObject succeeds but the application receives KMS AccessDenied during decryption.",
+              "evidence_chunk_ids": [
+                "ES-IAM-003-N1"
+              ]
+            }
+          ],
+          "diagnostic_checks": [
+            {
+              "text": "Confirm that object retrieval succeeds so storage access can be separated from the decryption failure.",
+              "evidence_chunk_ids": [
+                "ES-IAM-003-N1"
+              ]
+            },
+            {
+              "text": "Inspect whether the active KMS key policy includes the workload role.",
+              "evidence_chunk_ids": [
+                "ES-IAM-003-N2"
+              ]
+            }
+          ],
+          "resolution_steps": [
+            {
+              "text": "Apply the approved key-policy change that grants the workload role the required access.",
+              "evidence_chunk_ids": [
+                "ES-IAM-003-N3"
+              ]
+            }
+          ],
+          "expected_result": {
+            "text": "The application can retrieve and decrypt the same encrypted object.",
+            "evidence_chunk_ids": [
+              "ES-IAM-003-N3"
+            ]
+          },
+          "exceptions": [],
+          "escalation_criteria": [],
+          "gaps": []
         }
       }
     },
@@ -1790,6 +2091,56 @@
             "make the project public",
             "remove all issue security"
           ]
+        },
+        "reference_article": {
+          "article_type": "troubleshooting",
+          "title": "Customer cannot see a JSM request after the basic portal checks pass",
+          "issue_description": {
+            "text": "A request can remain hidden even when request type, portal access, and reporter relationship are correct if issue security excludes the customer.",
+            "evidence_chunk_ids": [
+              "kb-jsm-portal-access",
+              "ES-JSM-002-resolution"
+            ]
+          },
+          "symptoms": [
+            {
+              "text": "Agents can open the request but the reporter cannot see it in the portal.",
+              "evidence_chunk_ids": [
+                "ES-JSM-002-resolution"
+              ]
+            }
+          ],
+          "diagnostic_checks": [
+            {
+              "text": "Confirm the request type, customer portal access, and reporter/participant relationship first.",
+              "evidence_chunk_ids": [
+                "kb-jsm-portal-access"
+              ]
+            },
+            {
+              "text": "If those checks pass, inspect the issue security level for the reporter or portal-customer role.",
+              "evidence_chunk_ids": [
+                "ES-JSM-002-resolution"
+              ]
+            }
+          ],
+          "resolution_steps": [
+            {
+              "text": "Update the applicable security-level membership through the normal administration process so the reporter/portal-customer role is included.",
+              "evidence_chunk_ids": [
+                "ES-JSM-002-resolution"
+              ]
+            }
+          ],
+          "expected_result": {
+            "text": "The reporter can see the request in the customer portal.",
+            "evidence_chunk_ids": [
+              "ES-JSM-002-resolution"
+            ]
+          },
+          "exceptions": [],
+          "escalation_criteria": [],
+          "gaps": []
         }
       }
     },
@@ -1940,6 +2291,55 @@
             "disable required fields across every request type",
             "forward mail to a personal mailbox"
           ]
+        },
+        "reference_article": {
+          "article_type": "how_to",
+          "title": "Configure a request type for the JSM email channel",
+          "purpose": {
+            "text": "Configure a request type that incoming email can populate without requiring fields that are unavailable from email content.",
+            "evidence_chunk_ids": [
+              "ES-JSM-003-N2",
+              "ES-JSM-003-N3"
+            ]
+          },
+          "prerequisites": [
+            {
+              "text": "Email-channel diagnostics indicate that no suitable request type is available.",
+              "evidence_chunk_ids": [
+                "ES-JSM-003-N1"
+              ]
+            }
+          ],
+          "steps": [
+            {
+              "text": "Use a request type where Summary and Description are visible.",
+              "evidence_chunk_ids": [
+                "ES-JSM-003-N3"
+              ]
+            },
+            {
+              "text": "Keep additional visible fields optional when inbound email cannot supply them.",
+              "evidence_chunk_ids": [
+                "ES-JSM-003-N2",
+                "ES-JSM-003-N3"
+              ]
+            },
+            {
+              "text": "Assign the compatible request type to the email channel and test with a new inbound message.",
+              "evidence_chunk_ids": [
+                "ES-JSM-003-N3"
+              ]
+            }
+          ],
+          "expected_result": {
+            "text": "A new inbound email creates a service request successfully.",
+            "evidence_chunk_ids": [
+              "ES-JSM-003-N3"
+            ]
+          },
+          "next_steps": [],
+          "exceptions": [],
+          "gaps": []
         }
       }
     },
