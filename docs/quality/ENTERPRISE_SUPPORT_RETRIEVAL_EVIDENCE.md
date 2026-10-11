@@ -111,11 +111,49 @@ The result should be interpreted narrowly:
 - multiple query formulations come from the same underlying support case and are therefore correlated;
 - the development set is public and may be inspected during implementation;
 - labels remain knowledge-level rather than chunk-level graded relevance;
-- no calibrated abstention policy is applied;
+- the first result table is the pre-calibration baseline; calibrated V1 results are recorded separately below;
 - latency/cost comparisons are not yet decision metrics;
 - the run evaluates retrieval, not generated Knowledge Articles or user outcomes.
 
-QE-108 remains responsible for larger independent scenario populations, chunk-level/graded labels, stronger holdout mechanics, and uncertainty reporting. QE-109 owns abstention calibration and false-answer risk.
+QE-108 remains responsible for larger independent scenario populations, chunk-level/graded labels, stronger holdout mechanics, and uncertainty reporting. QE-109 owns abstention calibration and unsupported-evidence-return risk.
+
+
+## Calibrated abstention V1 evidence
+
+PR #90 added a deterministic top-score abstention baseline calibrated independently for BM25, dense MPNet, and hybrid RRF.
+
+The calibration objective used an explicit **minimum development answerable Recall@5 of 0.90**. Thresholds were selected on development data only and then frozen for holdout and challenge evaluation.
+
+| Strategy | Selected threshold | Development Recall@5 | Development no-answer accuracy | Development unsupported-evidence-return rate | Development false-abstention rate |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| BM25 | 1.650605 | 0.917 | 0.167 | 0.833 | 0.000 |
+| Dense MPNet | 0.410092 | 0.917 | **0.583** | **0.417** | 0.083 |
+| Hybrid RRF | 0.032522 | 0.917 | 0.500 | 0.500 | 0.083 |
+
+The frozen policies produced the following no-answer accuracy outside the calibration split:
+
+| Strategy | Holdout | Challenge |
+| --- | ---: | ---: |
+| BM25 | 0.167 | 0.000 |
+| Dense MPNet | **0.500** | **0.500** |
+| Hybrid RRF | 0.333 | 0.000 |
+
+The result is diagnostic rather than a production threshold claim. Dense top score contains a useful abstention signal on this benchmark, but score-only calibration remains incomplete: it still returns unsupported evidence for half of expected-empty holdout/challenge cases. Hybrid's score-only behavior also degrades outside development.
+
+That is the evidence for treating top-score calibration as **Abstention V1**, not as evidence-sufficiency verification.
+
+The next quality layer must evaluate the retrieved evidence set against the information required by the query:
+
+```text
+query + governed Top-K evidence
+        ↓
+is the context actually sufficient?
+        ├── yes → eligible for grounded generation
+        └── no  → abstain / identify missing, conflicting,
+                  stale, or inaccessible evidence
+```
+
+This follows the sufficient-context distinction in current RAG research: retrieval relevance and rank are useful signals, but they do not by themselves establish that the context contains everything necessary to answer.
 
 ## Relationship to the PR regression gate
 
@@ -130,4 +168,4 @@ Keeping those decisions separate prevents a cross-strategy comparison from being
 
 No retrieval strategy is promoted as the production default from this evidence.
 
-Dense and hybrid are stronger candidates than BM25 for answerable semantic retrieval on the current development set. The next quality decision is to calibrate **when to return no evidence**, then compare the strategies at a defined false-answer/recall operating point rather than selecting the subject with the highest recall alone.
+Dense and hybrid are stronger candidates than BM25 for answerable semantic retrieval on the current development set. The next quality decision is to calibrate **when to return no evidence**, then compare the strategies at a defined unsupported-evidence-return/recall operating point rather than selecting the subject with the highest recall alone.
