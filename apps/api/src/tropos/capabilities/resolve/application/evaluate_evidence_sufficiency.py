@@ -71,13 +71,19 @@ class LLMEvidenceSufficiencyJudge:
         self._llm = llm
 
     def judge(self, evidence_set: EvidenceSet) -> JudgedSufficiency:
-        payload = "\n\n".join(
+        payload = "
+
+".join(
             f"[{item.alias}] {item.text}" for item in evidence_set.items
         )
         completion = self._llm.complete_structured(
             StructuredCompletionRequest(
                 system_prompt=_SYSTEM_PROMPT,
-                user_prompt=f"Query:\n{evidence_set.query}\n\nEligible evidence:\n{payload}",
+                user_prompt=f"Query:
+{evidence_set.query}
+
+Eligible evidence:
+{payload}",
                 prompt_version=self.PROMPT_VERSION,
                 response_model=_SufficiencyOutput,
                 schema_name="tropos_evidence_sufficiency",
@@ -89,9 +95,15 @@ class LLMEvidenceSufficiencyJudge:
         decision = SufficiencyDecision(
             label=SufficiencyLabel(output.label),
             failure_type=SufficiencyFailureType(output.failure_type),
-            required_facts=tuple(\n                dict.fromkeys(item.strip() for item in output.required_facts if item.strip())\n            ),
-            supported_facts=tuple(\n                dict.fromkeys(item.strip() for item in output.supported_facts if item.strip())\n            ),
-            missing_facts=tuple(\n                dict.fromkeys(item.strip() for item in output.missing_facts if item.strip())\n            ),
+            required_facts=tuple(
+                dict.fromkeys(item.strip() for item in output.required_facts if item.strip())
+            ),
+            supported_facts=tuple(
+                dict.fromkeys(item.strip() for item in output.supported_facts if item.strip())
+            ),
+            missing_facts=tuple(
+                dict.fromkeys(item.strip() for item in output.missing_facts if item.strip())
+            ),
             contradictions=tuple(
                 dict.fromkeys(item.strip() for item in output.contradictions if item.strip())
             ),
