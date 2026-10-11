@@ -1,7 +1,8 @@
 # Evidence Sufficiency Experience
 
 Status: Active product and architecture contract  
-Scope: Resolve runtime sufficiency decision
+Scope: Resolve runtime sufficiency decision  
+Implementation note: runtime decisions are operational only until human calibration.
 
 ## User outcome
 
