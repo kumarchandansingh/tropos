@@ -34,7 +34,7 @@ from tropos.evals.contracts import (
 )
 from tropos.evals.enterprise_support import load_enterprise_support_benchmark
 from tropos.evals.experiment_store import SQLiteExperimentStore
-from tropos.evals.experiments import compare_runs
+from tropos.evals.experiments import ExperimentRunner, compare_runs
 from tropos.evals.fixtures import load_current_chunks
 from tropos.evals.provenance import build_eval_provenance
 from tropos.evals.retrieval_experiment import (
