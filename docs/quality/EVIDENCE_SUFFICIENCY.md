@@ -265,3 +265,123 @@ For the prepared 16 cases:
 3. disagreements are adjudicated;
 4. the approved labels and required/missing facts are committed as a new immutable dataset version;
 5. only then does Tropos implement/evaluate a sufficiency subject or model judge.
+
+
+## Human review workflow
+
+PR #92 established the candidate/golden boundary. The operational follow-through uses spreadsheet-compatible CSV packets while keeping the JSON benchmark canonical.
+
+The workflow is:
+
+```text
+canonical candidate JSON
+        ↓
+export reviewer packet
+        ↓
+independent human review in Excel / Sheets
+        ↓
+import review fields only
+        ↓
+reviewed candidate JSON
+        ↓
+agreement / disagreement report
+        ↓
+export adjudication packet
+        ↓
+human adjudication
+        ↓
+import adjudication
+        ↓
+approval = approved
+        ↓
+generic EvalDataset
+```
+
+Reviewer files are intentionally **not authoritative benchmark files**. Import uses only the case ID plus review fields; query, evidence, source provenance, split, and tags are reconstructed from the canonical dataset. This prevents accidental spreadsheet edits from silently mutating benchmark truth.
+
+### Export a reviewer packet
+
+From `apps/api`:
+
+```bash
+uv run python scripts/manage_evidence_sufficiency_reviews.py \
+  export-review \
+  --reviewer reviewer-1 \
+  --output artifacts/evidence-sufficiency-reviewer-1.csv
+```
+
+Open the CSV in Excel or Google Sheets. For each case, complete:
+
+- `Review Date`: ISO-8601 timestamp with timezone, for example `2026-10-11T18:30:00+05:30`;
+- `Label`: `SUFFICIENT` or `INSUFFICIENT`;
+- `Reason Code`: `NONE` for sufficient evidence, otherwise one reason from the taxonomy above;
+- `Required Facts`: one fact per line inside the cell;
+- `Missing Facts`: one fact per line when applicable;
+- `Confidence`: 1–5;
+- `Would you answer?`: `YES` or `NO`;
+- `Notes`: optional rationale.
+
+Do not coordinate labels between independent reviewers before both reviews are complete.
+
+### Import a completed review
+
+```bash
+uv run python scripts/manage_evidence_sufficiency_reviews.py \
+  import-review \
+  --packet artifacts/evidence-sufficiency-reviewer-1.csv \
+  --output artifacts/evidence-sufficiency-reviewed.json
+```
+
+Run the second reviewer against the reviewed JSON so duplicate reviewer identities are rejected while a new independent review can be appended:
+
+```bash
+uv run python scripts/manage_evidence_sufficiency_reviews.py \
+  --dataset artifacts/evidence-sufficiency-reviewed.json \
+  export-review \
+  --reviewer reviewer-2 \
+  --output artifacts/evidence-sufficiency-reviewer-2.csv
+```
+
+### Measure reviewer agreement
+
+```bash
+uv run python scripts/manage_evidence_sufficiency_reviews.py \
+  --dataset artifacts/evidence-sufficiency-reviewed-twice.json \
+  report
+```
+
+The report shows:
+
+- reviewed-case coverage;
+- double-reviewed-case coverage;
+- observed label agreement;
+- observed label+reason agreement;
+- explicit disagreement case IDs;
+- low-confidence case IDs.
+
+With only 16 seed cases, observed agreement is reported directly rather than presenting a more elaborate statistic as more stable than the sample warrants.
+
+### Adjudicate and promote
+
+After review, export an adjudication packet:
+
+```bash
+uv run python scripts/manage_evidence_sufficiency_reviews.py \
+  --dataset artifacts/evidence-sufficiency-reviewed-twice.json \
+  export-adjudication \
+  --output artifacts/evidence-sufficiency-adjudication.csv
+```
+
+The adjudicator reviews the independent decisions and fills the final label, reason, required/missing facts, confidence, answer/abstain decision, identity, timestamp, and notes.
+
+Import the completed adjudication:
+
+```bash
+uv run python scripts/manage_evidence_sufficiency_reviews.py \
+  --dataset artifacts/evidence-sufficiency-reviewed-twice.json \
+  import-adjudication \
+  --packet artifacts/evidence-sufficiency-adjudication.csv \
+  --output artifacts/evidence-sufficiency-approved-v1.json
+```
+
+Promotion is atomic per completed case: the case receives the human adjudication and changes to `approval=approved` together. Blank adjudication rows remain candidates. Approved cases can then project into the generic evaluation runtime; partially reviewed cases still cannot.
