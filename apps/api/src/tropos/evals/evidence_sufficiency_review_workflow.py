@@ -297,10 +297,10 @@ def import_adjudication_packet(
             case = cases_by_id.get(case_id)
             if case is None:
                 raise ValueError(f"row {row_number}: unknown case ID {case_id}")
-            if not row.get("Label", "").strip():
+            if not _cell(row, "Label"):
                 continue
             if not case.reviews:
-                raise ValueError(f"row {row_number} ({case_id}): adjudication requires human review")
+                raise ValueError(\n                    f"row {row_number} ({case_id}): adjudication requires human review"\n                )
             if case.approval is EvalApproval.APPROVED:
                 raise ValueError(f"row {row_number} ({case_id}): case is already approved")
             if case_id in adjudications:
