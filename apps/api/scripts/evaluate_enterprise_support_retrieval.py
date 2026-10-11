@@ -29,6 +29,7 @@ from tropos.core.application.ingestion.ingest_knowledge import (
     IngestKnowledgeCommand,
 )
 from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
+from tropos.core.domain.knowledge_chunk import KnowledgeChunk
 from tropos.evals.abstention import (
     TopScoreAbstentionPolicy,
     TopScoreThresholdRetriever,
@@ -190,7 +191,7 @@ def _run_retrievers(
     dataset: EvalDataset,
     split: EvalSplit,
     retrievers: dict[str, KnowledgeChunkRetriever],
-    current_chunks: dict[str, object],
+    current_chunks: dict[str, KnowledgeChunk],
     repository_root: Path,
     lockfile: Path,
     sink: SQLiteExperimentStore | None,
