@@ -123,6 +123,21 @@ def test_benchmark_projects_balanced_retrieval_queries_without_using_holdout_by_
     assert all(not case.case_id.startswith("ES-JSM-") for case in development)
 
 
+
+def test_generic_retrieval_projection_binds_every_case_to_the_same_corpus() -> None:
+    benchmark = load_enterprise_support_benchmark(DATASET)
+
+    dataset = benchmark.retrieval_dataset()
+
+    assert dataset.split is EvalSplit.DEVELOPMENT
+    assert len(dataset.cases) == 24
+    corpus_fingerprints = {
+        case.inputs["corpus_fingerprint"]
+        for case in dataset.cases
+    }
+    assert len(corpus_fingerprints) == 1
+
+
 def test_benchmark_projects_resolve_decision_and_knowledge_article_datasets() -> None:
     benchmark = load_enterprise_support_benchmark(DATASET)
 
