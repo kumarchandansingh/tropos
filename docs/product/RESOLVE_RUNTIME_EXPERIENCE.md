@@ -1,7 +1,8 @@
 # Resolve Runtime Experience
 
 Status: Active product and architecture contract  
-Scope: First end-to-end Resolve walking skeleton
+Scope: First end-to-end Resolve walking skeleton  
+Implementation note: the first executable UI surface is CLI; the contracts target the future Resolve and Traces pages.
 
 ## User outcome
 
