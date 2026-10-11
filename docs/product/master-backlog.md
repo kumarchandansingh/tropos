@@ -76,7 +76,7 @@ Sprint 1 is complete. Governed evidence plus typed intake can produce a troubles
 
 ### Sprint 2 delivery status
 
-QE-103 is delivered by PR #82: Tropos can now execute and persist generic evaluation experiments, compare baseline and candidate runs case-by-case, calculate paired metric deltas with optional bootstrap uncertainty, and distinguish hard invariants from decision metrics. QE-108 is now in progress: the repository contains a 16-case realistic enterprise-support seed with 48 retrieval queries, balanced Resolve actions, split-aware projections, and 8 Knowledge Article expectations. The release-scale sample targets, chunk-level labels, blind holdout mechanics, and uncertainty reporting remain open. QE-109 through QE-112 remain open.
+QE-103 is delivered by PR #82: Tropos can now execute and persist generic evaluation experiments, compare baseline and candidate runs case-by-case, calculate paired metric deltas with optional bootstrap uncertainty, and distinguish hard invariants from decision metrics. QE-108 is now in progress: the repository contains a 16-case realistic enterprise-support seed with 48 retrieval queries, balanced Resolve actions, split-aware projections, and 8 grounded Knowledge Article expectations with complete reference articles. The release-scale sample targets, chunk-level labels, blind holdout mechanics, and uncertainty reporting remain open. QE-109 through QE-112 remain open.
 
 ### Sprint 2 acceptance outcome
 
