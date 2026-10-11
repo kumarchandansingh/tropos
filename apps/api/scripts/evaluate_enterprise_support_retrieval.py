@@ -237,6 +237,11 @@ def main() -> int:
                 ),
             )
 
+    gate_passed = all(
+        not hard_invariant_failures(run)
+        for run in runs.values()
+    )
+
     output: JsonObject = {
         "schema_version": 2,
         "dataset": {
@@ -259,7 +264,7 @@ def main() -> int:
         },
         "gate": {
             "policy": "retrieval-hard-invariants-v2",
-            "passed": all(not hard_invariant_failures(run) for run in runs.values()),
+            "passed": gate_passed,
             "note": (
                 "Expected-evidence and no-answer misses remain benchmark outcomes. "
                 "Authorization, currentness, evidence integrity, and result-contract "
@@ -273,7 +278,7 @@ def main() -> int:
         json.dumps(output, indent=2, ensure_ascii=False, allow_nan=False) + "\n",
         encoding="utf-8",
     )
-    return 0 if output["gate"]["passed"] is True else 1
+    return 0 if gate_passed else 1
 
 
 if __name__ == "__main__":
