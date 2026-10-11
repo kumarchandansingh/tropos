@@ -47,7 +47,7 @@ It is invalid across the current retrieval subjects because BM25, cosine, and RR
 
 ### 2. Calibrate one top-score threshold per retrieval strategy
 
-Use the highest returned strategy-native score as a confidence baseline. For each strategy, enumerate observed development thresholds, preserve an explicit answerable Recall@5 floor, then select the threshold with the lowest expected-empty false-answer rate.
+Use the highest returned strategy-native score as a confidence baseline. For each strategy, enumerate observed development thresholds, preserve an explicit answerable Recall@5 floor, then select the threshold with the lowest expected-empty unsupported-evidence-return rate.
 
 This is deterministic, auditable, and cheap. It may generalize poorly because top score alone does not prove that evidence actually answers the question.
 
@@ -94,7 +94,7 @@ For each retrieval strategy:
 1. run the raw retriever on development data;
 2. enumerate finite thresholds derived from observed development top scores;
 3. keep only thresholds meeting the required answerable Recall@5 floor;
-4. minimize expected-empty false-answer rate;
+4. minimize expected-empty unsupported-evidence-return rate;
 5. break ties by higher answerable Recall@5, then the less aggressive threshold;
 6. freeze the selected threshold;
 7. run the same frozen policy on development, holdout, and challenge splits;
@@ -107,7 +107,7 @@ Holdout/challenge results never select or alter the threshold.
 ### Positive
 
 - Abstention becomes an explicit, measurable product decision instead of an implicit side effect of retrieval.
-- False-answer rate and retained answerable recall can be discussed at one operating point.
+- Unsupported-evidence-return rate and retained answerable recall can be discussed at one operating point.
 - BM25, dense, and hybrid receive independent thresholds appropriate to their score scales.
 - Policy selection is deterministic and reproducible.
 - The selected threshold is recorded with dataset identity, strategy version, and run provenance.
