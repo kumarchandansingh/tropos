@@ -170,7 +170,6 @@ def test_benchmark_rejects_a_create_case_that_declares_reusable_knowledge(
         load_enterprise_support_benchmark(invalid)
 
 
-
 def test_benchmark_rejects_reference_article_with_unknown_evidence(
     tmp_path: Path,
 ) -> None:
@@ -183,6 +182,7 @@ def test_benchmark_rejects_reference_article_with_unknown_evidence(
 
     with pytest.raises(ValueError, match="reference article cites evidence"):
         load_enterprise_support_benchmark(invalid)
+
 
 def test_bm25_can_execute_the_realistic_seed_without_crossing_restricted_boundaries(
     tmp_path: Path,
