@@ -73,6 +73,7 @@ Architecture documents describe the system as it exists now. They do not present
 - [Evaluation strategy](quality/EVAL_STRATEGY.md)
 - [Enterprise support retrieval evidence](quality/ENTERPRISE_SUPPORT_RETRIEVAL_EVIDENCE.md)
 - [Retrieval abstention calibration](quality/RETRIEVAL_ABSTENTION.md)
+- [Evidence sufficiency benchmark V1](quality/EVIDENCE_SUFFICIENCY.md)
 - [Enterprise support benchmark](quality/ENTERPRISE_SUPPORT_BENCHMARK.md)
 - [CI/CD](delivery/CI_CD.md)
 - [Environment strategy](delivery/ENVIRONMENT_STRATEGY.md)
