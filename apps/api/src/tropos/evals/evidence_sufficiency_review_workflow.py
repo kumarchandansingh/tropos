@@ -12,7 +12,7 @@ import json
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable, Mapping
 
 from tropos.evals.contracts import EvalApproval, JsonObject
 from tropos.evals.evidence_sufficiency import (
@@ -87,30 +87,34 @@ def _parse_yes_no(value: str) -> bool:
     raise ValueError("Would you answer? must be YES or NO")
 
 
+def _cell(row: Mapping[str, str | None], name: str) -> str:
+    return (row.get(name) or "").strip()
+
+
 def _parse_review_fields(
-    row: dict[str, str],
+    row: Mapping[str, str | None],
     *,
     identity_field: str,
     timestamp_field: str,
 ) -> HumanSufficiencyReview:
-    identity = row.get(identity_field, "").strip()
+    identity = _cell(row, identity_field)
     if not identity:
         raise ValueError(f"{identity_field} is required")
-    confidence_text = row.get("Confidence", "").strip()
+    confidence_text = _cell(row, "Confidence")
     try:
         confidence = int(confidence_text)
     except ValueError as exc:
         raise ValueError("Confidence must be an integer from 1 to 5") from exc
     return HumanSufficiencyReview(
         reviewer=identity,
-        reviewed_at=_parse_timestamp(row.get(timestamp_field, ""), field=timestamp_field),
-        label=EvidenceSufficiencyLabel(row.get("Label", "").strip()),
-        reason=EvidenceSufficiencyReason(row.get("Reason Code", "").strip()),
-        required_facts=_parse_facts(row.get("Required Facts", "")),
-        missing_facts=_parse_facts(row.get("Missing Facts", "")),
+        reviewed_at=_parse_timestamp(_cell(row, timestamp_field), field=timestamp_field),
+        label=EvidenceSufficiencyLabel(_cell(row, "Label")),
+        reason=EvidenceSufficiencyReason(_cell(row, "Reason Code")),
+        required_facts=_parse_facts(_cell(row, "Required Facts")),
+        missing_facts=_parse_facts(_cell(row, "Missing Facts")),
         confidence=confidence,
-        would_answer=_parse_yes_no(row.get("Would you answer?", "")),
-        notes=row.get("Notes", "").strip(),
+        would_answer=_parse_yes_no(_cell(row, "Would you answer?")),
+        notes=_cell(row, "Notes"),
     )
 
 
@@ -168,12 +172,12 @@ def import_review_packet(
         if tuple(reader.fieldnames or ()) != REVIEW_COLUMNS:
             raise ValueError("review packet columns do not match the Tropos review contract")
         for row_number, row in enumerate(reader, start=2):
-            case_id = row.get("Case ID", "").strip()
+            case_id = _cell(row, "Case ID")
             if not case_id:
                 continue
             if case_id not in known_cases:
                 raise ValueError(f"row {row_number}: unknown case ID {case_id}")
-            if not row.get("Label", "").strip():
+            if not _cell(row, "Label"):
                 continue
             try:
                 review = _parse_review_fields(
