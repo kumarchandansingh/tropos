@@ -4,6 +4,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path
+from typing import cast
 
 from tropos.core.application.retrieval.models import (
     KnowledgeSearchRequest,
@@ -119,7 +120,7 @@ def test_generic_retrieval_executor_emits_shared_invariants_and_metrics() -> Non
     assert by_metric["recall_at_1"].value == 1.0
     assert by_metric["reciprocal_rank"].value == 1.0
     assert observation.output is not None
-    diagnostics = observation.output["retrieval_diagnostics"]
+    diagnostics = cast(dict[str, object], observation.output["retrieval_diagnostics"])
     assert diagnostics["result_count"] == 1
     assert diagnostics["top_score"] == 2.5
     assert diagnostics["second_score"] is None
