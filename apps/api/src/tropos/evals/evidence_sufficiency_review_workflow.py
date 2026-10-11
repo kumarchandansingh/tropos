@@ -300,7 +300,9 @@ def import_adjudication_packet(
             if not _cell(row, "Label"):
                 continue
             if not case.reviews:
-                raise ValueError(\n                    f"row {row_number} ({case_id}): adjudication requires human review"\n                )
+                raise ValueError(
+                    f"row {row_number} ({case_id}): adjudication requires human review"
+                )
             if case.approval is EvalApproval.APPROVED:
                 raise ValueError(f"row {row_number} ({case_id}): case is already approved")
             if case_id in adjudications:
