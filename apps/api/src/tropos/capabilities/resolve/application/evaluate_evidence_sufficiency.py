@@ -89,9 +89,9 @@ class LLMEvidenceSufficiencyJudge:
         decision = SufficiencyDecision(
             label=SufficiencyLabel(output.label),
             failure_type=SufficiencyFailureType(output.failure_type),
-            required_facts=tuple(dict.fromkeys(item.strip() for item in output.required_facts if item.strip())),
-            supported_facts=tuple(dict.fromkeys(item.strip() for item in output.supported_facts if item.strip())),
-            missing_facts=tuple(dict.fromkeys(item.strip() for item in output.missing_facts if item.strip())),
+            required_facts=tuple(\n                dict.fromkeys(item.strip() for item in output.required_facts if item.strip())\n            ),
+            supported_facts=tuple(\n                dict.fromkeys(item.strip() for item in output.supported_facts if item.strip())\n            ),
+            missing_facts=tuple(\n                dict.fromkeys(item.strip() for item in output.missing_facts if item.strip())\n            ),
             contradictions=tuple(
                 dict.fromkeys(item.strip() for item in output.contradictions if item.strip())
             ),
