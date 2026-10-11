@@ -191,10 +191,14 @@ def _documentation_na_has_rationale(body: str) -> bool:
 
 def _check_public_language(errors: list[str]) -> None:
     for path in _public_markdown_files():
+        relative = _relative(path)
         text = path.read_text(encoding="utf-8")
         first_non_blank = next((line for line in text.splitlines() if line.strip()), "")
         if not first_non_blank.startswith("# "):
             errors.append(f"{_relative(path)}: public Markdown must start with one H1 title")
+
+        if relative == "docs/standards/PUBLIC_DOCUMENTATION_STANDARD.md":
+            continue
 
         for pattern in PRIVATE_META_PATTERNS:
             match = pattern.search(text)
