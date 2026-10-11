@@ -64,6 +64,10 @@ Do not invent facts. Do not treat relevance alone as sufficiency.
 """
 
 
+def _unique_non_blank(values: list[str]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(value.strip() for value in values if value.strip()))
+
+
 class LLMEvidenceSufficiencyJudge:
     PROMPT_VERSION = "resolve-evidence-sufficiency-v1"
 
@@ -71,19 +75,17 @@ class LLMEvidenceSufficiencyJudge:
         self._llm = llm
 
     def judge(self, evidence_set: EvidenceSet) -> JudgedSufficiency:
-        payload = "
-
-".join(
+        payload = "\n\n".join(
             f"[{item.alias}] {item.text}" for item in evidence_set.items
+        )
+        user_prompt = (
+            f"Query:\n{evidence_set.query}\n\n"
+            f"Eligible evidence:\n{payload}"
         )
         completion = self._llm.complete_structured(
             StructuredCompletionRequest(
                 system_prompt=_SYSTEM_PROMPT,
-                user_prompt=f"Query:
-{evidence_set.query}
-
-Eligible evidence:
-{payload}",
+                user_prompt=user_prompt,
                 prompt_version=self.PROMPT_VERSION,
                 response_model=_SufficiencyOutput,
                 schema_name="tropos_evidence_sufficiency",
@@ -95,18 +97,10 @@ Eligible evidence:
         decision = SufficiencyDecision(
             label=SufficiencyLabel(output.label),
             failure_type=SufficiencyFailureType(output.failure_type),
-            required_facts=tuple(
-                dict.fromkeys(item.strip() for item in output.required_facts if item.strip())
-            ),
-            supported_facts=tuple(
-                dict.fromkeys(item.strip() for item in output.supported_facts if item.strip())
-            ),
-            missing_facts=tuple(
-                dict.fromkeys(item.strip() for item in output.missing_facts if item.strip())
-            ),
-            contradictions=tuple(
-                dict.fromkeys(item.strip() for item in output.contradictions if item.strip())
-            ),
+            required_facts=_unique_non_blank(output.required_facts),
+            supported_facts=_unique_non_blank(output.supported_facts),
+            missing_facts=_unique_non_blank(output.missing_facts),
+            contradictions=_unique_non_blank(output.contradictions),
             rationale=output.rationale.strip(),
             validation_status=SufficiencyValidationStatus.UNVALIDATED,
         )
