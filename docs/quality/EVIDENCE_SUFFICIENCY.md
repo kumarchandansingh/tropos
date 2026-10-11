@@ -95,7 +95,9 @@ generic EvalDataset
 
 Only `approved` cases with human review and human adjudication can project into the generic evaluation runtime.
 
-An unreviewed candidate can be validated structurally, counted, versioned, and assigned to reviewers. It cannot produce a benchmark accuracy score.
+A candidate may accumulate individual human reviews while disagreements are being resolved, but it cannot carry a final adjudication. Promotion is atomic: the final human adjudication and `approval=approved` state are committed together.
+
+An unreviewed or partially reviewed candidate can be validated structurally, counted, versioned, and assigned to reviewers. It cannot produce a benchmark accuracy score.
 
 ## Human review contract
 
