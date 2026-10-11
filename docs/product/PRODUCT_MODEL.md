@@ -31,7 +31,7 @@ Use the capability documents below as the authoritative product descriptions:
 - **Architecture docs** define current technical structure and runtime boundaries.
 - **ADRs** define durable architectural decisions and trade-offs.
 - **Quality docs** define evaluation/test strategy and release evidence.
-- **Learning docs** explain concepts and interview translation; they are not authoritative implementation status.
+- **Engineering deep dives** explain mechanisms and cross-cutting trade-offs; they are not authoritative for implementation status.
 - **Backlog/issues** define future work and priority; planned work must not be presented as implemented.
 
 For technical state, start at [Architecture overview](../architecture/ARCHITECTURE_OVERVIEW.md).
