@@ -44,10 +44,11 @@ class RetrievalCaseSpec:
 
 @dataclass(frozen=True, slots=True)
 class RetrievalCaseEvaluation:
-    """Safe observable output, deterministic checks, and quality metrics."""
+    """Safe observable output, deterministic checks, diagnostics, and metrics."""
 
     hits: tuple[JsonObject, ...]
     checks: tuple[tuple[str, bool, str], ...]
+    diagnostics: JsonObject
     metrics: JsonObject
 
     @property
@@ -128,6 +129,28 @@ def evaluate_retrieval_case(
             }
         )
 
+    result_scores = tuple(result.score for result in results)
+    top_score = result_scores[0] if result_scores else None
+    second_score = result_scores[1] if len(result_scores) > 1 else None
+    diagnostics: JsonObject = {
+        "score_semantics": "strategy_native_higher_is_better",
+        "result_count": len(results),
+        "top_score": top_score,
+        "second_score": second_score,
+        "top_score_margin": (
+            top_score - second_score
+            if top_score is not None and second_score is not None
+            else None
+        ),
+        "top_score_ratio": (
+            top_score / second_score
+            if top_score is not None
+            and second_score is not None
+            and second_score != 0.0
+            else None
+        ),
+    }
+
     ordered = tuple(dict.fromkeys(relevant_ids))
     expected = set(case.relevant_knowledge_ids)
     expectation_ok = expected <= set(ordered[: case.max_rank]) if expected else not results
@@ -206,5 +229,6 @@ def evaluate_retrieval_case(
     return RetrievalCaseEvaluation(
         hits=tuple(hits),
         checks=checks,
+        diagnostics=diagnostics,
         metrics=metrics,
     )
