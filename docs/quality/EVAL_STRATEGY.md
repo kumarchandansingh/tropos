@@ -198,3 +198,27 @@ See [CI/CD](../delivery/CI_CD.md) and [RAG architecture](../architecture/RAG_ARC
 ## V2 catalogue and saved execution
 
 The V1 baseline above remains unchanged. `catalogue_v2.json` adds exact-identifier, content-version and access-revocation scenarios, plus a visible draft deletion case. Real BM25 currently yields 15 passes, 2 known semantic misses and 1 not-run draft. Execution completion does not imply a passing quality outcome. All observations, expectations, error states, invariants and metric denominators are saved. See [Evaluation runs](../architecture/EVALUATION_RUNS.md) for commands and scope.
+
+
+## Enterprise support benchmark V1
+
+The primary realistic development seed is now `apps/api/evals/resolve/enterprise_support_benchmark_v1.json`.
+
+Unlike the historical retrieval-only toy corpus, this dataset starts from complete resolved support cases and projects the same case evidence into retrieval, Resolve knowledge-action, and Knowledge Article evaluation contracts.
+
+Current evidence volume:
+
+| Evidence | Count |
+| --- | ---: |
+| Synthetic knowledge documents | 18 |
+| Complete resolved cases | 16 |
+| REUSE / IMPROVE / CREATE / NO_ACTION | 4 each |
+| Grounded Knowledge Article expectations with reference articles | 8 |
+| Retrieval queries | 48 |
+| Answerable / expected-empty retrieval queries | 24 / 24 |
+
+The query count must not be treated as 48 independent incidents because multiple formulations can come from one support case. V1 is therefore appropriate for regression discovery and architecture work, not enterprise-accuracy claims.
+
+The default projection exposes development cases only. Holdout and challenge splits require explicit selection. Because the repository is public, those splits are visible and are not a secret blind benchmark.
+
+See [Enterprise support benchmark V1](ENTERPRISE_SUPPORT_BENCHMARK.md) for case structure, public research basis, limitations, and the remaining QE-108 work.

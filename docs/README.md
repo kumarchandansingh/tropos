@@ -71,6 +71,7 @@ Architecture documents describe the system as it exists now. They do not present
 ### Quality and delivery
 
 - [Evaluation strategy](quality/EVAL_STRATEGY.md)
+- [Enterprise support benchmark](quality/ENTERPRISE_SUPPORT_BENCHMARK.md)
 - [CI/CD](delivery/CI_CD.md)
 - [Environment strategy](delivery/ENVIRONMENT_STRATEGY.md)
 - [Delivery governance](product/delivery-governance.md)
