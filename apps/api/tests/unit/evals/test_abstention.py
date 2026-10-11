@@ -141,8 +141,9 @@ def test_calibration_selects_threshold_that_preserves_required_recall() -> None:
 
     assert calibration.policy.threshold == 0.8
     assert calibration.selected.metrics.answerable_recall_at_5 == 1.0
-    assert calibration.selected.metrics.false_answer_rate == 0.0
+    assert calibration.selected.metrics.unsupported_evidence_return_rate == 0.0
     assert calibration.selected.metrics.no_answer_accuracy == 1.0
+    assert calibration.selected.metrics.false_abstention_rate == 0.0
 
 
 def test_score_equal_to_threshold_is_returned_not_abstained() -> None:
@@ -204,7 +205,7 @@ def test_selected_policy_can_be_measured_on_holdout_without_recalibration() -> N
     metrics = evaluate_abstention_policy(holdout, calibration.policy)
 
     assert metrics.answerable_recall_at_5 == 1.0
-    assert metrics.false_answer_rate == 0.0
+    assert metrics.unsupported_evidence_return_rate == 0.0
 
 
 def test_policy_is_bound_to_the_strategy_that_was_calibrated() -> None:
