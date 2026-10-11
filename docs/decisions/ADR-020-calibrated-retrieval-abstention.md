@@ -107,7 +107,7 @@ Holdout/challenge results never select or alter the threshold.
 ### Positive
 
 - Abstention becomes an explicit, measurable product decision instead of an implicit side effect of retrieval.
-- Unsupported-evidence-return rate and retained answerable recall can be discussed at one operating point.
+- Unsupported-evidence-return rate, false-abstention rate, and retained answerable recall can be discussed at one operating point.
 - BM25, dense, and hybrid receive independent thresholds appropriate to their score scales.
 - Policy selection is deterministic and reproducible.
 - The selected threshold is recorded with dataset identity, strategy version, and run provenance.
@@ -137,8 +137,8 @@ The resulting evidence report records raw retrieval performance and abstention-a
 
 External references:
 
-- Chen, Hua, Xiao (2026), *Relevance Is Not Sufficient Evidence: Detecting Evidence Gaps Before Generation in RAG*: <https://arxiv.org/abs/2609.37469>
-- Qiu, Han, Huang (2026), *SURE-RAG: Sufficiency and Uncertainty-Aware Evidence Verification for Selective Retrieval-Augmented Generation*: <https://arxiv.org/abs/2605.03534>
+- Joren et al. (Google Research, ICLR 2025), *Sufficient Context: A New Lens on Retrieval Augmented Generation Systems*: <https://research.google/pubs/sufficient-context-a-new-lens-on-retrieval-augmented-generation-systems/>
+- LangChain, *Deconstructing RAG*: <https://www.langchain.com/blog/deconstructing-rag>
 
 ## Revisit when
 
@@ -149,4 +149,4 @@ Revisit this decision when:
 - top-score thresholds fail to generalize across corpus changes;
 - generation requires set-level evidence sufficiency rather than candidate relevance;
 - a calibrated local verifier or model judge demonstrates materially better false-answer/coverage trade-offs;
-- production risk tolerance establishes a different answerable-recall or false-answer operating point.
+- production risk tolerance establishes a different answerable-recall or unsupported-evidence-return operating point.
