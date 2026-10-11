@@ -334,7 +334,6 @@ def _validate_case_record(case_id: str, record: JsonObject) -> None:
         raise ValueError(f"{case_id}: duplicate work-note IDs")
 
 
-
 def _reference_evidence_ids(value: JsonValue) -> set[str]:
     collected: set[str] = set()
     if isinstance(value, dict):
@@ -347,6 +346,7 @@ def _reference_evidence_ids(value: JsonValue) -> set[str]:
         for child in value:
             collected.update(_reference_evidence_ids(child))
     return collected
+
 
 def _validate_article_expectation(
     case_id: str,
@@ -404,9 +404,7 @@ def _validate_article_expectation(
     if not reference_ids:
         raise ValueError(f"{case_id}: reference article requires evidence citations")
     if not reference_ids <= evidence_ids:
-        raise ValueError(
-            f"{case_id}: reference article cites evidence that is not supplied"
-        )
+        raise ValueError(f"{case_id}: reference article cites evidence that is not supplied")
 
 
 def _parse_case(
