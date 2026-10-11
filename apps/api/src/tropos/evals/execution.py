@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from time import perf_counter
 
 from tropos.core.application.ports.retrieval import KnowledgeChunkRetriever
-from tropos.core.application.retrieval.models import KnowledgeSearchRequest
 from tropos.core.domain.knowledge_chunk import KnowledgeChunk
 from tropos.evals.catalogue import Catalogue, Json, PlannedCase
 from tropos.evals.retrieval_case_evaluation import (

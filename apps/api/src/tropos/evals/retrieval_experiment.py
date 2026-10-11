@@ -8,13 +8,14 @@ from time import perf_counter
 from tropos.core.application.ports.retrieval import KnowledgeChunkRetriever
 from tropos.core.application.retrieval.models import RetrievalAccessContext
 from tropos.core.domain.knowledge_chunk import KnowledgeChunk
+from tropos.evals.catalogue import Catalogue
 from tropos.evals.contracts import (
     EvalApproval,
     EvalCase,
     EvalDataset,
     EvalObservation,
-    EvalOrigin,
     EvalObservationState,
+    EvalOrigin,
     EvalRun,
     EvalScope,
     EvalScore,
@@ -23,7 +24,6 @@ from tropos.evals.contracts import (
     JsonObject,
     JsonValue,
 )
-from tropos.evals.catalogue import Catalogue
 from tropos.evals.fixtures import prepare_fixture
 from tropos.evals.retrieval_case_evaluation import (
     RetrievalCaseSpec,
@@ -183,15 +183,12 @@ class RetrievalExperimentExecutor:
         return EvalObservation(
             case_id=case.case_id,
             state=(
-                EvalObservationState.PASSED
-                if evaluation.passed
-                else EvalObservationState.FAILED
+                EvalObservationState.PASSED if evaluation.passed else EvalObservationState.FAILED
             ),
             output=output,
             scores=tuple(scores),
             duration_ms=duration_ms,
         )
-
 
 
 def catalogue_retrieval_dataset(

@@ -13,8 +13,8 @@ from tropos.evals.experiment_store import SQLiteExperimentStore
 from tropos.evals.experiments import ExperimentRunner
 from tropos.evals.provenance import build_eval_provenance
 from tropos.evals.retrieval_experiment import (
-    CatalogueRetrievalExperimentExecutor,
     RETRIEVAL_EVALUATOR_VERSION,
+    CatalogueRetrievalExperimentExecutor,
     catalogue_retrieval_dataset,
 )
 from tropos.evals.run_io import eval_run_to_dict
@@ -53,11 +53,7 @@ def main() -> int:
         },
     )
 
-    sink = (
-        None
-        if arguments.database is None
-        else SQLiteExperimentStore(arguments.database)
-    )
+    sink = None if arguments.database is None else SQLiteExperimentStore(arguments.database)
     with tempfile.TemporaryDirectory(prefix="tropos-retrieval-experiment-") as temp:
         run = ExperimentRunner(sink=sink).run(
             dataset=dataset,

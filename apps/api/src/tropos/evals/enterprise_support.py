@@ -191,11 +191,7 @@ class EnterpriseSupportBenchmark:
                             "max_rank": query.max_rank,
                             "corpus_fingerprint": corpus_fingerprint,
                         },
-                        expected={
-                            "relevant_knowledge_ids": list(
-                                query.relevant_knowledge_ids
-                            )
-                        },
+                        expected={"relevant_knowledge_ids": list(query.relevant_knowledge_ids)},
                         tags=_merge_tags(support_case.tags, query.tags),
                     )
                 )

@@ -130,14 +130,8 @@ def evaluate_retrieval_case(
 
     ordered = tuple(dict.fromkeys(relevant_ids))
     expected = set(case.relevant_knowledge_ids)
-    expectation_ok = (
-        expected <= set(ordered[: case.max_rank])
-        if expected
-        else not results
-    )
-    ranks_ok = [result.rank for result in results] == list(
-        range(1, len(results) + 1)
-    )
+    expectation_ok = expected <= set(ordered[: case.max_rank]) if expected else not results
+    ranks_ok = [result.rank for result in results] == list(range(1, len(results) + 1))
     checks = (
         (
             "expected_evidence",
@@ -168,10 +162,7 @@ def evaluate_retrieval_case(
             ranks_ok
             and len(results) <= limit
             and len({result.chunk.chunk_id for result in results}) == len(results)
-            and all(
-                result.strategy_version == retriever.strategy_version
-                for result in results
-            ),
+            and all(result.strategy_version == retriever.strategy_version for result in results),
             (
                 f"At most {limit} unique chunks, consecutive ranks and the "
                 "declared retrieval strategy"
@@ -189,21 +180,11 @@ def evaluate_retrieval_case(
         "cutoff": limit,
         "expected_count": len(expected),
         "returned_chunk_count": len(results),
-        "recall_at_1": (
-            len(set(ordered[:1]) & expected) / len(expected) if expected else None
-        ),
-        "recall_at_3": (
-            len(set(ordered[:3]) & expected) / len(expected) if expected else None
-        ),
-        "recall_at_5": (
-            len(set(ordered[:5]) & expected) / len(expected) if expected else None
-        ),
-        "precision_at_5": (
-            len(set(ordered[:5]) & expected) / 5 if expected else None
-        ),
-        "reciprocal_rank": (
-            (1 / first_rank if first_rank else 0) if expected else None
-        ),
+        "recall_at_1": (len(set(ordered[:1]) & expected) / len(expected) if expected else None),
+        "recall_at_3": (len(set(ordered[:3]) & expected) / len(expected) if expected else None),
+        "recall_at_5": (len(set(ordered[:5]) & expected) / len(expected) if expected else None),
+        "precision_at_5": (len(set(ordered[:5]) & expected) / 5 if expected else None),
+        "reciprocal_rank": ((1 / first_rank if first_rank else 0) if expected else None),
         "no_answer_correct": None if expected else not results,
     }
 

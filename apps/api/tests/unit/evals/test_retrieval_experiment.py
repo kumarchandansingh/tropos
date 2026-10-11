@@ -7,7 +7,6 @@ from pathlib import Path
 from tropos.core.application.retrieval.models import (
     KnowledgeSearchRequest,
     RetrievedKnowledgeChunk,
-    RetrievalAccessContext,
 )
 from tropos.core.domain.access import AccessPolicy, AccessScope
 from tropos.core.domain.knowledge_chunk import KnowledgeChunk
@@ -165,9 +164,7 @@ def test_quality_miss_does_not_become_a_hard_invariant_failure() -> None:
 
     assert observation.state.value == "failed"
     assert hard_invariant_failures(run) == ()
-    no_answer = next(
-        score for score in observation.scores if score.metric == "no_answer_accuracy"
-    )
+    no_answer = next(score for score in observation.scores if score.metric == "no_answer_accuracy")
     assert no_answer.value == 0.0
 
 
@@ -206,10 +203,7 @@ def test_integrity_failure_blocks_metrics_and_is_a_hard_invariant() -> None:
     )
 
     assert ("case-1", "evidence_integrity") in hard_invariant_failures(run)
-    assert not any(
-        score.metric == "recall_at_5"
-        for score in run.observations[0].scores
-    )
+    assert not any(score.metric == "recall_at_5" for score in run.observations[0].scores)
 
 
 def test_generic_eval_run_json_round_trip_preserves_scores_and_provenance() -> None:
@@ -253,8 +247,7 @@ def test_catalogue_projection_binds_generic_dataset_to_full_catalogue_snapshot()
 
     assert len(projected.cases) == 17
     assert all(
-        case.inputs["catalogue_fingerprint"] == catalogue.fingerprint
-        for case in projected.cases
+        case.inputs["catalogue_fingerprint"] == catalogue.fingerprint for case in projected.cases
     )
     assert all(
         case.inputs["corpus_fingerprint"] == catalogue.corpus_fingerprint

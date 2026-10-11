@@ -170,10 +170,6 @@ def eval_run_from_dict(value: JsonObject) -> EvalRun:
         status=EvalRunStatus(_text(value["status"])),
         started_at=datetime.fromisoformat(_text(value["started_at"])),
         observations=tuple(observations),
-        finished_at=(
-            None
-            if finished_raw is None
-            else datetime.fromisoformat(_text(finished_raw))
-        ),
+        finished_at=(None if finished_raw is None else datetime.fromisoformat(_text(finished_raw))),
         baseline_run_id=_optional_text(value["baseline_run_id"]),
     )

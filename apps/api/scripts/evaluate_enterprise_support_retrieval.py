@@ -107,12 +107,8 @@ def _comparison(baseline: EvalRun, candidate: EvalRun) -> JsonObject:
     return {
         "baseline_run_id": baseline.run_id,
         "candidate_run_id": candidate.run_id,
-        "regressed_cases": [
-            item.case_id for item in comparison.regressions
-        ],
-        "improved_cases": [
-            item.case_id for item in comparison.improvements
-        ],
+        "regressed_cases": [item.case_id for item in comparison.regressions],
+        "improved_cases": [item.case_id for item in comparison.improvements],
         "metric_comparisons": [
             {
                 "metric": item.metric,
@@ -139,10 +135,7 @@ def main() -> int:
         "--dataset",
         type=Path,
         default=(
-            Path(__file__).parents[1]
-            / "evals"
-            / "resolve"
-            / "enterprise_support_benchmark_v1.json"
+            Path(__file__).parents[1] / "evals" / "resolve" / "enterprise_support_benchmark_v1.json"
         ),
     )
     parser.add_argument(
@@ -160,11 +153,7 @@ def main() -> int:
     dataset = benchmark.retrieval_dataset(split)
 
     repository_root = Path(__file__).parents[2]
-    sink = (
-        None
-        if arguments.database is None
-        else SQLiteExperimentStore(arguments.database)
-    )
+    sink = None if arguments.database is None else SQLiteExperimentStore(arguments.database)
 
     with tempfile.TemporaryDirectory(prefix="tropos-enterprise-retrieval-") as temp:
         database = Path(temp) / "tropos.db"
@@ -262,24 +251,15 @@ def main() -> int:
             "strategy_version": materialization.strategy_version,
             "model_identifier": materialization.model_identifier,
         },
-        "runs": {
-            name: eval_run_to_dict(run)
-            for name, run in runs.items()
-        },
-        "summaries": {
-            name: _summary(run)
-            for name, run in runs.items()
-        },
+        "runs": {name: eval_run_to_dict(run) for name, run in runs.items()},
+        "summaries": {name: _summary(run) for name, run in runs.items()},
         "comparisons": {
             "bm25_to_dense": _comparison(runs["bm25"], runs["dense"]),
             "bm25_to_hybrid": _comparison(runs["bm25"], runs["hybrid"]),
         },
         "gate": {
             "policy": "retrieval-hard-invariants-v2",
-            "passed": all(
-                not hard_invariant_failures(run)
-                for run in runs.values()
-            ),
+            "passed": all(not hard_invariant_failures(run) for run in runs.values()),
             "note": (
                 "Expected-evidence and no-answer misses remain benchmark outcomes. "
                 "Authorization, currentness, evidence integrity, and result-contract "

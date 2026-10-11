@@ -56,6 +56,5 @@ class SentenceTransformerEmbeddingProvider:
             convert_to_numpy=True,
         )
         return tuple(
-            EmbeddingVector(tuple(float(value) for value in row.tolist()))
-            for row in vectors
+            EmbeddingVector(tuple(float(value) for value in row.tolist())) for row in vectors
         )
