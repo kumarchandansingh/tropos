@@ -426,7 +426,7 @@ def main() -> int:
             "minimum_answerable_recall": arguments.minimum_answerable_recall,
             "selection_objective": (
                 "Preserve the requested development Recall@5 floor, then minimize "
-                "expected-empty false-answer rate. Holdout/challenge never select "
+                "expected-empty unsupported-evidence-return rate. Holdout/challenge never select "
                 "the threshold."
             ),
             "strategies": {
