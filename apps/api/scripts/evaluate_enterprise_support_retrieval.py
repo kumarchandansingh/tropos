@@ -8,8 +8,10 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from statistics import fmean
+from typing import Any
 
 import sentence_transformers
+from sentence_transformers import SentenceTransformer
 
 from tropos.core.adapters.chunking.deterministic import DeterministicKnowledgeChunker
 from tropos.core.adapters.embeddings.sqlite import SQLiteEmbeddingRepository
@@ -20,6 +22,7 @@ from tropos.core.adapters.retrieval.exact_vector import ExactVectorKnowledgeRetr
 from tropos.core.adapters.retrieval.hybrid_rrf import HybridRrfKnowledgeRetriever
 from tropos.core.adapters.retrieval.sqlite_fts import SQLiteFtsKnowledgeRetriever
 from tropos.core.application.embeddings.materialize import MaterializeEmbeddings
+from tropos.core.application.embeddings.models import EmbeddingVector, SimilarityMetric
 from tropos.core.application.ingestion.ingest_knowledge import (
     IngestKnowledge,
     IngestKnowledgeCommand,
@@ -44,11 +47,65 @@ from tropos.evals.retrieval_experiment import (
     hard_invariant_failures,
 )
 from tropos.evals.run_io import eval_run_to_dict
-from tropos.evals.sentence_transformer_provider import (
-    MODEL_IDENTIFIER,
-    MODEL_REVISION,
-    SentenceTransformerEmbeddingProvider,
+MODEL_IDENTIFIER = "sentence-transformers/all-mpnet-base-v2"
+MODEL_REVISION = "e8c3b32edf5434bc2275fc9bab85f82640a19130"
+EMBEDDING_STRATEGY_VERSION = (
+    "sentence-transformers-all-mpnet-base-v2-normalized-v1"
 )
+
+
+class SentenceTransformerEmbeddingProvider:
+    """Pinned local model used only by the expensive real-model eval workflow."""
+
+    def __init__(self) -> None:
+        self._model = SentenceTransformer(
+            MODEL_IDENTIFIER,
+            revision=MODEL_REVISION,
+        )
+
+    @property
+    def strategy_version(self) -> str:
+        return EMBEDDING_STRATEGY_VERSION
+
+    @property
+    def model_identifier(self) -> str:
+        return MODEL_IDENTIFIER
+
+    @property
+    def model_revision(self) -> str:
+        return MODEL_REVISION
+
+    @property
+    def dimensions(self) -> int:
+        dimensions = self._model.get_embedding_dimension()
+        if dimensions is None:
+            raise RuntimeError("sentence-transformer did not report embedding dimensions")
+        return int(dimensions)
+
+    @property
+    def similarity_metric(self) -> SimilarityMetric:
+        return SimilarityMetric.COSINE
+
+    def embed_documents(
+        self,
+        texts: tuple[str, ...],
+    ) -> tuple[EmbeddingVector, ...]:
+        return self._encode(texts)
+
+    def embed_query(self, text: str) -> EmbeddingVector:
+        return self._encode((text,))[0]
+
+    def _encode(self, texts: tuple[str, ...]) -> tuple[EmbeddingVector, ...]:
+        vectors: Any = self._model.encode(
+            list(texts),
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+        )
+        return tuple(
+            EmbeddingVector(tuple(float(value) for value in row.tolist()))
+            for row in vectors
+        )
+
 
 
 def _orchestrator(store: SQLiteIngestionStore) -> IngestKnowledge:
