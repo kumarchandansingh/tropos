@@ -96,7 +96,6 @@ def test_approved_case_requires_human_review_and_adjudication() -> None:
         )
 
 
-
 def test_candidate_cannot_carry_final_adjudication() -> None:
     with pytest.raises(ValueError, match="must not carry a final adjudication"):
         _case(
@@ -111,6 +110,7 @@ def test_duplicate_human_reviewer_identity_is_rejected() -> None:
         _case(
             reviews=(_review(), _review()),
         )
+
 
 def test_sufficient_review_requires_none_reason_and_no_missing_facts() -> None:
     with pytest.raises(ValueError, match="reason NONE"):
