@@ -192,7 +192,14 @@ class EvidenceSufficiencyCase:
         if len(self.tags) != len(set(self.tags)):
             raise ValueError("tags must not contain duplicates")
 
-        if self.approval is EvalApproval.APPROVED:
+        reviewer_ids = tuple(review.reviewer for review in self.reviews)
+        if len(reviewer_ids) != len(set(reviewer_ids)):
+            raise ValueError("human reviewer identities must be unique inside a case")
+
+        if self.approval is EvalApproval.CANDIDATE:
+            if self.adjudication is not None:
+                raise ValueError("candidate case must not carry a final adjudication")
+        else:
             if not self.reviews:
                 raise ValueError("approved sufficiency case requires human review")
             if self.adjudication is None:
