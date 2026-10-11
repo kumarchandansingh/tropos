@@ -19,10 +19,7 @@ from tropos.evals.evidence_sufficiency_review_workflow import (
 
 def _default_dataset() -> Path:
     return (
-        Path(__file__).parents[1]
-        / "evals"
-        / "resolve"
-        / "evidence_sufficiency_candidates_v1.json"
+        Path(__file__).parents[1] / "evals" / "resolve" / "evidence_sufficiency_candidates_v1.json"
     )
 
 
@@ -64,12 +61,15 @@ def main() -> int:
         return 0
 
     if args.command == "report":
-        rendered = json.dumps(
-            agreement_summary(benchmark),
-            indent=2,
-            ensure_ascii=False,
-            allow_nan=False,
-        ) + "\n"
+        rendered = (
+            json.dumps(
+                agreement_summary(benchmark),
+                indent=2,
+                ensure_ascii=False,
+                allow_nan=False,
+            )
+            + "\n"
+        )
         if args.output is None:
             print(rendered, end="")
         else:

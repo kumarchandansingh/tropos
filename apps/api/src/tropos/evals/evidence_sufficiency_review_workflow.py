@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import csv
 import json
+from collections.abc import Iterable, Mapping
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
-from collections.abc import Iterable, Mapping
 
 from tropos.evals.contracts import EvalApproval, JsonObject
 from tropos.evals.evidence_sufficiency import (

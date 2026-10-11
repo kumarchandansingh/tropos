@@ -16,10 +16,7 @@ from tropos.evals.evidence_sufficiency_review_workflow import (
 
 def _dataset_path() -> Path:
     return (
-        Path(__file__).parents[3]
-        / "evals"
-        / "resolve"
-        / "evidence_sufficiency_candidates_v1.json"
+        Path(__file__).parents[3] / "evals" / "resolve" / "evidence_sufficiency_candidates_v1.json"
     )
 
 
