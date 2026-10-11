@@ -27,14 +27,6 @@ The standalone Windows command exposed a resource-lifecycle bug: SQLite's connec
 
 `test_saved_runs.py` covers changed-definition rejection, lifecycle scenarios, unauthorized/old/forged returned evidence, error continuation, interruption, terminal-state protection and read-only reporting. The unchanged V1 test preserves the earlier lexical baseline. V2 records 15 expected Best Matching 25 (BM25) lexical-retrieval passes, two semantic misses and one unexecuted draft; honest failure data is the input to the future vector comparison.
 
-## Interview probes
-
-- Why can a completed run fail? All queries can execute successfully while returning the wrong evidence.
-- Why is a missing result not always a no-answer pass? A backend error is absence of observation, not successful abstention.
-- Why exclude invalid observations from relevance metrics? A score computed from unauthorized or fabricated evidence is not a valid quality measurement. The invalid case still blocks the outcome.
-- Why not trust the returned access policy? A broken adapter could attach an incorrect policy; the evaluator checks authoritative fixture state separately.
-- Why keep draft cases visible? They expose planned coverage without pretending it has been tested.
-
 ## Scale and release implications
 
 Synthetic cases catch regressions but cannot establish enterprise accuracy. Held-out representative datasets, reviewed labels, model/configuration versions and latency measurements are required before release claims. A business visualizer should render these records and their limitations, not introduce a second scoring implementation.
