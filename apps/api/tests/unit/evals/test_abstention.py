@@ -1,9 +1,18 @@
 from datetime import UTC, datetime
+from hashlib import sha256
 
 import pytest
 
+from tropos.core.application.retrieval.models import (
+    KnowledgeSearchRequest,
+    RetrievedKnowledgeChunk,
+    RetrievalAccessContext,
+)
+from tropos.core.domain.access import AccessPolicy, AccessScope
+from tropos.core.domain.knowledge_chunk import KnowledgeChunk, text_fingerprint
 from tropos.evals.abstention import (
     TopScoreAbstentionPolicy,
+    TopScoreThresholdRetriever,
     calibrate_top_score_threshold,
     evaluate_abstention_policy,
 )
@@ -210,3 +219,89 @@ def test_policy_is_bound_to_the_strategy_that_was_calibrated() -> None:
             _run(split="holdout", version="another-retriever"),
             calibration.policy,
         )
+
+
+class _ResultRetriever:
+    strategy_version = "dense-v1"
+
+    def __init__(self, score: float) -> None:
+        self._score = score
+
+    def search(
+        self,
+        request: KnowledgeSearchRequest,
+    ) -> tuple[RetrievedKnowledgeChunk, ...]:
+        text = "Evidence text"
+        chunk = KnowledgeChunk(
+            chunk_id="chunk-1",
+            knowledge_id="kb-1",
+            source_system="fixture",
+            source_record_id="kb-1.md",
+            source_version="1",
+            document_title="Evidence",
+            sequence_number=0,
+            text=text,
+            start_offset=0,
+            end_offset=len(text),
+            content_fingerprint=text_fingerprint(text),
+            ingestion_fingerprint=sha256(b"ingestion").hexdigest(),
+            normalized_content_fingerprint=sha256(text.encode("utf-8")).hexdigest(),
+            normalization_strategy_version="norm-v1",
+            access_policy=AccessPolicy("tenant-a", AccessScope.TENANT),
+            strategy_version="chunk-v1",
+        )
+        return (
+            RetrievedKnowledgeChunk(
+                chunk=chunk,
+                rank=1,
+                score=self._score,
+                strategy_version=self.strategy_version,
+            ),
+        )
+
+
+def _policy(threshold: float) -> TopScoreAbstentionPolicy:
+    return TopScoreAbstentionPolicy(
+        strategy_version="dense-v1",
+        threshold=threshold,
+        minimum_answerable_recall=0.9,
+        calibration_dataset_id="dataset",
+        calibration_dataset_version="v1-development",
+        calibration_dataset_fingerprint="fingerprint",
+    )
+
+
+def test_threshold_retriever_returns_no_evidence_below_selected_score() -> None:
+    retriever = TopScoreThresholdRetriever(
+        retriever=_ResultRetriever(0.79),
+        policy=_policy(0.8),
+    )
+
+    results = retriever.search(
+        KnowledgeSearchRequest(
+            query="query",
+            access=RetrievalAccessContext("tenant-a"),
+            limit=5,
+        )
+    )
+
+    assert results == ()
+
+
+def test_threshold_retriever_preserves_results_at_boundary_and_versions_output() -> None:
+    retriever = TopScoreThresholdRetriever(
+        retriever=_ResultRetriever(0.8),
+        policy=_policy(0.8),
+    )
+
+    results = retriever.search(
+        KnowledgeSearchRequest(
+            query="query",
+            access=RetrievalAccessContext("tenant-a"),
+            limit=5,
+        )
+    )
+
+    assert len(results) == 1
+    assert results[0].score == 0.8
+    assert results[0].strategy_version == retriever.strategy_version
