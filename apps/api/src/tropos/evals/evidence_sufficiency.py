@@ -285,6 +285,13 @@ class EvidenceSufficiencyBenchmark:
             approved_labels[case.adjudication.label.value] += 1
             approved_reasons[case.adjudication.reason.value] += 1
 
+        approved_labels_json: JsonObject = {}
+        for label, count in approved_labels.items():
+            approved_labels_json[label] = count
+        approved_reasons_json: JsonObject = {}
+        for reason, count in approved_reasons.items():
+            approved_reasons_json[reason] = count
+
         return {
             "dataset_id": self.dataset_id,
             "version": self.version,
@@ -292,8 +299,8 @@ class EvidenceSufficiencyBenchmark:
             "candidate_count": self.candidate_count,
             "approved_count": self.approved_count,
             "by_split": by_split,
-            "approved_labels": approved_labels,
-            "approved_reasons": approved_reasons,
+            "approved_labels": approved_labels_json,
+            "approved_reasons": approved_reasons_json,
         }
 
     def approved_dataset(self, split: EvalSplit) -> EvalDataset:
