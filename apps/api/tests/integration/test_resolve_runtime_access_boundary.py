@@ -44,7 +44,7 @@ def test_restricted_evidence_is_excluded_before_model_stages(tmp_path: Path) -> 
     sink = InMemoryTraceSink()
     runtime = ResolveQuestion(
         retriever=SQLiteFtsKnowledgeRetriever(database),
-        sufficiency_judge=MustNotJudge()
+        sufficiency_judge=MustNotJudge(),
         answer_generator=MustNotGenerate(),
         trace_sink=sink,
     )
