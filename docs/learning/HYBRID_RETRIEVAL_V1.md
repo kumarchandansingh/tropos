@@ -128,9 +128,3 @@ Only then decide whether the next problem is:
 2. abstention/thresholding;
 3. reranking;
 4. or no further retrieval complexity.
-
-## Interview translation
-
-A concise explanation:
-
-> We had complementary measured failure modes: BM25 missed semantic paraphrases, while dense retrieval fixed recall but regressed abstention. We therefore tested rank-level hybrid fusion with RRF rather than averaging incompatible BM25 and cosine scores. The fusion layer kept governance in the underlying retrievers and was evaluated on the same versioned corpus before any production promotion.
