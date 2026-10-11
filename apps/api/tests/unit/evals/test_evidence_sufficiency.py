@@ -181,6 +181,10 @@ def test_candidate_benchmark_loads_without_promoting_ai_preparation_to_gold() ->
     assert {case.approval for case in benchmark.cases} == {EvalApproval.CANDIDATE}
     assert all(not case.reviews for case in benchmark.cases)
     assert all(case.adjudication is None for case in benchmark.cases)
+    summary = benchmark.summary()
+    assert summary["case_count"] == 16
+    assert summary["candidate_count"] == 16
+    assert summary["approved_count"] == 0
 
     with pytest.raises(ValueError, match="no human-adjudicated approved"):
         benchmark.approved_dataset(EvalSplit.DEVELOPMENT)
