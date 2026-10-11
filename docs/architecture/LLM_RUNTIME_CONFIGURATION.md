@@ -29,6 +29,35 @@ The API key:
 
 This bootstrap is intentionally small. A later Admin-managed credential store can implement the same provider boundary without changing domain or evaluation code.
 
+## Runtime boundary
+
+The typed runtime now separates four product concepts:
+
+```text
+ModelProvider
+  → ModelConnection
+  → ModelDeployment
+  → ModelAssignment
+```
+
+Application workflows depend on `LLMPort`, not provider SDK or HTTP response types. The first adapter is Groq and supports both text completion and strict Pydantic structured output.
+
+Invocation metadata captures provider, connection, deployment, model, prompt version, latency, token usage, finish reason and provider request ID when available.
+
 ## Current scope
 
-This change provisions configuration only. It does not yet implement the Groq adapter, evidence-sufficiency judge, grounded generation, provider fallback, or persistent secret storage.
+Implemented now:
+
+- typed provider-neutral `LLMPort`;
+- deterministic `FakeLLM`;
+- Groq runtime adapter using the existing environment secret boundary;
+- safe `tropos models test` smoke command;
+- typed model/connection/deployment/assignment contracts.
+
+Still intentionally deferred:
+
+- evidence-sufficiency judge;
+- grounded Resolve generation runtime;
+- persistent encrypted Admin credential storage;
+- provider fallback/circuit-breaker policy;
+- model egress policy enforcement for restricted enterprise evidence.
