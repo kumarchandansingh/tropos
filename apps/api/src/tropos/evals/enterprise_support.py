@@ -215,6 +215,7 @@ class EnterpriseSupportBenchmark:
                         "product": _text(article["product"]),
                         "module": _optional_text(article.get("module")),
                         "evidence": _array(article["evidence"]),
+                        "reference_article": _object(article["reference_article"]),
                         "case_record": case.case_record,
                     },
                     expected=_object(article["expected"]),
@@ -362,7 +363,6 @@ def _validate_article_expectation(
     if article is None:
         return
 
-    ArticleType(_text(article["article_type"]))
     _text(article["subject"])
     _text(article["product"])
     _optional_text(article.get("module"))
