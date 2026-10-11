@@ -222,3 +222,12 @@ The query count must not be treated as 48 independent incidents because multiple
 The default projection exposes development cases only. Holdout and challenge splits require explicit selection. Because the repository is public, those splits are visible and are not a secret blind benchmark.
 
 See [Enterprise support benchmark V1](ENTERPRISE_SUPPORT_BENCHMARK.md) for case structure, public research basis, limitations, and the remaining QE-108 work.
+
+
+## Unified retrieval execution
+
+Retrieval evaluation now has one deterministic case-observation implementation across BM25, dense, and hybrid strategies. The shared executor reports expected-evidence outcome separately from hard invariants for authorization, currentness, evidence integrity, and result-contract correctness.
+
+The real-model workflow runs the enterprise-support development split through the generic `ExperimentRunner`, producing one `EvalRun` per retrieval strategy with the same dataset fingerprint and provenance model. The dataset fingerprint is bound to the knowledge corpus as well as the query/label projection.
+
+This does not choose a winning retriever automatically. It makes the evidence comparable. Relevance/no-answer misses remain benchmark outcomes; hard-invariant violations remain blocking defects. Retrieval abstention remains QE-109.
