@@ -8,6 +8,25 @@ Applies to: Tropos product and engineering delivery
 
 This document defines how sprint scope, blockers, delivery metrics, and release planning are governed. It complements the master product backlog and engineering quality gates.
 
+
+## Definition of Done
+
+A material delivery slice is complete only when all affected delivery artifacts agree on the resulting state.
+
+The Definition of Done includes, as applicable:
+
+- executable implementation;
+- automated tests and evaluation evidence appropriate to the risk;
+- current product/capability status;
+- living architecture when boundaries or runtime behavior change;
+- an Architecture Decision Record when a durable technical choice changes;
+- quality/evaluation documentation when grader, dataset, metric, or release-gate semantics change;
+- backlog/build-history state when delivery status changes.
+
+Documentation drift is treated as a delivery defect. Pull-request CI audits whether material changes update an authoritative public record or carry an explicit documentation-impact N/A rationale.
+
+See [Public documentation standard](../standards/PUBLIC_DOCUMENTATION_STANDARD.md) and [CI/CD](../delivery/CI_CD.md).
+
 ## Sprint planning
 
 A sprint has a stated goal, a planned set of stories, and a forecast capacity based on demonstrated team velocity and known availability. Story points are a relative planning measure and are not converted to hours.
@@ -54,7 +73,7 @@ The sprint review records original planned scope, scope added or removed, comple
 
 ## Retrospective and continuous improvement
 
-Material delivery failures, avoidable blockers, escaped defects, and recurring planning variance result in an explicit improvement action. Where a software or AI failure is reproducible, it is added to the regression suite when appropriate.
+Material delivery failures, avoidable blockers, escaped defects, recurring planning variance, and repeated documentation drift result in an explicit improvement action. Where a software or AI failure is reproducible, it is added to the regression suite when appropriate. Where the failure is a repeatable delivery-process gap, the corrective action should move the control earlier in the workflow rather than rely on repeated manual reminders.
 
 ## Metric ownership
 
