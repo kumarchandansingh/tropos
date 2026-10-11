@@ -171,7 +171,7 @@ def main() -> int:
         if arguments.command == "models" and arguments.models_command == "test":
             settings = load_llm_runtime_settings()
             model = build_default_groq_llm(settings)
-            result = model.complete_text(
+            completion = model.complete_text(
                 TextCompletionRequest(
                     system_prompt="You are a connectivity probe. Reply only with OK.",
                     user_prompt="Tropos model connection health check.",
@@ -179,7 +179,7 @@ def main() -> int:
                     max_output_tokens=16,
                 )
             )
-            metadata = result.metadata
+            metadata = completion.metadata
             print(
                 json.dumps(
                     {
