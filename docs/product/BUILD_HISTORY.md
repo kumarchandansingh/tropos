@@ -137,7 +137,7 @@ A material future build is not considered fully documented until these are captu
 - test/evaluation evidence;
 - product/architecture status update.
 
-Durable architecture choices belong in an ADR. Capability-specific mechanics belong in the relevant architecture document. Learning/interview translation belongs under `docs/learning/`.
+Durable architecture choices belong in an ADR. Capability-specific mechanics belong in the relevant architecture document. Engineering deep dives belong under `docs/learning/` and must remain stakeholder-facing public technical material rather than personal preparation notes.
 
 ## Related documents
 
@@ -146,5 +146,5 @@ Durable architecture choices belong in an ADR. Capability-specific mechanics bel
 - [Training](TRAINING.md)
 - [Architecture overview](../architecture/ARCHITECTURE_OVERVIEW.md)
 - [Decision register](../decisions/README.md)
-- [Decision & trade-off matrix](../learning/DECISION_TRADEOFFS.md)
+- [Engineering decision and trade-off register](../learning/DECISION_TRADEOFFS.md)
 - [Evaluation strategy](../quality/EVAL_STRATEGY.md)
