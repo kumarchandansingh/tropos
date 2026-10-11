@@ -1,7 +1,8 @@
 # Models & APIs Experience
 
 Status: Active product and architecture contract  
-Scope: Typed LLM runtime foundation
+Scope: Typed LLM runtime foundation  
+Implementation note: the first connection is environment-backed; the object model remains provider-neutral.
 
 ## User outcome
 
