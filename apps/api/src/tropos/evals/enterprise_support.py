@@ -214,6 +214,7 @@ class EnterpriseSupportBenchmark:
                         "tenant_id": query.access.tenant_id,
                         "groups": list(query.access.groups),
                         "max_rank": query.max_rank,
+                        "corpus_fingerprint": corpus_fingerprint,
                     },
                     expected={"relevant_knowledge_ids": []},
                     tags=query.tags,
