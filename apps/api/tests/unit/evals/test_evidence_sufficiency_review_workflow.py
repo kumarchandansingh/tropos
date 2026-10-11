@@ -129,6 +129,7 @@ def test_adjudication_atomically_promotes_reviewed_cases(tmp_path: Path) -> None
         reader = csv.DictReader(handle)
         rows = list(reader)
         fieldnames = reader.fieldnames
+    assert fieldnames is not None
 
     first = rows[0]
     first["Adjudicator"] = "lead-reviewer"
