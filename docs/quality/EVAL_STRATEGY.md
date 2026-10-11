@@ -213,7 +213,7 @@ Current evidence volume:
 | Synthetic knowledge documents | 18 |
 | Complete resolved cases | 16 |
 | REUSE / IMPROVE / CREATE / NO_ACTION | 4 each |
-| Grounded Knowledge Article expectations | 8 |
+| Grounded Knowledge Article expectations with reference articles | 8 |
 | Retrieval queries | 48 |
 | Answerable / expected-empty retrieval queries | 24 / 24 |
 
