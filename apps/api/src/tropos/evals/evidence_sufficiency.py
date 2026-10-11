@@ -34,11 +34,8 @@ class EvidenceSufficiencyReason(StrEnum):
     NONE = "NONE"
     MISSING_CRITICAL_FACT = "MISSING_CRITICAL_FACT"
     PARTIAL_COVERAGE = "PARTIAL_COVERAGE"
-    CONFLICTING_EVIDENCE = "CONFLICTING_EVIDENCE"
-    STALE_EVIDENCE = "STALE_EVIDENCE"
-    UNAUTHORIZED_EVIDENCE = "UNAUTHORIZED_EVIDENCE"
-    WEAK_SUPPORT = "WEAK_SUPPORT"
-    NO_ANSWER_BEARING_PASSAGE = "NO_ANSWER_BEARING_PASSAGE"
+    CONFLICTING_SUPPORT = "CONFLICTING_SUPPORT"
+    NO_ANSWER_SUPPORT = "NO_ANSWER_SUPPORT"
     OTHER = "OTHER"
 
 
@@ -215,8 +212,8 @@ class EvidenceSufficiencyCase:
         return EvalCase(
             case_id=self.case_id,
             purpose=(
-                "Decide whether the supplied governed evidence set contains enough "
-                "information to answer the query completely and safely."
+                "Decide whether the supplied eligible evidence set contains enough "
+                "information to answer the query definitively using only that evidence."
             ),
             scope=EvalScope.COMPONENT,
             approval=EvalApproval.APPROVED,
