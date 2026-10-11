@@ -148,6 +148,11 @@ def test_benchmark_projects_resolve_decision_and_knowledge_article_datasets() ->
         for dataset in (article_dev, article_holdout, article_challenge)
         for case in dataset.cases
     )
+    assert all(
+        case.inputs["reference_article"]
+        for dataset in (article_dev, article_holdout, article_challenge)
+        for case in dataset.cases
+    )
 
 
 def test_benchmark_rejects_a_create_case_that_declares_reusable_knowledge(
@@ -164,6 +169,23 @@ def test_benchmark_rejects_a_create_case_that_declares_reusable_knowledge(
     with pytest.raises(ValueError, match="CREATE case must have no reusable knowledge label"):
         load_enterprise_support_benchmark(invalid)
 
+
+
+def test_benchmark_rejects_reference_article_with_unknown_evidence(
+    tmp_path: Path,
+) -> None:
+    raw = json.loads(DATASET.read_text(encoding="utf-8"))
+    article_case = next(case for case in raw["cases"] if case["article_expectation"])
+    reference = article_case["article_expectation"]["reference_article"]
+    reference["title"] = {
+        "text": "invalid",
+        "evidence_chunk_ids": ["missing-evidence"],
+    }
+    invalid = tmp_path / "invalid-reference.json"
+    invalid.write_text(json.dumps(raw), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="reference article cites evidence"):
+        load_enterprise_support_benchmark(invalid)
 
 def test_bm25_can_execute_the_realistic_seed_without_crossing_restricted_boundaries(
     tmp_path: Path,
