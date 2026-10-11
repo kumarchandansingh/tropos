@@ -268,6 +268,44 @@ class EvidenceSufficiencyBenchmark:
     def approved_count(self) -> int:
         return sum(case.approval is EvalApproval.APPROVED for case in self.cases)
 
+    def summary(self) -> JsonObject:
+        """Return deterministic benchmark status without treating candidates as gold."""
+
+        by_split: JsonObject = {}
+        for split in EvalSplit:
+            split_cases = tuple(case for case in self.cases if case.split is split)
+            by_split[split.value] = {
+                "candidate": sum(
+                    case.approval is EvalApproval.CANDIDATE for case in split_cases
+                ),
+                "approved": sum(
+                    case.approval is EvalApproval.APPROVED for case in split_cases
+                ),
+            }
+
+        approved_labels: dict[str, int] = {
+            label.value: 0 for label in EvidenceSufficiencyLabel
+        }
+        approved_reasons: dict[str, int] = {
+            reason.value: 0 for reason in EvidenceSufficiencyReason
+        }
+        for case in self.cases:
+            if case.approval is not EvalApproval.APPROVED or case.adjudication is None:
+                continue
+            approved_labels[case.adjudication.label.value] += 1
+            approved_reasons[case.adjudication.reason.value] += 1
+
+        return {
+            "dataset_id": self.dataset_id,
+            "version": self.version,
+            "case_count": len(self.cases),
+            "candidate_count": self.candidate_count,
+            "approved_count": self.approved_count,
+            "by_split": by_split,
+            "approved_labels": approved_labels,
+            "approved_reasons": approved_reasons,
+        }
+
     def approved_dataset(self, split: EvalSplit) -> EvalDataset:
         """Return only human-adjudicated approved cases for scoring."""
 
