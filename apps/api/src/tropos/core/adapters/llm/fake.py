@@ -8,7 +8,6 @@ from tropos.core.application.ports.llm import (
     LLMInvocationMetadata,
     StructuredCompletionRequest,
     StructuredCompletionResult,
-    StructuredT,
     TextCompletionRequest,
     TextCompletionResult,
 )
@@ -42,7 +41,7 @@ class FakeLLM:
             metadata=self._metadata(request.prompt_version),
         )
 
-    def complete_structured(
+    def complete_structured[StructuredT: BaseModel](
         self,
         request: StructuredCompletionRequest[StructuredT],
     ) -> StructuredCompletionResult[StructuredT]:
