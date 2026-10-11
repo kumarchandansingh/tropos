@@ -221,6 +221,7 @@ The integration test verifies:
 - valid split projection;
 - Resolve decision-policy consistency;
 - valid article evidence references;
+- complete reference Knowledge Articles cite only evidence supplied by the case pack;
 - no reusable label on `CREATE` cases;
 - no retrieval execution on `NO_ACTION` cases;
 - BM25 can execute every split;
