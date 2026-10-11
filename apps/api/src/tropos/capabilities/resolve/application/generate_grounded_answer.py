@@ -15,6 +15,10 @@ from tropos.core.application.ports.llm import (
 )
 
 
+class CitationResolutionError(ValueError):
+    """Generated citation alias does not resolve to supplied evidence."""
+
+
 class _GroundedAnswerOutput(BaseModel):
     answer: str = Field(min_length=1)
     citations: list[str] = Field(min_length=1)
@@ -64,14 +68,16 @@ class LLMGroundedAnswerGenerator:
 
         aliases = tuple(dict.fromkeys(alias.strip() for alias in completion.value.citations))
         if any(not alias for alias in aliases):
-            raise ValueError("citation aliases must not be blank")
+            raise CitationResolutionError("citation aliases must not be blank")
         if not aliases:
-            raise ValueError("grounded answer requires at least one citation")
+            raise CitationResolutionError("grounded answer requires at least one citation")
 
         by_alias = {item.alias: item.reference for item in evidence_set.items}
         unknown = tuple(alias for alias in aliases if alias not in by_alias)
         if unknown:
-            raise ValueError(f"model emitted unknown evidence citation(s): {', '.join(unknown)}")
+            raise CitationResolutionError(
+                f"model emitted unknown evidence citation(s): {', '.join(unknown)}"
+            )
 
         answer = GroundedAnswer(
             text=completion.value.answer.strip(),
