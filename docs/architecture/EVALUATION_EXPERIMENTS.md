@@ -91,7 +91,7 @@ The retrieval-specific saved-run store remains available for historical and deta
 
 `tropos.evals.retrieval_case_evaluation` applies the same expected-evidence, authorization, currentness, integrity, result-contract, and ranking checks for saved catalogue execution and generic experiments. `RetrievalExperimentExecutor` adapts those results into `EvalObservation / EvalScore`, allowing BM25, dense, and hybrid subjects to use the same `ExperimentRunner`, `SQLiteExperimentStore`, JSON run interchange, and comparison layer.
 
-The PR regression workflow migration is intentionally a follow-up change so its baseline revision already contains the generic runner. See ADR-019.
+The PR regression workflow now executes base and candidate catalogue runs through the generic runner and compares the resulting EvalRun records directly. The legacy report bridge remains only for backward compatibility. See ADR-019.
 
 ## Baseline-versus-candidate comparison
 

@@ -169,3 +169,25 @@ Deployment controls will be added with the first hosted runtime rather than infe
 The repository uses synthetic fixtures and examples. Secrets, real support/customer records, confidential employer/client material, and production configuration must remain outside source control.
 
 See [Environment strategy](ENVIRONMENT_STRATEGY.md) for the planned runtime promotion model.
+
+
+## Retrieval regression gate
+
+The retrieval PR gate runs the same versioned catalogue against two code revisions:
+
+```text
+base revision ─────┐
+                   ├─ generic retrieval experiment ─┐
+candidate revision ┘                                ├─ compare_runs + gate policy
+same catalogue ─────────────────────────────────────┘
+```
+
+Both revisions execute `scripts/evaluate_retrieval_catalogue_experiment.py` and produce the canonical `EvalRun` JSON shape. `scripts/compare_retrieval_experiments.py` performs the baseline-versus-candidate comparison.
+
+The gate blocks:
+
+- regression from a passing case to failed/error;
+- authorization, currentness, evidence-integrity, or result-contract invariant failure;
+- regression in configured retrieval decision metrics beyond the allowed budget.
+
+This PR gate is separate from the pinned real-model BM25/dense/hybrid workflow, which runs the realistic enterprise-support development benchmark and currently blocks hard-invariant failures while exposing retrieval-quality movement as evidence.

@@ -138,7 +138,7 @@ If those four answers are unclear, the test/eval definition is not ready.
 
 | Product boundary | Current subject | Current judge | Current status |
 | --- | --- | --- | --- |
-| Retrieval | BM25 in PR gate | shared deterministic invariants + Recall/MRR/no-answer metrics | implemented; generic-gate migration in progress |
+| Retrieval | BM25 in PR gate | shared deterministic invariants + Recall/MRR/no-answer metrics through generic EvalRun comparison | implemented |
 | Retrieval | BM25, dense MPNet, hybrid RRF nightly | shared retrieval executor → EvalObservation/EvalScore → EvalRun | implemented |
 | Knowledge Article artifact | hand-authored `KnowledgeArticleDraft` fixtures | deterministic article grader | grader validation only |
 | Knowledge Article real model output | generator + real model | not wired into generic run path | not yet implemented |
@@ -170,7 +170,7 @@ EvalRun
 
 BM25, dense MPNet, and hybrid RRF use this generic path in the real-model workflow. The saved-catalogue runner also delegates its case semantics to the same evaluator, preserving its historical relational evidence store.
 
-The PR regression workflow is migrated separately from the saved-report bridge to direct generic EvalRun comparison. Keeping that workflow change separate ensures the baseline worktree already contains the generic runner when the gate begins invoking it.
+The PR regression workflow now executes the same generic catalogue experiment on the base and candidate revisions, then compares the resulting `EvalRun` records directly. The historical retrieval-specific store remains available for richer diagnostic reports but is no longer required by the PR gate.
 
 See [ADR-019](../decisions/ADR-019-unified-retrieval-evaluation-runtime.md).
 

@@ -1,6 +1,6 @@
 # Saved retrieval evaluation
 
-Implemented: a validated synthetic catalogue, isolated scenario execution, SQLite run persistence and JSON/Markdown export. Dense and hybrid retrieval are also implemented and now share the generic EvalRun execution model described in ADR-019. This document remains the detailed reference for the historical retrieval-specific saved-run store; the PR regression workflow is being migrated to direct generic EvalRun comparison.
+Implemented: a validated synthetic catalogue, isolated scenario execution, SQLite run persistence and JSON/Markdown export. Dense and hybrid retrieval are also implemented and now share the generic EvalRun execution model described in ADR-019. This document remains the detailed reference for the historical retrieval-specific saved-run store. The PR regression workflow now uses direct generic EvalRun comparison; the historical store remains available for richer diagnostic evidence.
 
 ## Definition and observation boundaries
 
@@ -52,6 +52,8 @@ The run prints its ID to stderr. Exit codes: 0 all cases passed; 1 saved failed/
 
 Viewing or exporting a report never reruns retrieval or invokes a model. Markdown exports show planned purpose, expected IDs, actual ranked titles, source version, excerpts and individual checks. Reports are synthetic-only local artifacts. Hosted viewer authorization and a business dashboard are future work.
 
-## Next boundary
+## Current boundary
 
-Add embedding configuration/cache/jobs behind independent ports, then a governed vector retriever. Reuse this evaluation contract and add calibrated no-answer behavior and comparable configuration snapshots. Build the interactive visualizer after saved observations and vector comparisons exist. Versioned human review, chunk-level labels, held-out approval workflows and category comparison views remain planned.
+The historical saved-run commands above remain supported for detailed retrieval diagnostics. The pull-request gate uses `evaluate_retrieval_catalogue_experiment.py` on both base and candidate revisions and `compare_retrieval_experiments.py` for direct generic EvalRun comparison.
+
+The next quality boundary is calibrated no-answer/abstention behavior. Versioned human review, chunk-level labels, stronger held-out approval workflows and category comparison views remain planned.

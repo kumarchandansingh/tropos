@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from tropos.evals.contracts import JsonObject, JsonValue
-from tropos.evals.regression_gate import _to_eval_run, compare_retrieval_reports
+from tropos.evals.regression_gate import (
+    _to_eval_run,
+    compare_retrieval_reports,
+    compare_retrieval_runs,
+)
 
 
 def _assertions(expected: bool = True, *, authorized: bool = True) -> list[JsonValue]:
@@ -171,3 +175,17 @@ def test_regression_gate_markdown_exposes_revisions_and_regressed_cases() -> Non
     assert "## Regressed cases" in summary
     assert "- answerable" in summary
     assert "synthetic development set" in summary
+
+
+def test_direct_generic_run_comparison_uses_the_same_retrieval_gate_policy() -> None:
+    baseline = _to_eval_run(_report("base", answerable_quality=1.0, answerable_passed=True))
+    candidate = _to_eval_run(_report("head", answerable_quality=0.0, answerable_passed=False))
+
+    decision = compare_retrieval_runs(baseline, candidate)
+
+    assert decision.passed is False
+    assert decision.case_regressions == ("answerable",)
+    assert any(
+        result.metric == "recall_at_5" and result.passed is False
+        for result in decision.comparison.gate_results
+    )

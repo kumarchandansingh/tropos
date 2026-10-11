@@ -6,7 +6,8 @@ on:
       - "apps/api/src/tropos/core/**"
       - "apps/api/src/tropos/evals/**"
       - "apps/api/evals/retrieval/**"
-      - "apps/api/scripts/compare_retrieval_regression.py"
+      - "apps/api/scripts/evaluate_retrieval_catalogue_experiment.py"
+      - "apps/api/scripts/compare_retrieval_experiments.py"
       - "apps/api/pyproject.toml"
       - "apps/api/uv.lock"
       - ".github/workflows/retrieval-regression-gate.yml"
@@ -40,48 +41,36 @@ jobs:
         working-directory: apps/api
         run: uv sync --dev --locked
 
-      - name: Run candidate saved retrieval evaluation
+      - name: Run candidate generic retrieval experiment
         working-directory: apps/api
         run: |
           RUN_DIR="$RUNNER_TEMP/tropos-retrieval-gate"
           mkdir -p "$RUN_DIR"
           cp evals/retrieval/catalogue_v2.json "$RUN_DIR/catalogue_v2.json"
-          set +e
-          uv run python -m tropos.evals run \
+          uv run python scripts/evaluate_retrieval_catalogue_experiment.py \
             --dataset "$RUN_DIR/catalogue_v2.json" \
-            --database "$RUN_DIR/candidate.sqlite" \
+            --database "$RUN_DIR/candidate-experiments.sqlite" \
             --lockfile uv.lock \
             --output "$RUN_DIR/candidate.json"
-          status=$?
-          set -e
-          if [ "$status" -gt 1 ]; then
-            exit "$status"
-          fi
 
-      - name: Run baseline saved retrieval evaluation
+      - name: Run baseline generic retrieval experiment
         run: |
           RUN_DIR="$RUNNER_TEMP/tropos-retrieval-gate"
           BASE_DIR="$RUNNER_TEMP/tropos-baseline"
           git worktree add --detach "$BASE_DIR" "$BASE_SHA"
           cd "$BASE_DIR/apps/api"
           uv sync --dev --locked
-          set +e
-          uv run python -m tropos.evals run \
+          uv run python scripts/evaluate_retrieval_catalogue_experiment.py \
             --dataset "$RUN_DIR/catalogue_v2.json" \
-            --database "$RUN_DIR/baseline.sqlite" \
+            --database "$RUN_DIR/baseline-experiments.sqlite" \
             --lockfile uv.lock \
             --output "$RUN_DIR/baseline.json"
-          status=$?
-          set -e
-          if [ "$status" -gt 1 ]; then
-            exit "$status"
-          fi
 
       - name: Enforce baseline-versus-candidate gate
         working-directory: apps/api
         run: |
           RUN_DIR="$RUNNER_TEMP/tropos-retrieval-gate"
-          uv run python scripts/compare_retrieval_regression.py \
+          uv run python scripts/compare_retrieval_experiments.py \
             --baseline "$RUN_DIR/baseline.json" \
             --candidate "$RUN_DIR/candidate.json" \
             --output "$RUN_DIR/gate.json" \
