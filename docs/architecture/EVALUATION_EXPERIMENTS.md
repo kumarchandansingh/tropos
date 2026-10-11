@@ -185,8 +185,6 @@ QE-103 does not silently rewrite those evaluators. Capability-specific executors
 - production-derived online evaluation;
 - hosted evaluation vendor integration.
 
-## Interview translation
+## Design summary
 
-A concise explanation:
-
-> We separated experiment execution from quality semantics. Every run pins the dataset snapshot, subject configuration and code/dependency provenance. Baseline and candidate are compared case-by-case on the same dataset; pass-to-fail changes are explicit, numeric metrics use paired deltas with optional bootstrap uncertainty, and hard invariants are gated separately from aggregate decision metrics.
+The experiment runtime separates execution from capability-specific quality semantics. Every run pins the dataset snapshot, subject configuration, and code/dependency provenance. Baseline and candidate are compared case-by-case on the same dataset; pass-to-fail changes remain explicit, numeric metrics use paired deltas with optional bootstrap uncertainty, and hard invariants are gated separately from aggregate decision metrics.
