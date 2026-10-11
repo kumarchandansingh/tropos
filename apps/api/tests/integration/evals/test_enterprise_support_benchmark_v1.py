@@ -39,9 +39,10 @@ def _orchestrator(store: SQLiteIngestionStore) -> IngestKnowledge:
     )
 
 
-def _ingest_benchmark(tmp_path: Path) -> tuple[SQLiteIngestionStore, object]:
+def _ingest_benchmark(tmp_path: Path) -> tuple[Path, object]:
     benchmark = load_enterprise_support_benchmark(DATASET)
-    store = SQLiteIngestionStore(tmp_path / "tropos.db")
+    database = tmp_path / "tropos.db"
+    store = SQLiteIngestionStore(database)
     orchestrator = _orchestrator(store)
 
     for document in benchmark.knowledge_documents:
@@ -61,7 +62,7 @@ def _ingest_benchmark(tmp_path: Path) -> tuple[SQLiteIngestionStore, object]:
             )
         )
 
-    return store, benchmark
+    return database, benchmark
 
 
 def test_benchmark_contains_complete_balanced_case_packs() -> None:
@@ -174,8 +175,7 @@ def test_benchmark_rejects_a_create_case_that_declares_reusable_knowledge(
 def test_bm25_can_execute_the_realistic_seed_without_crossing_restricted_boundaries(
     tmp_path: Path,
 ) -> None:
-    store, benchmark = _ingest_benchmark(tmp_path)
-    database = store.database_path
+    database, benchmark = _ingest_benchmark(tmp_path)
     retriever = SQLiteFtsKnowledgeRetriever(database)
 
     for split in EvalSplit:
