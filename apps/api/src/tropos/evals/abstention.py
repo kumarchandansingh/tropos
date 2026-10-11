@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import inf, isfinite, nextafter
+from typing import cast
 
 from tropos.core.application.ports.retrieval import KnowledgeChunkRetriever
 from tropos.core.application.retrieval.models import (
@@ -31,7 +32,8 @@ class AbstentionMetrics:
     answerable_coverage: float
     answerable_recall_at_5: float
     no_answer_accuracy: float
-    false_answer_rate: float
+    unsupported_evidence_return_rate: float
+    false_abstention_rate: float
     abstained_answerable_count: int
     abstained_expected_empty_count: int
 
@@ -42,7 +44,8 @@ class AbstentionMetrics:
             "answerable_coverage": self.answerable_coverage,
             "answerable_recall_at_5": self.answerable_recall_at_5,
             "no_answer_accuracy": self.no_answer_accuracy,
-            "false_answer_rate": self.false_answer_rate,
+            "unsupported_evidence_return_rate": self.unsupported_evidence_return_rate,
+            "false_abstention_rate": self.false_abstention_rate,
             "abstained_answerable_count": self.abstained_answerable_count,
             "abstained_expected_empty_count": self.abstained_expected_empty_count,
         }
@@ -208,7 +211,7 @@ def _expected_ids(observation: EvalObservation) -> tuple[str, ...]:
     value = observation.output.get("expected_knowledge_ids")
     if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
         raise ValueError("retrieval observation requires expected_knowledge_ids")
-    return tuple(value)
+    return tuple(cast(str, item) for item in value)
 
 
 def _score(observation: EvalObservation, metric: str) -> float:
@@ -283,7 +286,8 @@ def evaluate_abstention_policy(
         answerable_coverage=answerable_coverage,
         answerable_recall_at_5=answerable_recall_at_5,
         no_answer_accuracy=no_answer_accuracy,
-        false_answer_rate=1.0 - no_answer_accuracy,
+        unsupported_evidence_return_rate=1.0 - no_answer_accuracy,
+        false_abstention_rate=abstained_answerable_count / answerable_count,
         abstained_answerable_count=abstained_answerable_count,
         abstained_expected_empty_count=abstained_expected_empty_count,
     )
@@ -298,7 +302,7 @@ def calibrate_top_score_threshold(
 
     The objective is lexicographic:
     1. satisfy the caller-provided minimum answerable Recall@5;
-    2. minimize false-answer rate on expected-empty cases;
+    2. minimize unsupported-evidence-return rate on expected-empty cases;
     3. maximize retained answerable Recall@5;
     4. prefer the lower threshold when observed outcomes tie.
     """
@@ -369,7 +373,7 @@ def calibrate_top_score_threshold(
     selected = min(
         feasible,
         key=lambda point: (
-            point.metrics.false_answer_rate,
+            point.metrics.unsupported_evidence_return_rate,
             -point.metrics.answerable_recall_at_5,
             point.threshold,
         ),
@@ -388,10 +392,10 @@ def calibrate_top_score_threshold(
         for point in points
         if not any(
             other.metrics.answerable_recall_at_5 >= point.metrics.answerable_recall_at_5
-            and other.metrics.false_answer_rate <= point.metrics.false_answer_rate
+            and other.metrics.unsupported_evidence_return_rate <= point.metrics.unsupported_evidence_return_rate
             and (
                 other.metrics.answerable_recall_at_5 > point.metrics.answerable_recall_at_5
-                or other.metrics.false_answer_rate < point.metrics.false_answer_rate
+                or other.metrics.unsupported_evidence_return_rate < point.metrics.unsupported_evidence_return_rate
             )
             for other in points
         )
