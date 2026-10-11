@@ -101,7 +101,7 @@ This means the policy may reject some weak retrievals, but it cannot be selected
 
 Among thresholds that satisfy that floor, calibration chooses:
 
-1. lowest expected-empty false-answer rate;
+1. lowest expected-empty unsupported-evidence-return rate;
 2. then highest answerable Recall@5;
 3. then the lower threshold when outcomes are tied.
 
@@ -124,6 +124,18 @@ Fraction of answerable cases for which the policy returns evidence.
 
 Coverage is useful beside recall because an answerable case can be returned while still missing the labelled evidence.
 
+### False-abstention rate
+
+Fraction of answerable cases that the abstention policy suppresses even though the benchmark contains sufficient labelled retrieval evidence.
+
+```text
+answerable cases where the policy abstains
+──────────────────────────────────────────
+answerable cases
+```
+
+This is the direct cost of being too conservative.
+
 ### No-answer accuracy
 
 For expected-empty cases:
@@ -134,7 +146,7 @@ correct abstentions
 expected-empty cases
 ```
 
-### False-answer rate
+### Unsupported-evidence-return rate
 
 ```text
 expected-empty cases where evidence is returned
@@ -145,7 +157,7 @@ expected-empty cases
 For the current binary abstention definition:
 
 ```text
-false-answer rate = 1 - no-answer accuracy
+unsupported-evidence-return rate = 1 - no-answer accuracy
 ```
 
 The term refers to retrieval supplying evidence when the benchmark says no sufficient evidence exists. It does not mean an LLM has already generated a false statement.
@@ -205,7 +217,8 @@ A useful retrieval release view becomes:
 | --- | --- |
 | Recall@K | When evidence exists, did we retrieve it? |
 | Ranking / MRR | How early did useful evidence appear? |
-| False-answer rate | When evidence did not exist, did we still return something? |
+| Unsupported-evidence-return rate | When evidence did not exist, did we still return something? |
+| False-abstention rate | How often did we suppress an answerable request? |
 | Answerable coverage | How often did abstention allow answerable requests through? |
 | Hard invariants | Was every returned item authorized, current, intact, and contract-valid? |
 
