@@ -416,9 +416,7 @@ def _parse_case(
 
     if action is KnowledgeAction.NO_ACTION and queries:
         raise ValueError(f"{case_id}: NO_ACTION case must not execute retrieval")
-    if action is KnowledgeAction.CREATE and any(
-        query.relevant_knowledge_ids for query in queries
-    ):
+    if action is KnowledgeAction.CREATE and any(query.relevant_knowledge_ids for query in queries):
         raise ValueError(f"{case_id}: CREATE case must have no reusable knowledge label")
     if action in {KnowledgeAction.REUSE, KnowledgeAction.IMPROVE} and (
         not queries or any(not query.relevant_knowledge_ids for query in queries)
@@ -432,10 +430,9 @@ def _parse_case(
             document = known_documents[knowledge_id]
             if document.access.tenant_id != access.tenant_id:
                 raise ValueError(f"{case_id}: relevant knowledge is in another tenant")
-            if (
-                document.access.scope is AccessScope.RESTRICTED
-                and not set(document.access.allowed_groups) & set(access.groups)
-            ):
+            if document.access.scope is AccessScope.RESTRICTED and not set(
+                document.access.allowed_groups
+            ) & set(access.groups):
                 raise ValueError(f"{case_id}: relevant knowledge is not authorized")
 
     article_raw = row["article_expectation"]

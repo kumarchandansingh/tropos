@@ -23,12 +23,7 @@ from tropos.evals.enterprise_support import (
 )
 from tropos.evals.retrieval import evaluate_retrieval
 
-DATASET = (
-    Path(__file__).parents[3]
-    / "evals"
-    / "resolve"
-    / "enterprise_support_benchmark_v1.json"
-)
+DATASET = Path(__file__).parents[3] / "evals" / "resolve" / "enterprise_support_benchmark_v1.json"
 
 
 def _orchestrator(store: SQLiteIngestionStore) -> IngestKnowledge:
@@ -93,10 +88,7 @@ def test_benchmark_contains_complete_balanced_case_packs() -> None:
         assert len(cases) == expected_count
         split_actions = Counter(case.action for case in cases)
         expected_per_action = 2 if split is EvalSplit.DEVELOPMENT else 1
-        assert all(
-            split_actions[action] == expected_per_action
-            for action in KnowledgeAction
-        )
+        assert all(split_actions[action] == expected_per_action for action in KnowledgeAction)
 
     for case in benchmark.cases:
         record = case.case_record
@@ -162,9 +154,7 @@ def test_benchmark_rejects_a_create_case_that_declares_reusable_knowledge(
     tmp_path: Path,
 ) -> None:
     raw = json.loads(DATASET.read_text(encoding="utf-8"))
-    create_case = next(
-        case for case in raw["cases"] if case["expected"]["action"] == "CREATE"
-    )
+    create_case = next(case for case in raw["cases"] if case["expected"]["action"] == "CREATE")
     create_case["retrieval_queries"][0]["relevant_knowledge_ids"] = [
         "kb-entra-device-compliance-remediation"
     ]
@@ -194,10 +184,9 @@ def test_bm25_can_execute_the_realistic_seed_without_crossing_restricted_boundar
 
         by_id = {result.case_id: result for result in report.case_results}
         if split is EvalSplit.DEVELOPMENT:
-            assert "kb-security-emergency-account-rotation" not in by_id[
-                "NEG-DEV-006"
-            ].retrieved_knowledge_ids
+            assert (
+                "kb-security-emergency-account-rotation"
+                not in by_id["NEG-DEV-006"].retrieved_knowledge_ids
+            )
         if split is EvalSplit.CHALLENGE:
-            assert "kb-cloud-org-policy-admin" not in by_id[
-                "NEG-CHAL-003"
-            ].retrieved_knowledge_ids
+            assert "kb-cloud-org-policy-admin" not in by_id["NEG-CHAL-003"].retrieved_knowledge_ids
