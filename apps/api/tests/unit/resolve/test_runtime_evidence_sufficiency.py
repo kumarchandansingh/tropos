@@ -30,7 +30,7 @@ class SufficiencyFixture(BaseModel):
     rationale: str
 
 
-def _retrieved(text: str = "Restart the device after certificate rotation.") -> tuple[RetrievedKnowledgeChunk, ...]:
+def _retrieved(\n    text: str = "Restart the device after certificate rotation.",\n) -> tuple[RetrievedKnowledgeChunk, ...]:
     fingerprint = sha256(text.encode()).hexdigest()
     chunk = KnowledgeChunk(
         chunk_id="chunk-1",
