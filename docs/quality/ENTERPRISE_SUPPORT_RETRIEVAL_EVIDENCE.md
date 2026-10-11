@@ -117,6 +117,15 @@ The result should be interpreted narrowly:
 
 QE-108 remains responsible for larger independent scenario populations, chunk-level/graded labels, stronger holdout mechanics, and uncertainty reporting. QE-109 owns abstention calibration and false-answer risk.
 
+## Relationship to the PR regression gate
+
+The realistic BM25/dense/hybrid run and the pull-request regression gate now use the same generic `EvalRun` contracts and retrieval case semantics, but they answer different questions.
+
+- The PR gate executes the saved BM25 catalogue on the base and candidate code revisions and blocks regressions.
+- The pinned real-model workflow executes BM25, dense MPNet, and hybrid RRF on the realistic enterprise-support development set and exposes cross-strategy quality evidence while blocking hard-invariant failures.
+
+Keeping those decisions separate prevents a cross-strategy comparison from being mistaken for a code-regression gate.
+
 ## Decision implication
 
 No retrieval strategy is promoted as the production default from this evidence.
