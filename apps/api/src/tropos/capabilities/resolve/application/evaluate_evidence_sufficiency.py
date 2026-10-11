@@ -75,13 +75,8 @@ class LLMEvidenceSufficiencyJudge:
         self._llm = llm
 
     def judge(self, evidence_set: EvidenceSet) -> JudgedSufficiency:
-        payload = "\n\n".join(
-            f"[{item.alias}] {item.text}" for item in evidence_set.items
-        )
-        user_prompt = (
-            f"Query:\n{evidence_set.query}\n\n"
-            f"Eligible evidence:\n{payload}"
-        )
+        payload = "\n\n".join(f"[{item.alias}] {item.text}" for item in evidence_set.items)
+        user_prompt = f"Query:\n{evidence_set.query}\n\nEligible evidence:\n{payload}"
         completion = self._llm.complete_structured(
             StructuredCompletionRequest(
                 system_prompt=_SYSTEM_PROMPT,
