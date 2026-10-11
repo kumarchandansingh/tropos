@@ -231,3 +231,12 @@ Retrieval evaluation now has one deterministic case-observation implementation a
 The real-model workflow runs the enterprise-support development split through the generic `ExperimentRunner`, producing one `EvalRun` per retrieval strategy with the same dataset fingerprint and provenance model. The dataset fingerprint is bound to the knowledge corpus as well as the query/label projection.
 
 This does not choose a winning retriever automatically. It makes the evidence comparable. Relevance/no-answer misses remain benchmark outcomes; hard-invariant violations remain blocking defects. Retrieval abstention remains QE-109.
+
+
+## Recorded enterprise-support retrieval evidence
+
+The first unified BM25/dense/hybrid execution on the 24-case enterprise-support development split is recorded in [Enterprise support retrieval evidence](ENTERPRISE_SUPPORT_RETRIEVAL_EVIDENCE.md).
+
+The strongest observed signal is the abstention gap: BM25, dense MPNet, and hybrid RRF each achieved no-answer accuracy of 0.083 (1 of 12 expected-empty cases), while all three passed the retrieval hard invariants. Dense and hybrid improved answerable recall/ranking relative to BM25 on the same test set.
+
+This evidence moves QE-109 from a hypothetical enhancement to a measured quality risk. No retrieval strategy is promoted as a production default until abstention is calibrated and verified on stronger holdout evidence.
