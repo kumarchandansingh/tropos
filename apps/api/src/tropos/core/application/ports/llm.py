@@ -4,11 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Generic, Protocol, TypeVar
+from typing import Protocol
 
 from pydantic import BaseModel
-
-StructuredT = TypeVar("StructuredT", bound=BaseModel)
 
 
 class ModelRole(StrEnum):
@@ -128,7 +126,7 @@ class TextCompletionRequest:
 
 
 @dataclass(frozen=True, slots=True)
-class StructuredCompletionRequest(Generic[StructuredT]):
+class StructuredCompletionRequest[StructuredT: BaseModel]:
     system_prompt: str
     user_prompt: str
     prompt_version: str
@@ -161,7 +159,7 @@ class TextCompletionResult:
 
 
 @dataclass(frozen=True, slots=True)
-class StructuredCompletionResult(Generic[StructuredT]):
+class StructuredCompletionResult[StructuredT: BaseModel]:
     value: StructuredT
     metadata: LLMInvocationMetadata
 
@@ -171,7 +169,7 @@ class LLMPort(Protocol):
 
     def complete_text(self, request: TextCompletionRequest) -> TextCompletionResult: ...
 
-    def complete_structured(
+    def complete_structured[StructuredT: BaseModel](
         self,
         request: StructuredCompletionRequest[StructuredT],
     ) -> StructuredCompletionResult[StructuredT]: ...
