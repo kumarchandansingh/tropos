@@ -47,11 +47,10 @@ from tropos.evals.retrieval_experiment import (
     hard_invariant_failures,
 )
 from tropos.evals.run_io import eval_run_to_dict
+
 MODEL_IDENTIFIER = "sentence-transformers/all-mpnet-base-v2"
 MODEL_REVISION = "e8c3b32edf5434bc2275fc9bab85f82640a19130"
-EMBEDDING_STRATEGY_VERSION = (
-    "sentence-transformers-all-mpnet-base-v2-normalized-v1"
-)
+EMBEDDING_STRATEGY_VERSION = "sentence-transformers-all-mpnet-base-v2-normalized-v1"
 
 
 class SentenceTransformerEmbeddingProvider:
@@ -102,10 +101,8 @@ class SentenceTransformerEmbeddingProvider:
             convert_to_numpy=True,
         )
         return tuple(
-            EmbeddingVector(tuple(float(value) for value in row.tolist()))
-            for row in vectors
+            EmbeddingVector(tuple(float(value) for value in row.tolist())) for row in vectors
         )
-
 
 
 def _orchestrator(store: SQLiteIngestionStore) -> IngestKnowledge:
