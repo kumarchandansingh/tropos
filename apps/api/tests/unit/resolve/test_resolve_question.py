@@ -8,6 +8,7 @@ from tropos.capabilities.resolve.application.evaluate_evidence_sufficiency impor
     JudgedSufficiency,
 )
 from tropos.capabilities.resolve.application.generate_grounded_answer import (
+    CitationResolutionError,
     GeneratedGroundedAnswer,
 )
 from tropos.capabilities.resolve.application.resolve_question import ResolveQuestion
@@ -125,6 +126,11 @@ class StaticGenerator:
 class FailingGenerator:
     def generate(self, evidence_set: EvidenceSet) -> GeneratedGroundedAnswer:
         raise AssertionError("generator must not be called")
+
+
+class CitationFailingGenerator:
+    def generate(self, evidence_set: EvidenceSet) -> GeneratedGroundedAnswer:
+        raise CitationResolutionError("unknown citation")
 
 
 def _request() -> RuntimeRequest:
@@ -252,3 +258,32 @@ def test_trace_does_not_duplicate_raw_query_or_evidence_text() -> None:
     snapshot = str(sink.traces[0].snapshot())
     assert secret_text not in snapshot
     assert query not in snapshot
+
+
+def test_citation_failure_is_traced_as_runtime_failure() -> None:
+    sink = InMemoryTraceSink()
+    judge = StaticJudge(
+        SufficiencyDecision(
+            label=SufficiencyLabel.SUFFICIENT,
+            failure_type=SufficiencyFailureType.NONE,
+            required_facts=("action",),
+            supported_facts=("restart",),
+            missing_facts=(),
+            contradictions=(),
+            rationale="Evidence is sufficient.",
+        )
+    )
+    runtime = ResolveQuestion(
+        retriever=StaticRetriever((_result(),)),
+        sufficiency_judge=judge,
+        answer_generator=CitationFailingGenerator(),
+        trace_sink=sink,
+    )
+
+    with pytest.raises(CitationResolutionError):
+        runtime.execute(_request())
+
+    assert len(sink.traces) == 1
+    assert sink.traces[0].outcome == "RUNTIME_FAILED"
+    assert sink.traces[0].spans[-1].name == "resolve.citation_validation"
+    assert sink.traces[0].spans[-1].status == "ERROR"
