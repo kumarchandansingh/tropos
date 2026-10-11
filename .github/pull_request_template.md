@@ -43,6 +43,7 @@ Mark each relevant item. Use N/A only when the change genuinely does not affect 
 - [ ] Product/capability status updated
 - [ ] Living architecture/codebase map updated
 - [ ] Quality/evaluation documentation updated
+- [ ] Delivery/process documentation updated
 - [ ] Build history updated for a material delivered slice
 - [ ] Backlog/status updated where delivery state changed
 - [ ] ADR added/updated for a durable architecture decision
