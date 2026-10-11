@@ -11,7 +11,6 @@ import os
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
-
 DEFAULT_LLM_PROVIDER = "groq"
 DEFAULT_LLM_MODEL = "openai/gpt-oss-120b"
 
