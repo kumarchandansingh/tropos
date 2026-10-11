@@ -176,6 +176,23 @@ This repository is public, so the holdout data is **not secret**. It is a locked
 
 Each split contains all four Resolve outcomes so one split is not accidentally equivalent to one business action.
 
+## Labeling and review protocol
+
+V1 cases are human-authored synthetic specifications. `approved` means the case has passed the repository's structural and product-policy checks; it does **not** mean an independent domain expert has validated the scenario.
+
+For each future case, the benchmark should preserve:
+
+- the public failure pattern or observed defect that motivated the scenario;
+- the resolved-case facts and resolution evidence;
+- the intended Resolve action;
+- retrieval relevance labels;
+- article evidence and forbidden unsupported behavior where applicable;
+- reviewer notes when a second human review becomes available.
+
+Query wording should increasingly be authored independently from the target knowledge text. V1 does not yet satisfy QE-108's blinded query-authoring protocol, so lexical performance can be optimistic on some cases.
+
+Dataset versions are immutable evidence snapshots. Material case, label, or expected-behavior changes require a new benchmark version rather than silently rewriting prior results.
+
 ## Statistical interpretation
 
 The 48 retrieval queries are **not 48 independent real incidents**. Several are query formulations derived from the same underlying case. Treating those paraphrases as independent observations would understate uncertainty.
