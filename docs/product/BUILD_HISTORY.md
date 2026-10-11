@@ -104,7 +104,7 @@ The backlog uses P0/P1/P2/deferred priority, sprint-ready user stories, estimate
 | PR #85 | Critical semantic test hardening and shared retriever contracts | Protect mutation-surviving behavior before expanding the benchmark; apply common authorization/lifecycle/result contracts to BM25, dense, and hybrid retrieval | shared retriever contract tests, fingerprint/comparison/vector/regression-gate tests |
 | PR #87 | Realistic complete-case evaluation seed | Start from full resolved cases and project the same evidence into retrieval, Resolve decisions, and Knowledge Article expectations instead of growing disconnected toy datasets | `enterprise_support_benchmark_v1.json`, `enterprise_support.py`, `ENTERPRISE_SUPPORT_BENCHMARK.md` |
 
-The evaluation foundation now has an automated PR regression gate and common retrieval assurance semantics. Larger holdout data, abstention calibration, generic real-model Knowledge Article execution, and semantic-judge calibration remain separate work.
+The evaluation foundation now has an automated PR regression gate, a realistic complete-case benchmark, and a shared retrieval observation contract feeding the generic experiment runtime. Larger holdout data, abstention calibration, generic real-model Knowledge Article execution, and semantic-judge calibration remain separate work.
 
 ## Phase 9 — Documentation governance
 
