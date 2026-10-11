@@ -48,7 +48,7 @@ Every retrieval observation now records the following diagnostics separately fro
 | top-score margin | top score minus second score |
 | top-score ratio | top score divided by second score when defined |
 
-The values are not comparable across strategies.
+The values are not comparable across strategies. Each retrieval strategy therefore receives its own calibrated policy and threshold.
 
 - BM25 uses its transformed FTS5 ranking score.
 - Dense MPNet uses cosine similarity.
