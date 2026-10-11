@@ -138,41 +138,41 @@ If those four answers are unclear, the test/eval definition is not ready.
 
 | Product boundary | Current subject | Current judge | Current status |
 | --- | --- | --- | --- |
-| Retrieval | BM25 in PR gate | deterministic invariants + Recall/MRR/no-answer metrics | implemented |
-| Retrieval | BM25, dense MPNet, hybrid RRF nightly | retrieval metrics + explicit authorization-leak gate | implemented, separate path |
+| Retrieval | BM25 in PR gate | shared deterministic invariants + Recall/MRR/no-answer metrics | implemented; generic-gate migration in progress |
+| Retrieval | BM25, dense MPNet, hybrid RRF nightly | shared retrieval executor → EvalObservation/EvalScore → EvalRun | implemented |
 | Knowledge Article artifact | hand-authored `KnowledgeArticleDraft` fixtures | deterministic article grader | grader validation only |
 | Knowledge Article real model output | generator + real model | not wired into generic run path | not yet implemented |
 | Product outcome | agent/user workflow | human/production outcome | not yet implemented |
 
 ## Current architecture seam
 
-Tropos currently has two retrieval-evaluation execution paths:
+Retrieval now shares one case-evaluation contract across strategies:
 
 ```text
-Saved retrieval / PR path
-catalogue → execution.observe → EvaluationStore
-        → regression bridge → generic EvalRun → compare_runs
-
-Real-model retrieval path
-golden_v1 → evaluate_retrieval → RetrievalEvalReport
-        → special access gate → JSON report
+Retrieval EvalCase
+      ↓
+KnowledgeChunkRetriever
+      ↓
+shared retrieval case evaluation
+├── expected evidence
+├── authorization
+├── currentness
+├── evidence integrity
+├── result contract
+└── retrieval metrics
+      ↓
+EvalObservation + EvalScore
+      ↓
+ExperimentRunner
+      ↓
+EvalRun
 ```
 
-The generic contracts and `ExperimentRunner` already provide the intended cross-capability model:
+BM25, dense MPNet, and hybrid RRF use this generic path in the real-model workflow. The saved-catalogue runner also delegates its case semantics to the same evaluator, preserving its historical relational evidence store.
 
-```text
-EvalDataset + EvalSubject + provenance
-              ↓
-       EvalCaseExecutor
-              ↓
-       EvalObservation
-              ↓
-           EvalRun
-              ↓
-       compare_runs / gate
-```
+The PR regression workflow is migrated separately from the saved-report bridge to direct generic EvalRun comparison. Keeping that workflow change separate ensures the baseline worktree already contains the generic runner when the gate begins invoking it.
 
-The next implementation cleanup should converge retrieval onto that model rather than add a third execution style.
+See [ADR-019](../decisions/ADR-019-unified-retrieval-evaluation-runtime.md).
 
 ## Design rules for the next builds
 

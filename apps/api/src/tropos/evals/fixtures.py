@@ -44,14 +44,26 @@ def prepare_fixture(catalogue: Catalogue, case: PlannedCase, directory: Path) ->
             captured_at=datetime(2026, 9, 26, tzinfo=UTC),
         )
         ingestion.execute(IngestKnowledgeCommand(document.knowledge_id, raw))
+    return EvaluationContext(
+        SQLiteFtsKnowledgeRetriever(database),
+        load_current_chunks(database),
+    )
+
+
+def load_current_chunks(database: Path) -> dict[str, KnowledgeChunk]:
+    """Read the authoritative current chunk snapshot for evaluation invariants."""
+
     chunks: dict[str, KnowledgeChunk] = {}
     connection = sqlite3.connect(database)
     connection.row_factory = sqlite3.Row
     try:
-        rows = connection.execute("""SELECT c.* FROM knowledge_chunks c
+        rows = connection.execute(
+            """SELECT c.* FROM knowledge_chunks c
             JOIN knowledge_state s ON c.knowledge_id=s.knowledge_id
-            WHERE c.normalized_content_fingerprint=s.content_fingerprint
-            AND c.normalization_strategy_version=s.normalization_strategy_version""").fetchall()
+            WHERE s.lifecycle_status='ACTIVE'
+            AND c.normalized_content_fingerprint=s.content_fingerprint
+            AND c.normalization_strategy_version=s.normalization_strategy_version"""
+        ).fetchall()
         for row in rows:
             chunk = KnowledgeChunk(
                 chunk_id=row["chunk_id"],
@@ -78,4 +90,4 @@ def prepare_fixture(catalogue: Catalogue, case: PlannedCase, directory: Path) ->
             chunks[chunk.chunk_id] = chunk
     finally:
         connection.close()
-    return EvaluationContext(SQLiteFtsKnowledgeRetriever(database), chunks)
+    return chunks

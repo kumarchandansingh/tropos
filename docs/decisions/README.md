@@ -24,6 +24,7 @@ Architecture Decision Records (ADRs) preserve the context, alternatives, and con
 | [ADR-016](ADR-016-stable-evidence-references-with-model-local-aliases.md) | Accepted | Use temporary model aliases that resolve to stable EvidenceRef identities |
 | [ADR-017](ADR-017-bounded-business-generation-controls.md) | Accepted | Expose bounded business controls while keeping generation governance system-owned |
 | [ADR-018](ADR-018-gated-public-documentation.md) | Accepted | Treat public documentation as a gated delivery artifact |
+| [ADR-019](ADR-019-unified-retrieval-evaluation-runtime.md) | Accepted | Converge retrieval evaluation on the generic EvalRun runtime |
 
 ## Scope
 

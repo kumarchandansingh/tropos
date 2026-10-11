@@ -85,13 +85,13 @@ Update and delete triggers protect stored experiment evidence through the normal
 
 This is a local auditability mechanism, not a tamper-proof compliance ledger.
 
-### Why a separate store exists beside retrieval catalogue runs
+### Retrieval convergence
 
-The existing retrieval catalogue runner has a richer retrieval-specific persistence model containing hits, assertions, fixture state, and retrieval metrics. QE-103 operates on the cross-capability `EvalRun / EvalObservation / EvalScore` contracts.
+The retrieval-specific saved-run store remains available for historical and detailed diagnostic evidence, but retrieval execution no longer owns separate scoring semantics.
 
-V1 therefore keeps the generic experiment store separate rather than forcing the retrieval-specific schema into a premature universal model.
+`tropos.evals.retrieval_case_evaluation` applies the same expected-evidence, authorization, currentness, integrity, result-contract, and ranking checks for saved catalogue execution and generic experiments. `RetrievalExperimentExecutor` adapts those results into `EvalObservation / EvalScore`, allowing BM25, dense, and hybrid subjects to use the same `ExperimentRunner`, `SQLiteExperimentStore`, JSON run interchange, and comparison layer.
 
-Revisit this boundary when QE-108/QE-110 require one reporting surface across retrieval and generation experiments.
+The PR regression workflow migration is intentionally a follow-up change so its baseline revision already contains the generic runner. See ADR-019.
 
 ## Baseline-versus-candidate comparison
 

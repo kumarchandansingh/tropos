@@ -30,6 +30,7 @@ from tropos.evals.contracts import (
     EvalSplit,
     JsonObject,
     JsonValue,
+    fingerprint,
 )
 from tropos.evals.retrieval import RetrievalEvalCase
 
@@ -147,6 +148,86 @@ class EnterpriseSupportBenchmark:
             if query.split is selected_split
         )
         return tuple(projected)
+
+    def retrieval_dataset(
+        self,
+        split: EvalSplit | None = None,
+    ) -> EvalDataset:
+        """Project complete case packs into the generic retrieval EvalDataset."""
+
+        selected_split = split or self.default_split
+        cases: list[EvalCase] = []
+        corpus_fingerprint = fingerprint(
+            [
+                {
+                    "knowledge_id": document.knowledge_id,
+                    "title": document.title,
+                    "text": document.text,
+                    "source_version": document.source_version,
+                    "tenant_id": document.access.tenant_id,
+                    "scope": document.access.scope.value,
+                    "allowed_groups": list(document.access.allowed_groups),
+                }
+                for document in self.knowledge_documents
+            ]
+        )
+
+        for support_case in self.cases_for_split(selected_split):
+            for query in support_case.retrieval_queries:
+                cases.append(
+                    EvalCase(
+                        case_id=query.query_id,
+                        purpose=(
+                            "Retrieve the current authorized knowledge expected for "
+                            "this resolved support scenario."
+                        ),
+                        scope=EvalScope.COMPONENT,
+                        approval=support_case.approval,
+                        origin=support_case.origin,
+                        inputs={
+                            "query": query.query,
+                            "tenant_id": query.access.tenant_id,
+                            "groups": list(query.access.groups),
+                            "max_rank": query.max_rank,
+                            "corpus_fingerprint": corpus_fingerprint,
+                        },
+                        expected={"relevant_knowledge_ids": list(query.relevant_knowledge_ids)},
+                        tags=_merge_tags(support_case.tags, query.tags),
+                    )
+                )
+
+        for query in self.negative_retrieval_cases:
+            if query.split is not selected_split:
+                continue
+            cases.append(
+                EvalCase(
+                    case_id=query.query_id,
+                    purpose=(
+                        "Return no evidence for an unsupported, ambiguous, "
+                        "cross-tenant, or unauthorized retrieval request."
+                    ),
+                    scope=EvalScope.COMPONENT,
+                    approval=EvalApproval.APPROVED,
+                    origin=EvalOrigin.SYNTHETIC,
+                    inputs={
+                        "query": query.query,
+                        "tenant_id": query.access.tenant_id,
+                        "groups": list(query.access.groups),
+                        "max_rank": query.max_rank,
+                        "corpus_fingerprint": corpus_fingerprint,
+                    },
+                    expected={"relevant_knowledge_ids": []},
+                    tags=query.tags,
+                )
+            )
+
+        return EvalDataset(
+            dataset_id=f"{self.dataset_id}-retrieval",
+            version=f"{self.version}-{selected_split.value}",
+            capability="retrieval",
+            split=selected_split,
+            cases=tuple(cases),
+        )
 
     def resolve_decision_dataset(
         self,

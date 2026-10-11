@@ -1,6 +1,6 @@
 # Saved retrieval evaluation
 
-Implemented: a validated synthetic catalogue, isolated scenario execution, SQLite run persistence and JSON/Markdown export. This is the foundation for the later business visualizer. Embeddings, vector/hybrid search and the interactive dashboard remain planned.
+Implemented: a validated synthetic catalogue, isolated scenario execution, SQLite run persistence and JSON/Markdown export. Dense and hybrid retrieval are also implemented and now share the generic EvalRun execution model described in ADR-019. This document remains the detailed reference for the historical retrieval-specific saved-run store; the PR regression workflow is being migrated to direct generic EvalRun comparison.
 
 ## Definition and observation boundaries
 
