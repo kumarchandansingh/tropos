@@ -170,9 +170,9 @@ class GroqLLMAdapter:
             ),
         )
 
-    def _base_payload(
+    def _base_payload[StructuredT: BaseModel](
         self,
-        request: TextCompletionRequest | StructuredCompletionRequest[BaseModel],
+        request: TextCompletionRequest | StructuredCompletionRequest[StructuredT],
     ) -> dict[str, object]:
         return {
             "model": self._deployment.model_identifier,
