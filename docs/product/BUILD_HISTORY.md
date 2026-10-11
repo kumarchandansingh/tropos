@@ -106,8 +106,9 @@ The backlog uses P0/P1/P2/deferred priority, sprint-ready user stories, estimate
 | PR #88 | Unified retrieval evaluation runtime | Run BM25, dense, and hybrid through one shared case grader and generic EvalRun/experiment model; preserve hard invariants separately from relevance outcomes | ADR-019, `retrieval_case_evaluation.py`, `retrieval_experiment.py`, unified real-model workflow |
 | PR #89 | Generic retrieval PR gate | Run the same catalogue through the generic experiment runtime on base and candidate revisions, then gate direct EvalRun comparison | `retrieval-regression-gate.yml`, `evaluate_retrieval_catalogue_experiment.py`, `compare_retrieval_experiments.py` |
 | PR #90 | Calibrated retrieval abstention V1 | Select a strategy-specific top-score threshold on development evidence at an explicit answerable-recall floor, then freeze and verify it on holdout/challenge | ADR-020, `abstention.py`, `RETRIEVAL_ABSTENTION.md` |
+| PR #92 | Human-gated evidence sufficiency benchmark V1 | Preserve AI-assisted query/evidence candidates while requiring explicit human review + adjudication before any case can become an executable golden | ADR-021, `evidence_sufficiency.py`, `evidence_sufficiency_candidates_v1.json`, `EVIDENCE_SUFFICIENCY.md` |
 
-The evaluation foundation now has an automated PR regression gate, a realistic complete-case benchmark, and a shared retrieval observation contract feeding the generic experiment runtime. Larger holdout data, abstention calibration, generic real-model Knowledge Article execution, and semantic-judge calibration remain separate work.
+The evaluation foundation now has an automated PR regression gate, a realistic complete-case benchmark, a shared retrieval observation contract feeding the generic experiment runtime, calibrated retrieval-abstention evidence, and a human-gated evidence-sufficiency candidate set. Human sufficiency labels, larger independent holdout data, generic real-model Knowledge Article execution, and semantic-judge calibration remain separate work.
 
 ## Phase 9 — Documentation governance
 

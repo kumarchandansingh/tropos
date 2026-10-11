@@ -1,0 +1,481 @@
+{
+  "dataset_id": "tropos-evidence-sufficiency",
+  "version": "1.0-candidate",
+  "notes": "Prepared evidence-set candidates derived from the multi-source survey. All cases remain candidate/unapproved until human review and adjudication are recorded. No proposed AI label is committed as ground truth.",
+  "cases": [
+    {
+      "case_id": "EV-IAM-01",
+      "evidence_set_id": "EV-IAM-01",
+      "split": "challenge",
+      "approval": "candidate",
+      "query": "S3 PutObject is denied although the IAM role has an Allow for the action. Why?",
+      "evidence": [
+        {
+          "evidence_id": "EV-IAM-01-E1",
+          "text": "The caller's identity policy contains an Allow for s3:PutObject on the affected resource."
+        },
+        {
+          "evidence_id": "EV-IAM-01-E2",
+          "text": "The AccessDenied context identifies an explicit deny in an applicable service control policy and identifies the affected action and policy."
+        }
+      ],
+      "pattern_ids": ["IAM-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-001",
+          "role": "primary",
+          "title": "Troubleshoot access denied (403 Forbidden) errors in Amazon S3",
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/troubleshoot-403-errors.html"
+        },
+        {
+          "source_id": "SRC-003",
+          "role": "corroboration",
+          "title": "Troubleshoot access denied error messages - AWS Identity and Access Management",
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/troubleshoot_access-denied.html"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["iam", "policy-layer"]
+    },
+    {
+      "case_id": "EV-IAM-02",
+      "evidence_set_id": "EV-IAM-02",
+      "split": "challenge",
+      "approval": "candidate",
+      "query": "S3 PutObject is denied although the IAM role has an Allow for the action. Why?",
+      "evidence": [
+        {
+          "evidence_id": "EV-IAM-02-E1",
+          "text": "The identity policy contains an Allow for s3:PutObject and generic documentation explains identity-policy Allows."
+        }
+      ],
+      "pattern_ids": ["IAM-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-003",
+          "role": "primary",
+          "title": "Troubleshoot access denied error messages - AWS Identity and Access Management",
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/troubleshoot_access-denied.html"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["iam", "policy-layer"]
+    },
+    {
+      "case_id": "EV-IAM-03",
+      "evidence_set_id": "EV-IAM-03",
+      "split": "challenge",
+      "approval": "candidate",
+      "query": "An AWS request is AccessDenied outside the organization and the error is generic. What is denying it?",
+      "evidence": [
+        {
+          "evidence_id": "EV-IAM-03-E1",
+          "text": "The request returned a generic AccessDenied message without enhanced policy-layer context or a denying policy identifier."
+        }
+      ],
+      "pattern_ids": ["IAM-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-001",
+          "role": "primary",
+          "title": "Troubleshoot access denied (403 Forbidden) errors in Amazon S3",
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/troubleshoot-403-errors.html"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["iam", "ambiguous-error"]
+    },
+    {
+      "case_id": "EV-IAM-04",
+      "evidence_set_id": "EV-IAM-04",
+      "split": "challenge",
+      "approval": "candidate",
+      "query": "The error suggests an organization policy denies the action, but the requester cannot view the SCP. Can the denying policy be identified?",
+      "evidence": [
+        {
+          "evidence_id": "EV-IAM-04-E1",
+          "text": "The request error indicates an organization-level policy restriction, but the actual SCP is visible only to organization or security administrators."
+        }
+      ],
+      "pattern_ids": ["IAM-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-002",
+          "role": "primary",
+          "title": "Troubleshoot explicit deny error messages when requesting API calls using IAM roles or users",
+          "url": "https://repost.aws/knowledge-center/iam-explicit-deny-errors"
+        },
+        {
+          "source_id": "SRC-011",
+          "role": "corroboration",
+          "title": "Troubleshoot access denied errors on a root or admin user",
+          "url": "https://repost.aws/knowledge-center/iam-access-denied-root-user"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["iam", "access-limited"]
+    },
+    {
+      "case_id": "EV-PAY-01",
+      "evidence_set_id": "EV-PAY-01",
+      "split": "development",
+      "approval": "candidate",
+      "query": "Stripe webhook signature verification fails in production. What is wrong?",
+      "evidence": [
+        {
+          "evidence_id": "EV-PAY-01-E1",
+          "text": "The endpoint identity and live/test mode are known, and the configured signing-secret context is available without exposing the secret value."
+        },
+        {
+          "evidence_id": "EV-PAY-01-E2",
+          "text": "The exact unmodified request body reaches signature verification and the Stripe-Signature header is present."
+        }
+      ],
+      "pattern_ids": ["PAY-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-004",
+          "role": "primary",
+          "title": "Manage webhook endpoints",
+          "url": "https://docs.stripe.com/events/manage-webhook-endpoints"
+        },
+        {
+          "source_id": "SRC-005",
+          "role": "corroboration",
+          "title": "Debugging Stripe Webhook Signature Verification Errors in Production",
+          "url": "https://dev.to/nerdincode/debugging-stripe-webhook-signature-verification-errors-in-production-1h7c"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["payments", "webhook"]
+    },
+    {
+      "case_id": "EV-PAY-02",
+      "evidence_set_id": "EV-PAY-02",
+      "split": "development",
+      "approval": "candidate",
+      "query": "Stripe webhooks verify locally but fail in production even after raw-body middleware was fixed. What should be checked next?",
+      "evidence": [
+        {
+          "evidence_id": "EV-PAY-02-E1",
+          "text": "The handler now receives the raw request body, but the production endpoint's signing-secret mode and endpoint identity have not been confirmed."
+        }
+      ],
+      "pattern_ids": ["PAY-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-004",
+          "role": "primary",
+          "title": "Manage webhook endpoints",
+          "url": "https://docs.stripe.com/events/manage-webhook-endpoints"
+        },
+        {
+          "source_id": "SRC-005",
+          "role": "corroboration",
+          "title": "Debugging Stripe Webhook Signature Verification Errors in Production",
+          "url": "https://dev.to/nerdincode/debugging-stripe-webhook-signature-verification-errors-in-production-1h7c"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["payments", "webhook"]
+    },
+    {
+      "case_id": "EV-PAY-03",
+      "evidence_set_id": "EV-PAY-03",
+      "split": "development",
+      "approval": "candidate",
+      "query": "Webhook signature verification fails after deployment to a serverless platform. Does the available platform guidance establish the fix?",
+      "evidence": [
+        {
+          "evidence_id": "EV-PAY-03-E1",
+          "text": "A community thread reports that one raw-body access method solved the issue in an earlier platform version."
+        },
+        {
+          "evidence_id": "EV-PAY-03-E2",
+          "text": "A later reply in the same thread reports that the same method no longer works."
+        }
+      ],
+      "pattern_ids": ["PAY-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-006",
+          "role": "challenge",
+          "title": "Setup Stripe webhook",
+          "url": "https://www.mongodb.com/community/forums/t/setup-stripe-webhook/16759"
+        },
+        {
+          "source_id": "SRC-004",
+          "role": "primary",
+          "title": "Manage webhook endpoints",
+          "url": "https://docs.stripe.com/events/manage-webhook-endpoints"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["payments", "conflicting-source"]
+    },
+    {
+      "case_id": "EV-PAY-04",
+      "evidence_set_id": "EV-PAY-04",
+      "split": "development",
+      "approval": "candidate",
+      "query": "Generic webhook deliveries are failing. Does delivery-retry guidance explain a signature verification failure?",
+      "evidence": [
+        {
+          "evidence_id": "EV-PAY-04-E1",
+          "text": "The available evidence describes webhook delivery retries and endpoint status but contains no signature error, signing-secret, raw-body, or signature-header information."
+        }
+      ],
+      "pattern_ids": ["PAY-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-004",
+          "role": "primary",
+          "title": "Manage webhook endpoints",
+          "url": "https://docs.stripe.com/events/manage-webhook-endpoints"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["payments", "webhook"]
+    },
+    {
+      "case_id": "EV-CLD-01",
+      "evidence_set_id": "EV-CLD-01",
+      "split": "holdout",
+      "approval": "candidate",
+      "query": "A Kubernetes pod keeps restarting. Is this actually an out-of-memory failure?",
+      "evidence": [
+        {
+          "evidence_id": "EV-CLD-01-E1",
+          "text": "The container's last state reports OOMKilled with exit code 137."
+        },
+        {
+          "evidence_id": "EV-CLD-01-E2",
+          "text": "Memory request/limit and observed usage show the container approaching its configured memory ceiling, with cgroup or node context available."
+        }
+      ],
+      "pattern_ids": ["CLD-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-007",
+          "role": "primary",
+          "title": "Troubleshoot OOM events",
+          "url": "https://docs.cloud.google.com/kubernetes-engine/docs/troubleshooting/oom-events"
+        },
+        {
+          "source_id": "SRC-008",
+          "role": "corroboration",
+          "title": "OOMKilled",
+          "url": "https://docs.e2enetworks.com/docs/myaccount/kubernetes/troubleshoot/oomkilled/"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["kubernetes", "oom"]
+    },
+    {
+      "case_id": "EV-CLD-02",
+      "evidence_set_id": "EV-CLD-02",
+      "split": "holdout",
+      "approval": "candidate",
+      "query": "A pod is in CrashLoopBackOff. Does that establish an out-of-memory failure?",
+      "evidence": [
+        {
+          "evidence_id": "EV-CLD-02-E1",
+          "text": "The only evidence is generic CrashLoopBackOff troubleshooting; there is no OOM reason, exit evidence, memory limit, or usage signal."
+        }
+      ],
+      "pattern_ids": ["CLD-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-007",
+          "role": "primary",
+          "title": "Troubleshoot OOM events",
+          "url": "https://docs.cloud.google.com/kubernetes-engine/docs/troubleshooting/oom-events"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["kubernetes", "restart"]
+    },
+    {
+      "case_id": "EV-CLD-03",
+      "evidence_set_id": "EV-CLD-03",
+      "split": "holdout",
+      "approval": "candidate",
+      "query": "A container exited with code 137. Is there enough evidence to conclude OOM?",
+      "evidence": [
+        {
+          "evidence_id": "EV-CLD-03-E1",
+          "text": "The container exited with code 137, but no Reason field, memory request/limit, usage trend, or node/cgroup evidence is available."
+        }
+      ],
+      "pattern_ids": ["CLD-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-007",
+          "role": "primary",
+          "title": "Troubleshoot OOM events",
+          "url": "https://docs.cloud.google.com/kubernetes-engine/docs/troubleshooting/oom-events"
+        },
+        {
+          "source_id": "SRC-008",
+          "role": "corroboration",
+          "title": "OOMKilled",
+          "url": "https://docs.e2enetworks.com/docs/myaccount/kubernetes/troubleshoot/oomkilled/"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["kubernetes", "exit-code"]
+    },
+    {
+      "case_id": "EV-CLD-04",
+      "evidence_set_id": "EV-CLD-04",
+      "split": "holdout",
+      "approval": "candidate",
+      "query": "OOM is suspected, but only node-level logs can establish it and the reviewer cannot access them. Is the available evidence enough?",
+      "evidence": [
+        {
+          "evidence_id": "EV-CLD-04-E1",
+          "text": "Pod-level evidence is inconclusive and the node-level OOM logs needed to resolve the question are inaccessible to the reviewer."
+        }
+      ],
+      "pattern_ids": ["CLD-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-007",
+          "role": "primary",
+          "title": "Troubleshoot OOM events",
+          "url": "https://docs.cloud.google.com/kubernetes-engine/docs/troubleshooting/oom-events"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["kubernetes", "access-limited"]
+    },
+    {
+      "case_id": "EV-CI-01",
+      "evidence_set_id": "EV-CI-01",
+      "split": "challenge",
+      "approval": "candidate",
+      "query": "CI jobs fail with Docker Hub 'Too Many Requests'. Is this a pull-rate-limit problem?",
+      "evidence": [
+        {
+          "evidence_id": "EV-CI-01-E1",
+          "text": "The build log contains the Docker Hub 429 pull-limit message."
+        },
+        {
+          "evidence_id": "EV-CI-01-E2",
+          "text": "Authentication state, account tier or shared-IP context, and current rate-limit headers are available."
+        }
+      ],
+      "pattern_ids": ["CICD-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-013",
+          "role": "primary",
+          "title": "Docker Hub pull usage and limits",
+          "url": "https://docs.docker.com/docker-hub/usage/pulls/"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["cicd", "rate-limit"]
+    },
+    {
+      "case_id": "EV-CI-02",
+      "evidence_set_id": "EV-CI-02",
+      "split": "challenge",
+      "approval": "candidate",
+      "query": "CI image pulls are failing. Does generic registry/caching guidance prove a Docker Hub rate-limit problem?",
+      "evidence": [
+        {
+          "evidence_id": "EV-CI-02-E1",
+          "text": "The evidence discusses registry caching and image-pull optimization but contains no Docker Hub 429 error or authentication context."
+        }
+      ],
+      "pattern_ids": ["CICD-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-013",
+          "role": "primary",
+          "title": "Docker Hub pull usage and limits",
+          "url": "https://docs.docker.com/docker-hub/usage/pulls/"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["cicd", "rate-limit"]
+    },
+    {
+      "case_id": "EV-CI-03",
+      "evidence_set_id": "EV-CI-03",
+      "split": "challenge",
+      "approval": "candidate",
+      "query": "A current CI job is hitting Docker Hub limits. Can an old CodeShip article be used as the current remediation source?",
+      "evidence": [
+        {
+          "evidence_id": "EV-CI-03-E1",
+          "text": "The available remediation guidance comes from a CloudBees CodeShip page for a product that is now end-of-life."
+        }
+      ],
+      "pattern_ids": ["CICD-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-014",
+          "role": "challenge",
+          "title": "Docker Hub rate limiting",
+          "url": "https://docs.cloudbees.com/docs/cloudbees-codeship/latest/pro-common-issues/docker-hub-rate-limiting"
+        },
+        {
+          "source_id": "SRC-013",
+          "role": "primary",
+          "title": "Docker Hub pull usage and limits",
+          "url": "https://docs.docker.com/docker-hub/usage/pulls/"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["cicd", "stale-evidence"]
+    },
+    {
+      "case_id": "EV-CI-04",
+      "evidence_set_id": "EV-CI-04",
+      "split": "challenge",
+      "approval": "candidate",
+      "query": "Docker Hub returns 429, but authentication, account tier, and shared-IP details are unknown. Is there enough evidence to choose a remediation?",
+      "evidence": [
+        {
+          "evidence_id": "EV-CI-04-E1",
+          "text": "The build log contains a Docker Hub 429 response, but the authentication state, account tier, source-IP sharing, and current limit headers are unknown."
+        }
+      ],
+      "pattern_ids": ["CICD-001"],
+      "source_references": [
+        {
+          "source_id": "SRC-013",
+          "role": "primary",
+          "title": "Docker Hub pull usage and limits",
+          "url": "https://docs.docker.com/docker-hub/usage/pulls/"
+        },
+        {
+          "source_id": "SRC-015",
+          "role": "corroboration",
+          "title": "Exceeded limits on images uploaded from a Docker Hub folder",
+          "url": "https://docs.yandex.cloud/en/troubleshooting/container-registry/known-issues/docker-pull-limit-reached-in-dockerhub"
+        }
+      ],
+      "reviews": [],
+      "adjudication": null,
+      "tags": ["cicd", "rate-limit"]
+    }
+  ]
+}
