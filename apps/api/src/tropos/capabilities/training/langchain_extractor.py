@@ -1,6 +1,6 @@
 """LangChain adapter with prompt-local aliases resolved to stable Tropos evidence."""
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -12,6 +12,7 @@ from tropos.capabilities.training.procedure import (
     ProcedureGap,
     ProcedureStep,
 )
+from tropos.core.application.ports.langchain_compat import SupportsStructuredOutput
 from tropos.core.domain.evidence import EvidenceRef
 
 
@@ -60,7 +61,7 @@ def _resolve(
 class LangChainProcedureExtractor:
     """Accept an injected chat model while keeping LangChain outside domain contracts."""
 
-    def __init__(self, model: Any) -> None:
+    def __init__(self, model: SupportsStructuredOutput) -> None:
         self._structured_model = model.with_structured_output(_Draft)
 
     def extract(self, evidence: tuple[EvidenceExcerpt, ...]) -> ProcedureDraft:
