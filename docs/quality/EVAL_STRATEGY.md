@@ -251,3 +251,25 @@ The automated real-model workflow calibrates one threshold per retrieval strateg
 The selected policy is frozen and then evaluated on development, holdout, and challenge splits without recalibration. Policy parameters and calibration dataset identity are recorded in abstention-applied run provenance.
 
 See [Retrieval abstention calibration](RETRIEVAL_ABSTENTION.md) and [ADR-020](../decisions/ADR-020-calibrated-retrieval-abstention.md).
+
+
+## Evidence sufficiency benchmark
+
+Retrieval quality and evidence sufficiency are separate layers.
+
+Retrieval asks whether the system found labelled relevant knowledge. Evidence sufficiency asks whether the **complete supplied evidence set** contains enough information to answer the query completely and safely.
+
+QE-113 adds a V1 contract and 16 prepared candidate evidence sets across IAM, payments, Kubernetes/OOM, and Docker Hub rate limiting. These cases are intentionally stored with `approval=candidate` and no committed AI-generated gold label.
+
+A case becomes an executable sufficiency golden only after:
+
+1. at least one human review is recorded;
+2. a human adjudication selects the final label/reason;
+3. required facts are explicit;
+4. the case is promoted to `approval=approved`.
+
+The generic evaluation projection refuses unapproved candidates.
+
+Initial labels are `SUFFICIENT` and `INSUFFICIENT`. Insufficient cases distinguish missing critical facts, partial coverage, conflicting evidence, stale evidence, inaccessible evidence, weak support, and evidence that is relevant but not answer-bearing.
+
+See [Evidence sufficiency benchmark V1](EVIDENCE_SUFFICIENCY.md) and [ADR-021](../decisions/ADR-021-human-approved-evidence-sufficiency-goldens.md).
