@@ -7,10 +7,10 @@ import socket
 from collections.abc import Mapping
 from time import monotonic
 from typing import Protocol, cast
-
-from pydantic import BaseModel
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+from pydantic import BaseModel
 
 from tropos.core.application.ports.llm import (
     LLMInvocationMetadata,
@@ -71,7 +71,7 @@ class UrllibJsonTransport:
                 raw = response.read()
         except HTTPError as exc:
             raise LLMProviderError(f"Groq returned HTTP {exc.code}") from exc
-        except (TimeoutError, socket.timeout) as exc:
+        except TimeoutError as exc:
             raise LLMTimeoutError("Groq request timed out") from exc
         except URLError as exc:
             if isinstance(exc.reason, (TimeoutError, socket.timeout)):

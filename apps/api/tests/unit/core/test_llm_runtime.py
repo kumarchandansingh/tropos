@@ -111,9 +111,7 @@ def test_groq_structured_completion_sends_schema_and_captures_usage() -> None:
 def test_groq_secret_is_not_exposed_in_repr() -> None:
     secret = "gsk_super_secret"
     adapter = _adapter(
-        RecordingTransport(
-            {"choices": [{"message": {"content": "OK"}, "finish_reason": "stop"}]}
-        ),
+        RecordingTransport({"choices": [{"message": {"content": "OK"}, "finish_reason": "stop"}]}),
         secret=secret,
     )
 
