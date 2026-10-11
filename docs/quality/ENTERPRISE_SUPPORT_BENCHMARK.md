@@ -83,7 +83,7 @@ Current V1 contains:
 | IMPROVE cases | 4 |
 | CREATE cases | 4 |
 | NO_ACTION cases | 4 |
-| Grounded Knowledge Article expectations | 8 |
+| Grounded Knowledge Article expectations + full reference articles | 8 |
 | Retrieval queries | 48 |
 | Answerable retrieval queries | 24 |
 | Expected-empty retrieval queries | 24 |
@@ -162,7 +162,10 @@ This creates a future executable target for case → retrieval → coverage → 
 - required sections;
 - evidence-aligned claims;
 - typed gaps when applicable;
-- forbidden unsupported behavior.
+- forbidden unsupported behavior;
+- a complete human-readable reference article with section-level evidence citations.
+
+The reference article is not treated as the only acceptable wording. It is a review aid and future semantic-evaluation reference; deterministic graders continue to score required behavior rather than exact prose.
 
 The benchmark does not claim that the current Resolve runtime can yet generate every V1 article end to end. In particular, a genuinely new `CREATE` case requires the resolved-case evidence to become a first-class generation input; today's Knowledge Article application path primarily retrieves existing governed knowledge. The benchmark makes that product gap explicit rather than hiding it.
 
