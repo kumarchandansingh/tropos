@@ -68,7 +68,7 @@ Sprint 1 is complete. Governed evidence plus typed intake can produce a troubles
 | QE-103 | P0 | Build experiment runner and baseline-vs-candidate regression comparison, including paired uncertainty | 8 | QE-101, QE-102 |
 | QE-108 | P0 | Build retrieval benchmark v2 with locked holdout, chunk labels, scenario taxonomy and confidence intervals | 8 | existing retrieval eval — realistic enterprise-support case seed delivered; scale/chunk labels/uncertainty remain |
 | QE-109 | P0 | Calibrate retrieval abstention and false-answer risk | 8 | QE-108 |
-| QE-110 | P0 | Turn retrieval evals into reproducible CI/nightly regression gates | 5 | QE-103 |
+| QE-110 | P0 | Turn retrieval evals into reproducible CI/nightly regression gates | 5 | QE-103 — shared runtime + unified real-model workflow delivered; PR gate migration follows |
 | QE-111 | P1 | Calibrate semantic generation judge against human-labelled claims | 8 | QE-102, QE-103 |
 | QE-112 | P1 | Harden Training deterministic grader for paraphrases and valid extra citations | 5 | existing Training eval |
 | OBS-101 | P1 | Add vendor-neutral trace/eval sink contracts and OpenTelemetry instrumentation boundary | 5 | QE-101 |
