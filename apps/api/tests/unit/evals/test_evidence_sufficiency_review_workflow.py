@@ -25,8 +25,6 @@ def _dataset_path() -> Path:
 
 def _fill_review_packet(path: Path, *, reviewer: str, label: str, reason: str) -> None:
     text = path.read_text(encoding="utf-8-sig")
-    lines = text.splitlines()
-    header = lines[0]
     import csv
     from io import StringIO
 
