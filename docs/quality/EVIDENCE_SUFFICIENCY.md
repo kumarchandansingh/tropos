@@ -8,11 +8,11 @@ Tropos already measures retrieval relevance:
 
 Evidence sufficiency asks a stronger question:
 
-> Does the supplied evidence set contain everything required to answer the query completely and safely?
+> Does the eligible evidence set contain enough information to answer the query definitively using only that evidence?
 
 These are different quality dimensions.
 
-A retrieved passage may be relevant but still fail because it is incomplete, stale, conflicting, inaccessible, weakly supported, or not actually answer-bearing.
+A retrieved passage may be relevant but still fail because critical facts are missing, coverage is partial, support conflicts materially, or the retrieved context is not actually answer-bearing. Authorization, current-version eligibility, and evidence integrity are deterministic upstream controls rather than model-judge reasons.
 
 The first 16 evidence-set cases in this benchmark are **review candidates**, not goldens.
 
@@ -24,8 +24,8 @@ The first 16 evidence-set cases in this benchmark are **review candidates**, not
 | Pattern families | 4 |
 | Human-approved cases | 0 |
 | Executable sufficiency goldens | 0 |
-| Model sufficiency grader | not implemented |
-| Production sufficiency gate | not implemented |
+| Model sufficiency grader | implemented, `UNVALIDATED` |
+| Production sufficiency gate | not release-valid until human calibration |
 
 The candidate families are:
 
@@ -43,9 +43,13 @@ query
   ↓
 governed retrieval
   ↓
-ranked Top-K evidence
+authorization / current-version / evidence-integrity controls
+  ↓
+ranked eligible Top-K evidence
   ↓
 retrieval abstention V1
+  ↓
+immutable EvidenceSet
   ↓
 EVIDENCE SUFFICIENCY
   ├── sufficient   → eligible for grounded generation
@@ -132,21 +136,18 @@ reason = one explicit insufficiency reason
 would_answer = false
 ```
 
-Depending on the reason, missing facts may be explicit or the failure may instead be conflict, staleness, authorization, weak support, or lack of an answer-bearing passage.
+Depending on the reason, missing facts may be explicit or the failure may instead be a material conflict or lack of answer-bearing support. Authorization and version validity are handled before the judge sees an EvidenceSet.
 
 ## Reason taxonomy
 
 | Reason | Meaning |
 | --- | --- |
-| `NONE` | Context is sufficient |
+| `NONE` | Eligible evidence is sufficient |
 | `MISSING_CRITICAL_FACT` | A specific required fact is absent |
 | `PARTIAL_COVERAGE` | Some but not all of the information need is covered |
-| `CONFLICTING_EVIDENCE` | Available evidence disagrees materially |
-| `STALE_EVIDENCE` | Evidence is obsolete/superseded for the decision |
-| `UNAUTHORIZED_EVIDENCE` | Required evidence exists but is inaccessible under the current context |
-| `WEAK_SUPPORT` | Evidence is too ambiguous or weak to support the answer |
-| `NO_ANSWER_BEARING_PASSAGE` | Evidence is on-topic but does not actually answer the question |
-| `OTHER` | Human reviewer identifies a gap outside the current taxonomy |
+| `CONFLICTING_SUPPORT` | Eligible evidence disagrees materially on an answer-bearing fact |
+| `NO_ANSWER_SUPPORT` | Evidence may be on-topic but does not support a definitive answer |
+| `OTHER` | Human reviewer identifies a sufficiency gap outside the current taxonomy |
 
 ## Current candidate distribution
 
@@ -196,7 +197,7 @@ QE-113 provides the human-labelled data needed to evaluate the next layer direct
 
 ## Relationship to future model grading
 
-A future model-based sufficiency classifier may receive:
+The runtime model-based sufficiency judge receives:
 
 ```text
 query + evidence set
@@ -208,7 +209,7 @@ SUFFICIENT / INSUFFICIENT
 
 Its output must be compared against the human-approved benchmark.
 
-Model output will not be treated as self-validating ground truth.
+Until that calibration exists, every runtime decision carries `validation_status=UNVALIDATED`. Model output is operationally useful for the walking skeleton but is not a quality claim and will not be treated as self-validating ground truth.
 
 ## Validation controls implemented in V1
 

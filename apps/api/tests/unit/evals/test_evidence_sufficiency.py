@@ -114,7 +114,7 @@ def test_duplicate_human_reviewer_identity_is_rejected() -> None:
 
 def test_sufficient_review_requires_none_reason_and_no_missing_facts() -> None:
     with pytest.raises(ValueError, match="reason NONE"):
-        _review(reason=EvidenceSufficiencyReason.WEAK_SUPPORT)
+        _review(reason=EvidenceSufficiencyReason.PARTIAL_COVERAGE)
 
     with pytest.raises(ValueError, match="must not declare missing facts"):
         _review(missing_facts=("missing item",))
