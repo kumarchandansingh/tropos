@@ -138,15 +138,11 @@ def evaluate_retrieval_case(
         "top_score": top_score,
         "second_score": second_score,
         "top_score_margin": (
-            top_score - second_score
-            if top_score is not None and second_score is not None
-            else None
+            top_score - second_score if top_score is not None and second_score is not None else None
         ),
         "top_score_ratio": (
             top_score / second_score
-            if top_score is not None
-            and second_score is not None
-            and second_score != 0.0
+            if top_score is not None and second_score is not None and second_score != 0.0
             else None
         ),
     }

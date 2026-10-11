@@ -272,9 +272,7 @@ def evaluate_abstention_policy(
             abstained_expected_empty_count += 1
 
     if answerable_count == 0 or expected_empty_count == 0:
-        raise ValueError(
-            "abstention evaluation requires both answerable and expected-empty cases"
-        )
+        raise ValueError("abstention evaluation requires both answerable and expected-empty cases")
 
     answerable_coverage = returned_answerable_count / answerable_count
     answerable_recall_at_5 = answerable_recall_total / answerable_count
@@ -389,12 +387,10 @@ def calibrate_top_score_threshold(
         point
         for point in points
         if not any(
-            other.metrics.answerable_recall_at_5
-            >= point.metrics.answerable_recall_at_5
+            other.metrics.answerable_recall_at_5 >= point.metrics.answerable_recall_at_5
             and other.metrics.false_answer_rate <= point.metrics.false_answer_rate
             and (
-                other.metrics.answerable_recall_at_5
-                > point.metrics.answerable_recall_at_5
+                other.metrics.answerable_recall_at_5 > point.metrics.answerable_recall_at_5
                 or other.metrics.false_answer_rate < point.metrics.false_answer_rate
             )
             for other in points

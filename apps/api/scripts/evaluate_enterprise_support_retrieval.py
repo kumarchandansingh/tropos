@@ -23,12 +23,12 @@ from tropos.core.adapters.retrieval.hybrid_rrf import HybridRrfKnowledgeRetrieve
 from tropos.core.adapters.retrieval.sqlite_fts import SQLiteFtsKnowledgeRetriever
 from tropos.core.application.embeddings.materialize import MaterializeEmbeddings
 from tropos.core.application.embeddings.models import EmbeddingVector, SimilarityMetric
-from tropos.core.application.ports.retrieval import KnowledgeChunkRetriever
 from tropos.core.application.ingestion.ingest_knowledge import (
     IngestKnowledge,
     IngestKnowledgeCommand,
 )
 from tropos.core.application.ingestion.raw_record import RawKnowledgeRecord
+from tropos.core.application.ports.retrieval import KnowledgeChunkRetriever
 from tropos.core.domain.knowledge_chunk import KnowledgeChunk
 from tropos.evals.abstention import (
     TopScoreAbstentionPolicy,
@@ -265,10 +265,7 @@ def main() -> int:
         "--dataset",
         type=Path,
         default=(
-            Path(__file__).parents[1]
-            / "evals"
-            / "resolve"
-            / "enterprise_support_benchmark_v1.json"
+            Path(__file__).parents[1] / "evals" / "resolve" / "enterprise_support_benchmark_v1.json"
         ),
     )
     parser.add_argument(
@@ -289,10 +286,7 @@ def main() -> int:
         parser.error("--minimum-answerable-recall must be between 0 and 1")
 
     benchmark = load_enterprise_support_benchmark(arguments.dataset)
-    datasets = {
-        split: benchmark.retrieval_dataset(split)
-        for split in EvalSplit
-    }
+    datasets = {split: benchmark.retrieval_dataset(split) for split in EvalSplit}
 
     repository_root = Path(__file__).parents[2]
     sink = None if arguments.database is None else SQLiteExperimentStore(arguments.database)
@@ -363,10 +357,7 @@ def main() -> int:
             )
             for name in retrievers
         }
-        policies = {
-            name: calibration.policy
-            for name, calibration in calibrations.items()
-        }
+        policies = {name: calibration.policy for name, calibration in calibrations.items()}
 
         abstained_runs = {
             split.value: _run_retrievers(
@@ -407,17 +398,11 @@ def main() -> int:
             "model_identifier": materialization.model_identifier,
         },
         "raw_runs": {
-            split: {
-                name: eval_run_to_dict(run)
-                for name, run in split_runs.items()
-            }
+            split: {name: eval_run_to_dict(run) for name, run in split_runs.items()}
             for split, split_runs in raw_runs.items()
         },
         "raw_summaries": {
-            split: {
-                name: _summary(run)
-                for name, run in split_runs.items()
-            }
+            split: {name: _summary(run) for name, run in split_runs.items()}
             for split, split_runs in raw_runs.items()
         },
         "development_comparisons": {
@@ -448,18 +433,14 @@ def main() -> int:
                 name: {
                     "calibration": calibrations[name].as_dict(),
                     "applied_run_summaries": {
-                        split: _summary(abstained_runs[split][name])
-                        for split in abstained_runs
+                        split: _summary(abstained_runs[split][name]) for split in abstained_runs
                     },
                 }
                 for name in retrievers
             },
         },
         "abstained_runs": {
-            split: {
-                name: eval_run_to_dict(run)
-                for name, run in split_runs.items()
-            }
+            split: {name: eval_run_to_dict(run) for name, run in split_runs.items()}
             for split, split_runs in abstained_runs.items()
         },
         "gate": {
