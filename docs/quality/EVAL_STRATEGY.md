@@ -240,3 +240,14 @@ The first unified BM25/dense/hybrid execution on the 24-case enterprise-support 
 The strongest observed signal is the abstention gap: BM25, dense MPNet, and hybrid RRF each achieved no-answer accuracy of 0.083 (1 of 12 expected-empty cases), while all three passed the retrieval hard invariants. Dense and hybrid improved answerable recall/ranking relative to BM25 on the same test set.
 
 This evidence moves QE-109 from a hypothetical enhancement to a measured quality risk. No retrieval strategy is promoted as a production default until abstention is calibrated and verified on stronger holdout evidence.
+
+
+## Retrieval abstention calibration
+
+QE-109 introduces a strategy-specific top-score abstention baseline. Retrieval observations expose top score, second score, score margin, and ratio as diagnostics rather than generic quality scores.
+
+The automated real-model workflow calibrates one threshold per retrieval strategy on the development split only. The calibration caller supplies the minimum answerable Recall@5 operating point; the current workflow uses 0.90. Among thresholds satisfying that floor, the selector minimizes expected-empty false-answer rate.
+
+The selected policy is frozen and then evaluated on development, holdout, and challenge splits without recalibration. Policy parameters and calibration dataset identity are recorded in abstention-applied run provenance.
+
+See [Retrieval abstention calibration](RETRIEVAL_ABSTENTION.md) and [ADR-020](../decisions/ADR-020-calibrated-retrieval-abstention.md).
