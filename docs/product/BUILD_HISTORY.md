@@ -102,6 +102,7 @@ The backlog uses P0/P1/P2/deferred priority, sprint-ready user stories, estimate
 | PR #83 | Retrieval regression gate | Run base and candidate code against the same saved retrieval catalogue and block case/invariant/metric regressions | `retrieval-regression-gate.yml`, `regression_gate.py`, saved run evidence |
 | PR #84 | Evaluation product-quality model | Separate product quality questions from the experiment runtime so tests, invariants, benchmarks, model evaluations, and product outcomes retain distinct semantics | `EVALUATION_MODEL.md`, `EVALUATION_CONTRACTS.md`, Archify quality/runtime views |
 | PR #85 | Critical semantic test hardening and shared retriever contracts | Protect mutation-surviving behavior before expanding the benchmark; apply common authorization/lifecycle/result contracts to BM25, dense, and hybrid retrieval | shared retriever contract tests, fingerprint/comparison/vector/regression-gate tests |
+| Enterprise support benchmark V1 | Realistic complete-case evaluation seed | Start from full resolved cases and project the same evidence into retrieval, Resolve decisions, and Knowledge Article expectations instead of growing disconnected toy datasets | `enterprise_support_benchmark_v1.json`, `enterprise_support.py`, `ENTERPRISE_SUPPORT_BENCHMARK.md` |
 
 The evaluation foundation now has an automated PR regression gate and common retrieval assurance semantics. Larger holdout data, abstention calibration, generic real-model Knowledge Article execution, and semantic-judge calibration remain separate work.
 
