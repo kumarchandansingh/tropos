@@ -334,6 +334,20 @@ def _validate_case_record(case_id: str, record: JsonObject) -> None:
         raise ValueError(f"{case_id}: duplicate work-note IDs")
 
 
+
+def _reference_evidence_ids(value: JsonValue) -> set[str]:
+    collected: set[str] = set()
+    if isinstance(value, dict):
+        raw_refs = value.get("evidence_chunk_ids")
+        if raw_refs is not None:
+            collected.update(_strings(raw_refs))
+        for child in value.values():
+            collected.update(_reference_evidence_ids(child))
+    elif isinstance(value, list):
+        for child in value:
+            collected.update(_reference_evidence_ids(child))
+    return collected
+
 def _validate_article_expectation(
     case_id: str,
     action: KnowledgeAction,
@@ -363,10 +377,9 @@ def _validate_article_expectation(
             raise ValueError(f"{case_id}: duplicate article evidence ID {evidence_id}")
         evidence_ids.add(evidence_id)
 
+    article_type = ArticleType(_text(article["article_type"]))
     expected = _object(article["expected"])
-    if ArticleType(_text(expected["article_type"])) is not ArticleType(
-        _text(article["article_type"])
-    ):
+    if ArticleType(_text(expected["article_type"])) is not article_type:
         raise ValueError(f"{case_id}: article type and expected type disagree")
     _strings(expected["required_sections"])
     _strings(expected["forbidden_terms"])
@@ -382,6 +395,18 @@ def _validate_article_expectation(
                 )
             if key == "gaps":
                 _text(item["kind"])
+
+    reference = _object(article["reference_article"])
+    if ArticleType(_text(reference["article_type"])) is not article_type:
+        raise ValueError(f"{case_id}: reference article type disagrees with expectation")
+    _text(reference["title"])
+    reference_ids = _reference_evidence_ids(reference)
+    if not reference_ids:
+        raise ValueError(f"{case_id}: reference article requires evidence citations")
+    if not reference_ids <= evidence_ids:
+        raise ValueError(
+            f"{case_id}: reference article cites evidence that is not supplied"
+        )
 
 
 def _parse_case(
