@@ -163,7 +163,8 @@ def _database_diagnostics(
                              AND e.embedding_strategy_version = ?
                             WHERE s.lifecycle_status = 'ACTIVE'
                               AND c.normalized_content_fingerprint = s.content_fingerprint
-                              AND c.normalization_strategy_version = s.normalization_strategy_version
+                              AND c.normalization_strategy_version =
+                                  s.normalization_strategy_version
                               AND e.chunk_id IS NULL
                             """,
                             (embedding_strategy_version,),
