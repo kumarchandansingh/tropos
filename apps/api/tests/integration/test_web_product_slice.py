@@ -23,7 +23,7 @@ def _start_server(tmp_path: Path) -> tuple[ThreadingHTTPServer, str, Thread]:
         database_path=tmp_path / "tropos.db",
         trace_path=tmp_path / "traces.jsonl",
     )
-    host, port = server.server_address
+    host, port = cast(tuple[str, int], server.server_address)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     return server, f"http://{host}:{port}", thread
@@ -59,7 +59,7 @@ def test_web_ingest_creates_searchable_governed_knowledge(tmp_path: Path) -> Non
         database_path=database,
         trace_path=tmp_path / "traces.jsonl",
     )
-    host, port = server.server_address
+    host, port = cast(tuple[str, int], server.server_address)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -138,7 +138,7 @@ def test_web_trace_detail_reads_exact_trace(tmp_path: Path) -> None:
         database_path=tmp_path / "tropos.db",
         trace_path=trace_path,
     )
-    host, port = server.server_address
+    host, port = cast(tuple[str, int], server.server_address)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
