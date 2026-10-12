@@ -204,7 +204,7 @@ class GroqLLMAdapter:
         self,
         request: TextCompletionRequest | StructuredCompletionRequest[StructuredT],
     ) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "model": self._deployment.model_identifier,
             "messages": [
                 {"role": "system", "content": request.system_prompt},
@@ -213,6 +213,10 @@ class GroqLLMAdapter:
             "temperature": request.temperature,
             "max_completion_tokens": request.max_output_tokens,
         }
+        if self._deployment.model_identifier.startswith("openai/gpt-oss-"):
+            payload["reasoning_effort"] = "low"
+            payload["include_reasoning"] = False
+        return payload
 
     def _invoke(self, payload: Mapping[str, object]) -> tuple[dict[str, object], float]:
         started = monotonic()
@@ -236,6 +240,11 @@ class GroqLLMAdapter:
         first = choices[0]
         if not isinstance(first, dict):
             raise LLMResponseError("Groq choice has an unexpected shape")
+        finish_reason = first.get("finish_reason")
+        if finish_reason == "length":
+            raise LLMResponseError(
+                "Groq response was truncated at max_completion_tokens"
+            )
         message = first.get("message")
         if not isinstance(message, dict):
             raise LLMResponseError("Groq choice contains no message")
