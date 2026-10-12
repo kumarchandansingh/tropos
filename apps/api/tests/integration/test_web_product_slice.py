@@ -36,7 +36,7 @@ def _read_json(request: Request) -> tuple[int, dict[str, object]]:
         return response.status, cast(dict[str, object], parsed)
 
 
-def test_web_shell_exposes_sources_and_resolve_workspaces(tmp_path: Path) -> None:
+def test_web_shell_exposes_sources_resolve_and_observability(tmp_path: Path) -> None:
     server, base, thread = _start_server(tmp_path)
     try:
         with urlopen(base + "/", timeout=3) as response:
@@ -44,7 +44,8 @@ def test_web_shell_exposes_sources_and_resolve_workspaces(tmp_path: Path) -> Non
         assert response.status == 200
         assert "Sources & Ingestion" in html
         assert ">Resolve<" in html
-        assert "Sufficiency remains visibly unvalidated" in html
+        assert ">Observability<" in html
+        assert "Already ingested. Existing knowledge version retained" in html
     finally:
         server.shutdown()
         thread.join(timeout=3)
@@ -155,6 +156,140 @@ def test_web_trace_detail_reads_exact_trace(tmp_path: Path) -> None:
         first = spans[0]
         assert isinstance(first, dict)
         assert first["name"] == "resolve.retrieval"
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
+
+
+def test_web_reupload_identical_content_returns_explicit_replay(tmp_path: Path) -> None:
+    server, base, thread = _start_server(tmp_path)
+    body = b"# Rotation\n\nRestart the edge service after certificate rotation."
+    try:
+        first = Request(
+            base + "/api/ingest?filename=runbook.md&tenant=local",
+            data=body,
+            method="POST",
+        )
+        second = Request(
+            base + "/api/ingest?filename=runbook.md&tenant=local",
+            data=body,
+            method="POST",
+        )
+
+        _, first_payload = _read_json(first)
+        _, second_payload = _read_json(second)
+
+        assert first_payload["outcome"] == "VERSION_CREATED"
+        assert first_payload["replayed"] is False
+        assert second_payload["outcome"] == "VERSION_CREATED"
+        assert second_payload["replayed"] is True
+        assert second_payload["status"] == "available"
+        assert second_payload["run_id"] == first_payload["run_id"]
+        assert second_payload["chunks_written"] == first_payload["chunks_written"]
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
+
+
+def test_web_errors_have_structured_operation_envelope(tmp_path: Path) -> None:
+    server, base, thread = _start_server(tmp_path)
+    try:
+        request = Request(
+            base + "/api/ingest?filename=secret.exe",
+            data=b"not allowed",
+            method="POST",
+        )
+        try:
+            urlopen(request, timeout=3)
+        except HTTPError as exc:
+            payload = json.loads(exc.read())
+            assert exc.code == 422
+            assert payload["error"]["code"] == "INGESTION_FAILED"
+            assert payload["error"]["stage"] == "ingestion"
+            assert payload["error"]["retryable"] is False
+        else:
+            raise AssertionError("unsupported file must be rejected")
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
+
+
+def test_observability_lists_recent_traces_and_summary(tmp_path: Path) -> None:
+    trace_path = tmp_path / "traces.jsonl"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "trace_id": "trace_demo",
+                "request_id": "request_demo",
+                "recorded_at": "2026-10-12T03:00:00+00:00",
+                "outcome": "ANSWERED",
+                "spans": [
+                    {
+                        "name": "resolve.retrieval",
+                        "status": "OK",
+                        "attributes": {
+                            "strategy_version": "sqlite-fts5-bm25-v1",
+                            "result_count": 1,
+                        },
+                    },
+                    {
+                        "name": "resolve.retrieval_gate",
+                        "status": "OK",
+                        "attributes": {"reason": "passed"},
+                    },
+                    {
+                        "name": "resolve.sufficiency",
+                        "status": "OK",
+                        "attributes": {
+                            "label": "SUFFICIENT",
+                            "validation_status": "UNVALIDATED",
+                            "model": "test-model",
+                            "latency_ms": 100.0,
+                            "input_tokens": 20,
+                            "output_tokens": 5,
+                        },
+                    },
+                    {
+                        "name": "resolve.generation",
+                        "status": "OK",
+                        "attributes": {
+                            "model": "test-model",
+                            "latency_ms": 200.0,
+                            "input_tokens": 30,
+                            "output_tokens": 10,
+                        },
+                    },
+                ],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    server = build_server(
+        host="127.0.0.1",
+        port=0,
+        database_path=tmp_path / "tropos.db",
+        trace_path=trace_path,
+    )
+    host, port = cast(tuple[str, int], server.server_address)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with urlopen(f"http://{host}:{port}/api/observability", timeout=3) as response:
+            parsed = json.loads(response.read())
+
+        assert response.status == 200
+        assert parsed["summary"]["trace_count"] == 1
+        assert parsed["summary"]["answered"] == 1
+        assert parsed["summary"]["input_tokens"] == 50
+        assert parsed["summary"]["output_tokens"] == 15
+        assert parsed["summary"]["average_model_latency_ms"] == 300.0
+        assert parsed["summary"]["cost"] is None
+        assert parsed["traces"][0]["retrieval_strategy"] == "sqlite-fts5-bm25-v1"
+        assert parsed["traces"][0]["sufficiency"] == "SUFFICIENT"
     finally:
         server.shutdown()
         thread.join(timeout=3)

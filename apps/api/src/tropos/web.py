@@ -8,7 +8,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
@@ -156,18 +156,124 @@ def _resolve_payload(result: ResolveResult) -> dict[str, object]:
     return payload
 
 
-def _read_trace(path: Path, trace_id: str) -> dict[str, object] | None:
+def _read_traces(path: Path, *, limit: int = 100) -> list[dict[str, object]]:
     if not path.exists():
-        return None
+        return []
+    traces: list[dict[str, object]] = []
     with path.open("r", encoding="utf-8") as handle:
         for line in reversed(handle.readlines()):
             try:
-                trace = json.loads(line)
+                parsed = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if isinstance(trace, dict) and trace.get("trace_id") == trace_id:
-                return trace
+            if isinstance(parsed, dict):
+                traces.append(cast(dict[str, object], parsed))
+            if len(traces) >= limit:
+                break
+    return traces
+
+
+def _read_trace(path: Path, trace_id: str) -> dict[str, object] | None:
+    return next((trace for trace in _read_traces(path) if trace.get("trace_id") == trace_id), None)
+
+
+def _span_by_name(trace: dict[str, object], name: str) -> dict[str, object] | None:
+    spans = trace.get("spans")
+    if not isinstance(spans, list):
+        return None
+    for raw in spans:
+        if isinstance(raw, dict) and raw.get("name") == name:
+            return cast(dict[str, object], raw)
     return None
+
+
+def _span_attributes(span: dict[str, object] | None) -> dict[str, object]:
+    if span is None:
+        return {}
+    attributes = span.get("attributes")
+    return cast(dict[str, object], attributes) if isinstance(attributes, dict) else {}
+
+
+def _trace_summary(trace: dict[str, object]) -> dict[str, object]:
+    retrieval = _span_attributes(_span_by_name(trace, "resolve.retrieval"))
+    gate_span = _span_by_name(trace, "resolve.retrieval_gate")
+    gate = _span_attributes(gate_span)
+    sufficiency = _span_attributes(_span_by_name(trace, "resolve.sufficiency"))
+    generation = _span_attributes(_span_by_name(trace, "resolve.generation"))
+    model = generation.get("model") or sufficiency.get("model")
+    latency_values = [
+        value
+        for value in (sufficiency.get("latency_ms"), generation.get("latency_ms"))
+        if isinstance(value, int | float)
+    ]
+    input_values = [
+        value
+        for value in (sufficiency.get("input_tokens"), generation.get("input_tokens"))
+        if isinstance(value, int)
+    ]
+    output_values = [
+        value
+        for value in (sufficiency.get("output_tokens"), generation.get("output_tokens"))
+        if isinstance(value, int)
+    ]
+    return {
+        "trace_id": trace.get("trace_id"),
+        "request_id": trace.get("request_id"),
+        "outcome": trace.get("outcome"),
+        "recorded_at": trace.get("recorded_at"),
+        "retrieval_strategy": retrieval.get("strategy_version"),
+        "result_count": retrieval.get("result_count"),
+        "gate_status": gate_span.get("status") if gate_span else None,
+        "gate_reason": gate.get("reason"),
+        "sufficiency": sufficiency.get("label"),
+        "validation_status": sufficiency.get("validation_status"),
+        "model": model,
+        "model_latency_ms": round(sum(float(value) for value in latency_values), 2)
+        if latency_values
+        else None,
+        "input_tokens": sum(input_values),
+        "output_tokens": sum(output_values),
+    }
+
+
+def _observability_payload(path: Path) -> dict[str, object]:
+    traces = _read_traces(path, limit=200)
+    summaries = [_trace_summary(trace) for trace in traces]
+    answered = sum(summary.get("outcome") == "ANSWERED" for summary in summaries)
+    abstained = sum(
+        summary.get("outcome") in {"RETRIEVAL_ABSTAINED", "EVIDENCE_INSUFFICIENT"}
+        for summary in summaries
+    )
+    failed = sum(summary.get("outcome") == "RUNTIME_FAILED" for summary in summaries)
+    input_tokens = 0
+    output_tokens = 0
+    latency_values: list[float] = []
+    for summary in summaries:
+        input_value = summary.get("input_tokens")
+        output_value = summary.get("output_tokens")
+        latency_value = summary.get("model_latency_ms")
+        if isinstance(input_value, int):
+            input_tokens += input_value
+        if isinstance(output_value, int):
+            output_tokens += output_value
+        if isinstance(latency_value, int | float):
+            latency_values.append(float(latency_value))
+    return {
+        "summary": {
+            "trace_count": len(summaries),
+            "answered": answered,
+            "abstained": abstained,
+            "failed": failed,
+            "answer_rate": round(answered / len(summaries), 3) if summaries else None,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "average_model_latency_ms": round(sum(latency_values) / len(latency_values), 2)
+            if latency_values
+            else None,
+            "cost": None,
+        },
+        "traces": summaries,
+    }
 
 
 def _build_runtime(database: Path, trace_file: Path) -> ResolveQuestion:
@@ -254,8 +360,27 @@ def build_server(
             self.end_headers()
             self.wfile.write(body)
 
-        def _error(self, status: HTTPStatus, message: str) -> None:
-            self._send_json(status, {"detail": message})
+        def _error(
+            self,
+            status: HTTPStatus,
+            message: str,
+            *,
+            code: str = "REQUEST_FAILED",
+            stage: str = "request",
+            retryable: bool = False,
+        ) -> None:
+            self._send_json(
+                status,
+                {
+                    "detail": message,
+                    "error": {
+                        "code": code,
+                        "stage": stage,
+                        "message": message,
+                        "retryable": retryable,
+                    },
+                },
+            )
 
         def _body(self) -> bytes:
             raw_length = self.headers.get("Content-Length")
@@ -287,6 +412,9 @@ def build_server(
                     },
                 )
                 return
+            if parsed.path == "/api/observability":
+                self._send_json(HTTPStatus.OK, _observability_payload(trace_file))
+                return
             if parsed.path.startswith("/api/traces/"):
                 trace_id = parsed.path.removeprefix("/api/traces/")
                 if not trace_id.startswith("trace_"):
@@ -305,10 +433,20 @@ def build_server(
             try:
                 body = self._body()
             except OverflowError:
-                self._error(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, "Files are limited to 10 MB.")
+                self._error(
+                    HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                    "Files are limited to 10 MB.",
+                    code="UPLOAD_TOO_LARGE",
+                    stage="upload",
+                )
                 return
             except ValueError as exc:
-                self._error(HTTPStatus.BAD_REQUEST, str(exc))
+                self._error(
+                    HTTPStatus.BAD_REQUEST,
+                    str(exc),
+                    code="INVALID_REQUEST",
+                    stage="request",
+                )
                 return
 
             if parsed.path == "/api/ingest":
@@ -317,7 +455,12 @@ def build_server(
                 tenant = query.get("tenant", ["local"])[0].strip() or "local"
                 groups = _normalize_groups(query.get("group", []))
                 if not body:
-                    self._error(HTTPStatus.BAD_REQUEST, "The uploaded file is empty.")
+                    self._error(
+                        HTTPStatus.BAD_REQUEST,
+                        "The uploaded file is empty.",
+                        code="EMPTY_UPLOAD",
+                        stage="upload",
+                    )
                     return
                 try:
                     safe_name = _safe_upload_name(filename)
@@ -331,7 +474,13 @@ def build_server(
                             groups=groups,
                         )
                 except (ValueError, OSError, RuntimeError) as exc:
-                    self._error(HTTPStatus.UNPROCESSABLE_ENTITY, str(exc))
+                    self._error(
+                        HTTPStatus.UNPROCESSABLE_ENTITY,
+                        str(exc),
+                        code="INGESTION_FAILED",
+                        stage="ingestion",
+                        retryable=isinstance(exc, OSError | RuntimeError),
+                    )
                     return
                 self._send_json(HTTPStatus.OK, _ingestion_payload(result, safe_name))
                 return
@@ -357,13 +506,29 @@ def build_server(
                         )
                     )
                 except json.JSONDecodeError:
-                    self._error(HTTPStatus.BAD_REQUEST, "Request body must be valid JSON.")
+                    self._error(
+                        HTTPStatus.BAD_REQUEST,
+                        "Request body must be valid JSON.",
+                        code="INVALID_JSON",
+                        stage="resolve",
+                    )
                     return
                 except ValueError as exc:
-                    self._error(HTTPStatus.BAD_REQUEST, str(exc))
+                    self._error(
+                        HTTPStatus.BAD_REQUEST,
+                        str(exc),
+                        code="INVALID_RESOLVE_REQUEST",
+                        stage="resolve",
+                    )
                     return
                 except (OSError, RuntimeError) as exc:
-                    self._error(HTTPStatus.BAD_GATEWAY, str(exc))
+                    self._error(
+                        HTTPStatus.BAD_GATEWAY,
+                        str(exc),
+                        code="MODEL_RUNTIME_FAILED",
+                        stage="resolve",
+                        retryable=True,
+                    )
                     return
                 self._send_json(HTTPStatus.OK, _resolve_payload(resolved))
                 return

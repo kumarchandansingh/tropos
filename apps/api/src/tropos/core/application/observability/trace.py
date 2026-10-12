@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
@@ -78,5 +79,7 @@ class JsonlTraceSink:
 
     def write(self, trace: RuntimeTrace) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
+        snapshot = trace.snapshot()
+        snapshot["recorded_at"] = datetime.now(UTC).isoformat()
         with self._path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(trace.snapshot(), separators=(",", ":")) + "\n")
+            handle.write(json.dumps(snapshot, separators=(",", ":")) + "\n")
