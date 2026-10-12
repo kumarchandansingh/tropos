@@ -723,15 +723,17 @@ def build_server(
                         stage="request",
                     )
                     return
-            elif parsed.path == "/api/ingest":
-                if self._content_type() not in _ALLOWED_UPLOAD_CONTENT_TYPES:
-                    self._error(
-                        HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
-                        "Unsupported upload Content-Type.",
-                        code="INVALID_CONTENT_TYPE",
-                        stage="upload",
-                    )
-                    return
+            elif (
+                parsed.path == "/api/ingest"
+                and self._content_type() not in _ALLOWED_UPLOAD_CONTENT_TYPES
+            ):
+                self._error(
+                    HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+                    "Unsupported upload Content-Type.",
+                    code="INVALID_CONTENT_TYPE",
+                    stage="upload",
+                )
+                return
             try:
                 body = self._body()
             except OverflowError:
