@@ -288,3 +288,8 @@ Defer:
 Revisit ANN when scale rehearsal shows exact cosine violates agreed latency/memory/concurrency thresholds.
 
 Revisit reranking only when production-like labeled evaluation shows a material quality gain over BM25/dense/RRF.
+
+
+## 14. Implementation status
+
+Operational Retrieval V1 is implemented behind explicit runtime selection. BM25 remains the default; semantic strategies require a configured embedding connection and an explicitly materialized semantic index before Resolve can use them. Promotion of any strategy to a new default remains an evaluation decision rather than an implementation default.
