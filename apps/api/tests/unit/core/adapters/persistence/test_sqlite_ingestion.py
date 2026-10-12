@@ -44,6 +44,7 @@ def _orchestrator(
     store: SQLiteIngestionStore,
     *,
     normalizer_version: str = "canonical-text-v1",
+    processing_version: str = "ingestion-pipeline-v2-embedded-html-data",
 ) -> IngestKnowledge:
     return IngestKnowledge(
         parser=DeterministicKnowledgeParser(),
@@ -52,6 +53,7 @@ def _orchestrator(
         source_captures=store,
         knowledge_repository=store,
         runs=store,
+        processing_version=processing_version,
     )
 
 
@@ -181,3 +183,92 @@ def test_parser_failure_is_persisted_as_failed_run(tmp_path: Path) -> None:
         ).fetchone()
 
     assert row == ("FAILED", "FAILED", "UnsupportedContentTypeError")
+
+
+
+def test_processing_version_reprocesses_same_raw_source_without_changing_raw_identity(
+    tmp_path: Path,
+) -> None:
+    store = SQLiteIngestionStore(tmp_path / "tropos.db")
+    raw = _raw("# Reset\n\nUse the portal.", source_version="1")
+
+    first = _orchestrator(
+        store,
+        processing_version="ingestion-pipeline-v1",
+    ).execute(
+        IngestKnowledgeCommand(
+            knowledge_id="knowledge-processing-version",
+            raw_record=raw,
+        )
+    )
+    second = _orchestrator(
+        store,
+        processing_version="ingestion-pipeline-v2-embedded-html-data",
+    ).execute(
+        IngestKnowledgeCommand(
+            knowledge_id="knowledge-processing-version",
+            raw_record=raw,
+        )
+    )
+
+    assert first.outcome is IngestionOutcome.VERSION_CREATED
+    assert second.outcome is IngestionOutcome.NO_CHANGE
+    assert second.replayed is False
+    assert second.run_id != first.run_id
+    assert second.ingestion_fingerprint == first.ingestion_fingerprint
+
+    with sqlite3.connect(tmp_path / "tropos.db") as connection:
+        versions = connection.execute(
+            """
+            SELECT processing_version
+            FROM ingestion_runs
+            WHERE knowledge_id = ?
+            ORDER BY started_at
+            """,
+            ("knowledge-processing-version",),
+        ).fetchall()
+
+    assert {row[0] for row in versions} == {
+        "ingestion-pipeline-v1",
+        "ingestion-pipeline-v2-embedded-html-data",
+    }
+
+
+
+def test_sqlite_store_migrates_legacy_ingestion_run_identity(tmp_path: Path) -> None:
+    database = tmp_path / "legacy.db"
+    with sqlite3.connect(database) as connection:
+        connection.executescript(
+            """
+            CREATE TABLE ingestion_runs (
+                run_id TEXT PRIMARY KEY,
+                knowledge_id TEXT NOT NULL,
+                ingestion_fingerprint TEXT NOT NULL,
+                status TEXT NOT NULL,
+                stage TEXT NOT NULL,
+                outcome TEXT,
+                version_action TEXT,
+                version_reason TEXT,
+                canonical_content_fingerprint TEXT,
+                chunks_written INTEGER NOT NULL DEFAULT 0,
+                governance_refreshed INTEGER NOT NULL DEFAULT 0,
+                error_type TEXT,
+                error_message TEXT,
+                started_at TEXT NOT NULL,
+                completed_at TEXT,
+                UNIQUE (knowledge_id, ingestion_fingerprint)
+            );
+            """
+        )
+
+    SQLiteIngestionStore(database)
+
+    with sqlite3.connect(database) as connection:
+        columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(ingestion_runs)").fetchall()
+        }
+        indexes = connection.execute("PRAGMA index_list(ingestion_runs)").fetchall()
+
+    assert "processing_version" in columns
+    assert indexes
