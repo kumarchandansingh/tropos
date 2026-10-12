@@ -42,6 +42,12 @@ Weaviate runs keyword/BM25 and vector retrieval as separate legs and fuses their
 
 Langfuse models retrieval/model operations as observations within one request trace. Tropos should continue to expose retrieval strategy, candidate IDs/ranks/scores and downstream model latency in the existing Resolve trace rather than creating a separate diagnostics mechanism.
 
+Reference documentation:
+- https://docs.weaviate.io/weaviate/concepts/search/hybrid-search
+- https://docs.weaviate.io/weaviate/concepts/search/keyword-search
+- https://langfuse.com/docs/observability/overview
+- https://langfuse.com/docs/observability/data-model
+
 ### Existing Tropos ADR-015
 
 ADR-015 already chose:
