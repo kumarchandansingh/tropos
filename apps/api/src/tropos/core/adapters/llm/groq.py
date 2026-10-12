@@ -103,7 +103,7 @@ class UrllibJsonTransport:
             return None
         try:
             payload = json.loads(raw)
-        except (json.JSONDecodeError, UnicodeDecodeError):
+        except json.JSONDecodeError, UnicodeDecodeError:
             return None
         if not isinstance(payload, dict):
             return None
