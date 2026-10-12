@@ -63,7 +63,7 @@ def _balanced_literal(script: str, start: int) -> str | None:
             if escaped:
                 escaped = False
                 continue
-            if character == "\\\\":
+            if character == "\\":
                 escaped = True
                 continue
             if character == quote:
@@ -106,7 +106,7 @@ def _pythonize_js_literal(literal: str) -> str:
             output.append(character)
             if escaped:
                 escaped = False
-            elif character == "\\\\":
+            elif character == "\\":
                 escaped = True
             elif character == quote:
                 quote = None
@@ -250,7 +250,7 @@ def _render_assignment(name: str, value: object) -> str:
                 heading_level=3,
             )
         )
-    return "\\n\\n".join(lines)
+    return "\n\n".join(lines)
 
 
 def extract_embedded_data_markdown(html: str, *, visible_text: str) -> tuple[str, ...]:
