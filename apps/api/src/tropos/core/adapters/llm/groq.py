@@ -24,6 +24,7 @@ from tropos.core.application.ports.llm import (
 from tropos.core.runtime_config import LLMRuntimeSettings
 
 _GROQ_CHAT_COMPLETIONS_URL = "https://api.groq.com/openai/v1/chat/completions"
+_TROPOS_USER_AGENT = "tropos/0.1"
 
 
 class LLMProviderError(RuntimeError):
@@ -70,7 +71,11 @@ class UrllibJsonTransport:
             with urlopen(request, timeout=timeout_seconds) as response:
                 raw = response.read()
         except HTTPError as exc:
-            raise LLMProviderError(f"Groq returned HTTP {exc.code}") from exc
+            detail = self._http_error_detail(exc)
+            message = f"Groq returned HTTP {exc.code}"
+            if detail is not None:
+                message = f"{message}: {detail}"
+            raise LLMProviderError(message) from exc
         except TimeoutError as exc:
             raise LLMTimeoutError("Groq request timed out") from exc
         except URLError as exc:
@@ -85,6 +90,31 @@ class UrllibJsonTransport:
         if not isinstance(parsed, dict):
             raise LLMResponseError("Groq returned an unexpected JSON shape")
         return cast(dict[str, object], parsed)
+
+    @staticmethod
+    def _http_error_detail(exc: HTTPError) -> str | None:
+        """Extract a bounded provider message without exposing request credentials."""
+
+        try:
+            raw = exc.read(16_384)
+        except OSError:
+            return None
+        if not raw:
+            return None
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError, UnicodeDecodeError:
+            return None
+        if not isinstance(payload, dict):
+            return None
+        error = payload.get("error")
+        if not isinstance(error, dict):
+            return None
+        message = error.get("message")
+        if not isinstance(message, str):
+            return None
+        normalized = " ".join(message.split())
+        return normalized[:500] or None
 
 
 class GroqLLMAdapter:
@@ -174,7 +204,7 @@ class GroqLLMAdapter:
         self,
         request: TextCompletionRequest | StructuredCompletionRequest[StructuredT],
     ) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "model": self._deployment.model_identifier,
             "messages": [
                 {"role": "system", "content": request.system_prompt},
@@ -183,6 +213,10 @@ class GroqLLMAdapter:
             "temperature": request.temperature,
             "max_completion_tokens": request.max_output_tokens,
         }
+        if self._deployment.model_identifier.startswith("openai/gpt-oss-"):
+            payload["reasoning_effort"] = "low"
+            payload["include_reasoning"] = False
+        return payload
 
     def _invoke(self, payload: Mapping[str, object]) -> tuple[dict[str, object], float]:
         started = monotonic()
@@ -191,6 +225,7 @@ class GroqLLMAdapter:
             headers={
                 "Authorization": f"Bearer {self._api_key}",
                 "Content-Type": "application/json",
+                "User-Agent": _TROPOS_USER_AGENT,
             },
             payload=payload,
             timeout_seconds=self._timeout_seconds,
@@ -205,6 +240,9 @@ class GroqLLMAdapter:
         first = choices[0]
         if not isinstance(first, dict):
             raise LLMResponseError("Groq choice has an unexpected shape")
+        finish_reason = first.get("finish_reason")
+        if finish_reason == "length":
+            raise LLMResponseError("Groq response was truncated at max_completion_tokens")
         message = first.get("message")
         if not isinstance(message, dict):
             raise LLMResponseError("Groq choice contains no message")
