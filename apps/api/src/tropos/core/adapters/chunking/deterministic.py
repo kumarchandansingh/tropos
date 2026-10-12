@@ -29,6 +29,14 @@ class DeterministicKnowledgeChunker:
         self._minimum_break_ratio = minimum_break_ratio
         self._strategy_version = strategy_version
 
+    @property
+    def strategy_version(self) -> str:
+        return self._strategy_version
+
+    @property
+    def max_characters(self) -> int:
+        return self._max_characters
+
     def chunk(self, document: KnowledgeDocument) -> tuple[KnowledgeChunk, ...]:
         spans = self._find_spans(document.content)
         chunks = tuple(
