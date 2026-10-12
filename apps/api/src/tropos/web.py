@@ -206,7 +206,9 @@ def _coerce_resolve_request(payload: object) -> tuple[str, str, tuple[str, ...],
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 20:
         raise ValueError("limit must be between 1 and 20")
     threshold = payload.get("retrieval_threshold")
-    if threshold is not None and (isinstance(threshold, bool) or not isinstance(threshold, int | float)):
+    if threshold is not None and (
+        isinstance(threshold, bool) or not isinstance(threshold, int | float)
+    ):
         raise ValueError("retrieval_threshold must be numeric")
     return (
         query.strip(),
