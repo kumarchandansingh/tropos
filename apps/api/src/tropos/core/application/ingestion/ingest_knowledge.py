@@ -50,6 +50,8 @@ class IngestKnowledgeCommand:
 class IngestKnowledge:
     """Coordinate deterministic ingestion without owning worker implementation details."""
 
+    default_processing_version = "ingestion-pipeline-v2-embedded-html-data"
+
     def __init__(
         self,
         *,
@@ -60,7 +62,7 @@ class IngestKnowledge:
         knowledge_repository: KnowledgeStateRepository,
         runs: IngestionRunStore,
         run_id_factory: Callable[[], str] | None = None,
-        processing_version: str = "ingestion-pipeline-v2-embedded-html-data",
+        processing_version: str = default_processing_version,
     ) -> None:
         self._parser = parser
         self._normalizer = normalizer
