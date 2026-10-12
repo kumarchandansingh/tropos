@@ -478,7 +478,7 @@ def _build_runtime(
         database_path=database,
         strategy=retrieval_strategy,
         embedding_settings=load_embedding_runtime_settings(),
-        materialize_missing=retrieval_strategy is not RetrievalStrategy.BM25,
+        materialize_missing=False,
     )
     settings = load_llm_runtime_settings()
     model = build_default_groq_llm(settings)
