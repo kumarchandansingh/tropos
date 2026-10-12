@@ -71,6 +71,17 @@ def build_runtime_retrieval(
         if materialize_missing
         else None
     )
+    if not materialize_missing:
+        missing = repository.missing_current_chunks(
+            embedding_strategy_version=provider.strategy_version,
+            limit=1,
+        )
+        if missing:
+            raise RuntimeError(
+                "Semantic index is incomplete for the configured embedding strategy. "
+                "Run 'tropos embeddings materialize' or use Build semantic index before "
+                "selecting dense_exact or hybrid_rrf."
+            )
     dense = ExactVectorKnowledgeRetriever(
         provider=provider,
         repository=repository,
