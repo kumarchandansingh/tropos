@@ -55,7 +55,6 @@ def test_blank_secret_is_rejected() -> None:
         load_llm_runtime_settings({"TROPOS_GROQ_API_KEY": "   "})
 
 
-
 def test_embedding_runtime_defaults_are_unconfigured_and_secret_safe() -> None:
     settings = load_embedding_runtime_settings({})
 
