@@ -107,7 +107,15 @@ class ResolveQuestion:
                     "strategy_version": self._retriever.strategy_version,
                     "result_count": len(results),
                     "chunk_ids": tuple(result.chunk.chunk_id for result in results),
+                    "ranks": tuple(str(result.rank) for result in results),
                     "scores": tuple(f"{result.score:.17g}" for result in results),
+                    "score_components": tuple(
+                        "|".join(
+                            f"{component.strategy_version}@{component.rank}={component.score:.17g}"
+                            for component in result.score_components
+                        )
+                        for result in results
+                    ),
                 },
             )
         )
