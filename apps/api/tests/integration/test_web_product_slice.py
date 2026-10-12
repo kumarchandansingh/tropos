@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
+from typing import cast
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -14,7 +16,7 @@ from tropos.core.application.retrieval.models import (
 from tropos.web import build_server
 
 
-def _start_server(tmp_path: Path) -> tuple[object, str, Thread]:
+def _start_server(tmp_path: Path) -> tuple[ThreadingHTTPServer, str, Thread]:
     server = build_server(
         host="127.0.0.1",
         port=0,
@@ -29,7 +31,9 @@ def _start_server(tmp_path: Path) -> tuple[object, str, Thread]:
 
 def _read_json(request: Request) -> tuple[int, dict[str, object]]:
     with urlopen(request, timeout=3) as response:
-        return response.status, json.loads(response.read())
+        parsed = json.loads(response.read())
+        assert isinstance(parsed, dict)
+        return response.status, cast(dict[str, object], parsed)
 
 
 def test_web_shell_exposes_sources_and_resolve_workspaces(tmp_path: Path) -> None:
@@ -70,7 +74,9 @@ def test_web_ingest_creates_searchable_governed_knowledge(tmp_path: Path) -> Non
         assert status == 200
         assert payload["status"] == "available"
         assert payload["outcome"] == "VERSION_CREATED"
-        assert int(payload["chunks_written"]) > 0
+        chunks_written = payload["chunks_written"]
+        assert isinstance(chunks_written, int)
+        assert chunks_written > 0
 
         results = SQLiteFtsKnowledgeRetriever(database).search(
             KnowledgeSearchRequest(
@@ -137,11 +143,18 @@ def test_web_trace_detail_reads_exact_trace(tmp_path: Path) -> None:
     thread.start()
     try:
         with urlopen(f"http://{host}:{port}/api/traces/trace_demo", timeout=3) as response:
-            payload = json.loads(response.read())
+            parsed = json.loads(response.read())
 
         assert response.status == 200
+        assert isinstance(parsed, dict)
+        payload = cast(dict[str, object], parsed)
         assert payload["outcome"] == "ANSWERED"
-        assert payload["spans"][0]["name"] == "resolve.retrieval"
+        spans = payload["spans"]
+        assert isinstance(spans, list)
+        assert spans
+        first = spans[0]
+        assert isinstance(first, dict)
+        assert first["name"] == "resolve.retrieval"
     finally:
         server.shutdown()
         thread.join(timeout=3)
