@@ -782,7 +782,9 @@ def build_server(
                         retryable=True,
                     )
                     return
-                self._send_json(HTTPStatus.OK, _resolve_payload(resolved))
+                payload = _resolve_payload(resolved)
+                payload["retrieval_strategy"] = retrieval_strategy.value
+                self._send_json(HTTPStatus.OK, payload)
                 return
 
             self._error(HTTPStatus.NOT_FOUND, "Not found.")
