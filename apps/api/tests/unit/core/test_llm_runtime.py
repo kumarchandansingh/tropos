@@ -114,7 +114,6 @@ def test_groq_structured_completion_sends_schema_and_captures_usage() -> None:
     assert response_format["type"] == "json_schema"
 
 
-
 def test_gpt_oss_requests_use_low_reasoning_without_returning_reasoning() -> None:
     transport = RecordingTransport(
         {"choices": [{"message": {"content": "OK"}, "finish_reason": "stop"}]}

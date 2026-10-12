@@ -242,9 +242,7 @@ class GroqLLMAdapter:
             raise LLMResponseError("Groq choice has an unexpected shape")
         finish_reason = first.get("finish_reason")
         if finish_reason == "length":
-            raise LLMResponseError(
-                "Groq response was truncated at max_completion_tokens"
-            )
+            raise LLMResponseError("Groq response was truncated at max_completion_tokens")
         message = first.get("message")
         if not isinstance(message, dict):
             raise LLMResponseError("Groq choice contains no message")
