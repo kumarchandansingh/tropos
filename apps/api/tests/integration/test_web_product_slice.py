@@ -297,7 +297,6 @@ def test_observability_lists_recent_traces_and_summary(tmp_path: Path) -> None:
         server.server_close()
 
 
-
 def test_runtime_diagnostics_identify_loaded_processing_and_storage(tmp_path: Path) -> None:
     database = tmp_path / "tropos.db"
     server = build_server(

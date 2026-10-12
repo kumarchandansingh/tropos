@@ -66,7 +66,7 @@ def _git_value(repository: Path | None, *arguments: str) -> str | None:
             text=True,
             timeout=1.0,
         )
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         return None
     if completed.returncode != 0:
         return None
