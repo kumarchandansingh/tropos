@@ -40,7 +40,15 @@ from tropos.core.application.ingestion.run_state import IngestionOutcome, Ingest
 from tropos.core.application.observability.trace import JsonlTraceSink
 from tropos.core.application.retrieval.models import RetrievalAccessContext
 from tropos.core.domain.access import AccessPolicy, AccessScope
-from tropos.core.runtime_config import load_llm_runtime_settings
+from tropos.core.retrieval_runtime import (
+    build_runtime_retrieval,
+    materialize_runtime_embeddings,
+)
+from tropos.core.runtime_config import (
+    RetrievalStrategy,
+    load_embedding_runtime_settings,
+    load_llm_runtime_settings,
+)
 from tropos.web_ui import TROPOS_WEB_HTML
 
 _SUPPORTED_SUFFIXES = {".txt", ".md", ".markdown", ".html", ".htm", ".xhtml", ".docx"}
@@ -127,6 +135,7 @@ def _runtime_diagnostics(database: Path) -> dict[str, object]:
     repository = _repository_root()
     chunker = DeterministicKnowledgeChunker()
     settings = load_llm_runtime_settings()
+    embedding_settings = load_embedding_runtime_settings()
 
     return {
         "build": {
@@ -149,7 +158,13 @@ def _runtime_diagnostics(database: Path) -> dict[str, object]:
         },
         "storage": _database_diagnostics(database),
         "retrieval": {
-            "strategy": SQLiteFtsKnowledgeRetriever.strategy_version_name,
+            "default_strategy": RetrievalStrategy.BM25.value,
+            "bm25_strategy": SQLiteFtsKnowledgeRetriever.strategy_version_name,
+            "available_strategies": tuple(strategy.value for strategy in RetrievalStrategy),
+            "embedding_provider": embedding_settings.provider,
+            "embedding_model": embedding_settings.model,
+            "embedding_dimensions": embedding_settings.dimensions,
+            "embedding_configured": embedding_settings.configured,
         },
         "model": {
             "provider": settings.provider,
@@ -392,11 +407,22 @@ def _observability_payload(path: Path) -> dict[str, object]:
     }
 
 
-def _build_runtime(database: Path, trace_file: Path) -> ResolveQuestion:
+def _build_runtime(
+    database: Path,
+    trace_file: Path,
+    *,
+    retrieval_strategy: RetrievalStrategy,
+) -> ResolveQuestion:
     settings = load_llm_runtime_settings()
     model = build_default_groq_llm(settings)
+    retrieval = build_runtime_retrieval(
+        database_path=database,
+        strategy=retrieval_strategy,
+        embedding_settings=load_embedding_runtime_settings(),
+        materialize_missing=retrieval_strategy is not RetrievalStrategy.BM25,
+    )
     return ResolveQuestion(
-        retriever=SQLiteFtsKnowledgeRetriever(database),
+        retriever=retrieval.retriever,
         sufficiency_judge=LLMEvidenceSufficiencyJudge(model),
         answer_generator=LLMGroundedAnswerGenerator(model),
         trace_sink=JsonlTraceSink(trace_file),
@@ -412,7 +438,9 @@ def _safe_upload_name(filename: str) -> str:
     return safe_name
 
 
-def _coerce_resolve_request(payload: object) -> tuple[str, str, tuple[str, ...], int, float | None]:
+def _coerce_resolve_request(
+    payload: object,
+) -> tuple[str, str, tuple[str, ...], int, float | None, RetrievalStrategy]:
     if not isinstance(payload, dict):
         raise ValueError("Resolve request must be a JSON object.")
     query = payload.get("query")
@@ -428,6 +456,14 @@ def _coerce_resolve_request(payload: object) -> tuple[str, str, tuple[str, ...],
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 20:
         raise ValueError("limit must be between 1 and 20")
     threshold = payload.get("retrieval_threshold")
+    raw_strategy = payload.get("retrieval_strategy", RetrievalStrategy.BM25.value)
+    if not isinstance(raw_strategy, str):
+        raise ValueError("retrieval_strategy must be a string")
+    try:
+        retrieval_strategy = RetrievalStrategy(raw_strategy)
+    except ValueError as exc:
+        allowed = ", ".join(strategy.value for strategy in RetrievalStrategy)
+        raise ValueError(f"retrieval_strategy must be one of: {allowed}") from exc
     if threshold is not None and (
         isinstance(threshold, bool) or not isinstance(threshold, int | float)
     ):
@@ -438,6 +474,7 @@ def _coerce_resolve_request(payload: object) -> tuple[str, str, tuple[str, ...],
         _normalize_groups(raw_groups),
         limit,
         float(threshold) if threshold is not None else None,
+        retrieval_strategy,
     )
 
 
@@ -525,6 +562,10 @@ def build_server(
                         "model": settings.model,
                         "model_configured": settings.configured,
                         "retrieval": "sqlite-fts5-bm25-v1",
+                        "retrieval_strategies": [
+                            strategy.value for strategy in RetrievalStrategy
+                        ],
+                        "embedding_configured": load_embedding_runtime_settings().configured,
                     },
                 )
                 return
@@ -565,6 +606,31 @@ def build_server(
                     str(exc),
                     code="INVALID_REQUEST",
                     stage="request",
+                )
+                return
+
+            if parsed.path == "/api/embeddings/materialize":
+                try:
+                    materialized = materialize_runtime_embeddings(
+                        database_path=database,
+                        settings=load_embedding_runtime_settings(),
+                    )
+                except (ValueError, OSError, RuntimeError) as exc:
+                    self._error(
+                        HTTPStatus.BAD_GATEWAY,
+                        str(exc),
+                        code="EMBEDDING_RUNTIME_FAILED",
+                        stage="embeddings",
+                        retryable=True,
+                    )
+                    return
+                self._send_json(
+                    HTTPStatus.OK,
+                    {
+                        "embedded_count": materialized.embedded_count,
+                        "strategy_version": materialized.strategy_version,
+                        "model": materialized.model_identifier,
+                    },
                 )
                 return
 
@@ -613,8 +679,13 @@ def build_server(
                         groups,
                         limit,
                         threshold,
+                        retrieval_strategy,
                     ) = _coerce_resolve_request(decoded)
-                    runtime = _build_runtime(database, trace_file)
+                    runtime = _build_runtime(
+                        database,
+                        trace_file,
+                        retrieval_strategy=retrieval_strategy,
+                    )
                     resolved = runtime.execute(
                         RuntimeRequest(
                             request_id=f"request_{uuid4().hex}",
@@ -644,7 +715,7 @@ def build_server(
                     self._error(
                         HTTPStatus.BAD_GATEWAY,
                         str(exc),
-                        code="MODEL_RUNTIME_FAILED",
+                        code="RUNTIME_DEPENDENCY_FAILED",
                         stage="resolve",
                         retryable=True,
                     )
