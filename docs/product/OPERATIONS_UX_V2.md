@@ -108,15 +108,15 @@ Happy path:
     → VERSION_CREATED
     → available / indexed
 
-No-change path:
+Exact duplicate / replay path:
 
     choose previously-ingested identical file
     → upload
-    → canonical comparison
-    → NO_CHANGE
+    → ingestion fingerprint match
+    → idempotent replay of prior completed run
     → explicit information state:
-       “No content change. Existing knowledge version retained.”
-    → show knowledge ID + run ID + chunks written = 0
+       “Already ingested. Existing knowledge version retained.”
+    → show the retained run/knowledge identity without pretending a new run occurred
 
 Governance-only path:
 
@@ -369,7 +369,7 @@ It must not infer cost, confidence or quality scores that are absent.
 
 The PR is acceptable when:
 
-1. re-uploading identical content returns and visibly renders “No content change. Existing knowledge version retained”;
+1. re-uploading the exact same source envelope visibly renders an idempotent replay message and retains the existing knowledge version;
 2. upload errors render inline with code/stage/message/retryability;
 3. Resolve runtime errors render inline instead of only as a transient banner;
 4. insufficient evidence renders rationale and missing facts;
