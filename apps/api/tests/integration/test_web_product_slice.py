@@ -162,7 +162,7 @@ def test_web_trace_detail_reads_exact_trace(tmp_path: Path) -> None:
         server.server_close()
 
 
-def test_web_reupload_identical_content_returns_explicit_no_change(tmp_path: Path) -> None:
+def test_web_reupload_identical_content_returns_explicit_replay(tmp_path: Path) -> None:
     server, base, thread = _start_server(tmp_path)
     body = b"# Rotation\n\nRestart the edge service after certificate rotation."
     try:
@@ -181,9 +181,12 @@ def test_web_reupload_identical_content_returns_explicit_no_change(tmp_path: Pat
         _, second_payload = _read_json(second)
 
         assert first_payload["outcome"] == "VERSION_CREATED"
-        assert second_payload["outcome"] == "NO_CHANGE"
-        assert second_payload["status"] == "available_no_content_change"
-        assert second_payload["chunks_written"] == 0
+        assert first_payload["replayed"] is False
+        assert second_payload["outcome"] == "VERSION_CREATED"
+        assert second_payload["replayed"] is True
+        assert second_payload["status"] == "available"
+        assert second_payload["run_id"] == first_payload["run_id"]
+        assert second_payload["chunks_written"] == first_payload["chunks_written"]
     finally:
         server.shutdown()
         thread.join(timeout=3)
