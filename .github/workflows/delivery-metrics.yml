@@ -13,7 +13,7 @@ on:
 permissions:
   contents: write
   issues: read
-  pull-requests: read
+  pull-requests: write
   deployments: read
 
 concurrency:
@@ -24,26 +24,54 @@ jobs:
   update:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    env:
+      METRICS_BRANCH: automation/delivery-metrics
     steps:
       - name: Checkout default branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
 
       - name: Generate delivery and DORA metrics
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python scripts/update_delivery_metrics.py
 
-      - name: Commit refreshed metrics
+      - name: Detect metrics changes
+        id: changes
         run: |
           if git diff --quiet -- docs/product/delivery-metrics.md; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No metrics changes."
-            exit 0
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Publish metrics branch
+        if: steps.changes.outputs.changed == 'true'
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git switch -C "$METRICS_BRANCH"
           git add docs/product/delivery-metrics.md
           git commit -m "docs: refresh delivery metrics"
-          git pull --rebase
-          git push
+
+          git fetch origin "+refs/heads/$METRICS_BRANCH:refs/remotes/origin/$METRICS_BRANCH" || true
+          git push --force-with-lease origin "HEAD:refs/heads/$METRICS_BRANCH"
+
+      - name: Create or reuse delivery metrics pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          existing_pr="$(gh pr list             --head "$METRICS_BRANCH"             --base "$DEFAULT_BRANCH"             --state open             --json number             --jq '.[0].number // empty')"
+
+          if [ -n "$existing_pr" ]; then
+            echo "Updated existing delivery metrics PR #$existing_pr."
+            exit 0
+          fi
+
+          gh pr create             --head "$METRICS_BRANCH"             --base "$DEFAULT_BRANCH"             --title "docs: refresh delivery metrics"             --body "Automated refresh of Tropos delivery and DORA metrics. Generated from repository issues, pull requests, deployments, and the delivery-metrics configuration. This PR intentionally respects protected-main review and status-check rules."
