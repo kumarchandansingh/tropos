@@ -24,13 +24,15 @@ class RetrievalBackendUnavailableError(RuntimeError):
 class SQLiteFtsKnowledgeRetriever:
     """Governed lexical retrieval over current canonical chunks using SQLite FTS5."""
 
+    strategy_version_name = _STRATEGY_VERSION
+
     def __init__(self, database_path: str | Path) -> None:
         self._database_path = str(database_path)
         self._initialize()
 
     @property
     def strategy_version(self) -> str:
-        return _STRATEGY_VERSION
+        return self.strategy_version_name
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
