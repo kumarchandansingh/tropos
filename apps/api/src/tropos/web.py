@@ -58,9 +58,11 @@ _ALLOWED_BIND_HOSTS = {"127.0.0.1", "localhost"}
 _ALLOWED_UPLOAD_CONTENT_TYPES = {
     "application/octet-stream",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/xhtml+xml",
     "text/html",
     "text/markdown",
     "text/plain",
+    "text/x-markdown",
 }
 _SUPPORTED_SUFFIXES = {".txt", ".md", ".markdown", ".html", ".htm", ".xhtml", ".docx"}
 _MAX_UPLOAD_BYTES = 10 * 1024 * 1024
