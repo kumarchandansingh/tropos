@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from tropos.core.application.ports.retrieval import KnowledgeChunkRetriever
 from tropos.core.application.retrieval.models import (
     KnowledgeSearchRequest,
-    RetrievedKnowledgeChunk,
     RetrievalScoreComponent,
+    RetrievedKnowledgeChunk,
 )
 from tropos.core.domain.knowledge_chunk import KnowledgeChunk
 

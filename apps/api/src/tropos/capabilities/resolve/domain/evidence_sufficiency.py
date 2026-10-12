@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from tropos.core.application.retrieval.models import (
-    RetrievedKnowledgeChunk,
     RetrievalScoreComponent,
+    RetrievedKnowledgeChunk,
 )
 from tropos.core.domain.evidence import EvidenceRef
 

@@ -28,8 +28,8 @@ from tropos.core.application.ports.llm import LLMInvocationMetadata
 from tropos.core.application.retrieval.models import (
     KnowledgeSearchRequest,
     RetrievalAccessContext,
-    RetrievedKnowledgeChunk,
     RetrievalScoreComponent,
+    RetrievedKnowledgeChunk,
 )
 from tropos.core.domain.access import AccessPolicy, AccessScope
 from tropos.core.domain.knowledge_chunk import KnowledgeChunk
