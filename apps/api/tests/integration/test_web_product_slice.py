@@ -29,6 +29,22 @@ def _start_server(tmp_path: Path) -> tuple[ThreadingHTTPServer, str, Thread]:
     return server, f"http://{host}:{port}", thread
 
 
+def _security_headers(
+    server: ThreadingHTTPServer,
+    *,
+    content_type: str,
+    origin: str | None = None,
+) -> dict[str, str]:
+    token = cast(str, getattr(server, "tropos_session_token"))
+    headers = {
+        "Content-Type": content_type,
+        "X-Tropos-Session-Token": token,
+    }
+    if origin is not None:
+        headers["Origin"] = origin
+    return headers
+
+
 def _read_json(request: Request) -> tuple[int, dict[str, object]]:
     with urlopen(request, timeout=3) as response:
         parsed = json.loads(response.read())
@@ -50,6 +66,8 @@ def test_web_shell_exposes_sources_resolve_and_observability(tmp_path: Path) -> 
         assert 'value="dense_exact"' in html
         assert 'value="hybrid_rrf"' in html
         assert "Already ingested. Existing knowledge version retained" in html
+        assert "__TROPOS_SESSION_TOKEN__" not in html
+        assert cast(str, getattr(server, "tropos_session_token")) in html
     finally:
         server.shutdown()
         thread.join(timeout=3)
@@ -72,7 +90,7 @@ def test_web_ingest_creates_searchable_governed_knowledge(tmp_path: Path) -> Non
             f"http://{host}:{port}/api/ingest?filename=runbook.md&tenant=tenant-a",
             data=b"# Rotation\n\nRestart the edge service after certificate rotation.",
             method="POST",
-            headers={"Content-Type": "text/markdown"},
+            headers=_security_headers(server, content_type="text/markdown"),
         )
         status, payload = _read_json(request)
 
@@ -104,6 +122,7 @@ def test_web_ingest_rejects_unsafe_or_unsupported_filename(tmp_path: Path) -> No
             base + "/api/ingest?filename=secret.exe",
             data=b"not allowed",
             method="POST",
+            headers=_security_headers(server, content_type="application/octet-stream"),
         )
         try:
             urlopen(request, timeout=3)
@@ -174,11 +193,13 @@ def test_web_reupload_identical_content_returns_explicit_replay(tmp_path: Path) 
             base + "/api/ingest?filename=runbook.md&tenant=local",
             data=body,
             method="POST",
+            headers=_security_headers(server, content_type="text/markdown"),
         )
         second = Request(
             base + "/api/ingest?filename=runbook.md&tenant=local",
             data=body,
             method="POST",
+            headers=_security_headers(server, content_type="text/markdown"),
         )
 
         _, first_payload = _read_json(first)
@@ -316,6 +337,7 @@ def test_runtime_diagnostics_identify_loaded_processing_and_storage(tmp_path: Pa
             f"http://{host}:{port}/api/ingest?filename=runbook.md&tenant=local",
             data=b"# Rotation\n\nRestart the edge service after certificate rotation.",
             method="POST",
+            headers=_security_headers(server, content_type="text/markdown"),
         )
         _read_json(ingest)
 
@@ -341,7 +363,7 @@ def test_runtime_diagnostics_identify_loaded_processing_and_storage(tmp_path: Pa
         assert parsed["retrieval"]["embedding_configured"] is False
         assert parsed["storage"]["embedding_count"] == 0
         assert parsed["storage"]["missing_embedding_count"] >= 1
-        assert parsed["storage"]["path"] == str(database.resolve())
+        assert parsed["storage"]["name"] == database.name
         assert parsed["storage"]["knowledge_count"] == 1
         assert parsed["storage"]["current_chunk_count"] >= 1
         assert parsed["model"]["provider"]
@@ -349,6 +371,10 @@ def test_runtime_diagnostics_identify_loaded_processing_and_storage(tmp_path: Pa
         serialized = json.dumps(parsed).casefold()
         assert "api_key" not in serialized
         assert "authorization" not in serialized
+        assert str(tmp_path).casefold() not in serialized
+        assert "repository_root" not in serialized
+        assert "executable" not in serialized
+        assert "working_directory" not in serialized
     finally:
         server.shutdown()
         thread.join(timeout=3)
@@ -364,6 +390,7 @@ def test_dense_resolve_fails_closed_when_embedding_runtime_is_unconfigured(
             base + "/api/ingest?filename=runbook.md&tenant=local",
             data=b"# Rotation\n\nRestart after certificate rotation.",
             method="POST",
+            headers=_security_headers(server, content_type="text/markdown"),
         )
         _read_json(ingest)
 
@@ -376,7 +403,7 @@ def test_dense_resolve_fails_closed_when_embedding_runtime_is_unconfigured(
                 }
             ).encode(),
             method="POST",
-            headers={"Content-Type": "application/json"},
+            headers=_security_headers(server, content_type="application/json"),
         )
         try:
             urlopen(request, timeout=3)
@@ -408,8 +435,9 @@ def test_embedding_materialization_endpoint_fails_closed_without_secret(
 
         request = Request(
             base + "/api/embeddings/materialize",
-            data=b"",
+            data=b"{}",
             method="POST",
+            headers=_security_headers(server, content_type="application/json"),
         )
         try:
             urlopen(request, timeout=3)
@@ -425,3 +453,111 @@ def test_embedding_materialization_endpoint_fails_closed_without_secret(
         server.shutdown()
         thread.join(timeout=3)
         server.server_close()
+
+
+
+def test_local_web_rejects_foreign_host_before_returning_diagnostics(tmp_path: Path) -> None:
+    server, base, thread = _start_server(tmp_path)
+    try:
+        request = Request(
+            base + "/api/runtime-diagnostics",
+            headers={"Host": "evil.example:8000"},
+        )
+        try:
+            urlopen(request, timeout=3)
+        except HTTPError as exc:
+            payload = json.loads(exc.read())
+            assert exc.code == 421
+            assert payload["error"]["code"] == "INVALID_HOST"
+        else:
+            raise AssertionError("foreign Host must be rejected")
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
+
+
+def test_local_web_rejects_cross_site_ingest_before_tenant_processing(tmp_path: Path) -> None:
+    server, base, thread = _start_server(tmp_path)
+    try:
+        request = Request(
+            base + "/api/ingest?filename=attack.md&tenant=victim&group=admins",
+            data=b"# attacker controlled",
+            method="POST",
+            headers={
+                **_security_headers(server, content_type="text/plain"),
+                "Origin": "https://evil.example",
+            },
+        )
+        try:
+            urlopen(request, timeout=3)
+        except HTTPError as exc:
+            payload = json.loads(exc.read())
+            assert exc.code == 403
+            assert payload["error"]["code"] == "INVALID_ORIGIN"
+        else:
+            raise AssertionError("cross-site ingest must be rejected")
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
+
+
+def test_local_web_rejects_post_without_session_token(tmp_path: Path) -> None:
+    server, base, thread = _start_server(tmp_path)
+    try:
+        request = Request(
+            base + "/api/resolve",
+            data=b'{"query":"hello"}',
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            urlopen(request, timeout=3)
+        except HTTPError as exc:
+            payload = json.loads(exc.read())
+            assert exc.code == 403
+            assert payload["error"]["code"] == "INVALID_SESSION_TOKEN"
+        else:
+            raise AssertionError("POST without session token must be rejected")
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
+
+
+def test_local_web_rejects_text_plain_for_json_endpoint(tmp_path: Path) -> None:
+    server, base, thread = _start_server(tmp_path)
+    try:
+        request = Request(
+            base + "/api/resolve",
+            data=b'{"query":"hello"}',
+            method="POST",
+            headers=_security_headers(server, content_type="text/plain"),
+        )
+        try:
+            urlopen(request, timeout=3)
+        except HTTPError as exc:
+            payload = json.loads(exc.read())
+            assert exc.code == 415
+            assert payload["error"]["code"] == "INVALID_CONTENT_TYPE"
+        else:
+            raise AssertionError("JSON endpoint must reject text/plain")
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
+
+
+def test_local_web_rejects_non_loopback_bind(tmp_path: Path) -> None:
+    try:
+        build_server(
+            host="0.0.0.0",
+            port=0,
+            database_path=tmp_path / "tropos.db",
+            trace_path=tmp_path / "traces.jsonl",
+        )
+    except ValueError as exc:
+        assert "only binds" in str(exc)
+    else:
+        raise AssertionError("non-loopback bind must be rejected")
