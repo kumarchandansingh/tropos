@@ -40,7 +40,15 @@ from tropos.core.application.ingestion.run_state import IngestionOutcome, Ingest
 from tropos.core.application.observability.trace import JsonlTraceSink
 from tropos.core.application.retrieval.models import RetrievalAccessContext
 from tropos.core.domain.access import AccessPolicy, AccessScope
-from tropos.core.runtime_config import load_llm_runtime_settings
+from tropos.core.retrieval_runtime import (
+    build_runtime_retrieval,
+    materialize_runtime_embeddings,
+)
+from tropos.core.runtime_config import (
+    RetrievalStrategy,
+    load_embedding_runtime_settings,
+    load_llm_runtime_settings,
+)
 from tropos.web_ui import TROPOS_WEB_HTML
 
 _SUPPORTED_SUFFIXES = {".txt", ".md", ".markdown", ".html", ".htm", ".xhtml", ".docx"}
@@ -74,7 +82,11 @@ def _git_value(repository: Path | None, *arguments: str) -> str | None:
     return value or None
 
 
-def _database_diagnostics(database: Path) -> dict[str, object]:
+def _database_diagnostics(
+    database: Path,
+    *,
+    embedding_strategy_version: str | None = None,
+) -> dict[str, object]:
     payload: dict[str, object] = {
         "path": str(database),
         "exists": database.exists(),
@@ -82,6 +94,8 @@ def _database_diagnostics(database: Path) -> dict[str, object]:
         "knowledge_count": 0,
         "chunk_count": 0,
         "current_chunk_count": 0,
+        "embedding_count": 0,
+        "missing_embedding_count": 0,
         "latest_processing_version": None,
         "error": None,
     }
@@ -118,6 +132,46 @@ def _database_diagnostics(database: Path) -> dict[str, object]:
                 """
             ).fetchone()
             payload["latest_processing_version"] = str(row[0]) if row else None
+
+            tables = {
+                str(row[0])
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            if embedding_strategy_version is not None:
+                if "knowledge_embeddings" in tables:
+                    payload["embedding_count"] = int(
+                        connection.execute(
+                            """
+                            SELECT COUNT(*)
+                            FROM knowledge_embeddings
+                            WHERE embedding_strategy_version = ?
+                            """,
+                            (embedding_strategy_version,),
+                        ).fetchone()[0]
+                    )
+                    payload["missing_embedding_count"] = int(
+                        connection.execute(
+                            """
+                            SELECT COUNT(*)
+                            FROM knowledge_chunks AS c
+                            JOIN knowledge_state AS s
+                              ON s.knowledge_id = c.knowledge_id
+                            LEFT JOIN knowledge_embeddings AS e
+                              ON e.chunk_id = c.chunk_id
+                             AND e.embedding_strategy_version = ?
+                            WHERE s.lifecycle_status = 'ACTIVE'
+                              AND c.normalized_content_fingerprint = s.content_fingerprint
+                              AND c.normalization_strategy_version =
+                                  s.normalization_strategy_version
+                              AND e.chunk_id IS NULL
+                            """,
+                            (embedding_strategy_version,),
+                        ).fetchone()[0]
+                    )
+                else:
+                    payload["missing_embedding_count"] = payload["current_chunk_count"]
     except (sqlite3.DatabaseError, OSError) as exc:
         payload["error"] = f"{type(exc).__name__}: {exc}"
     return payload
@@ -127,6 +181,7 @@ def _runtime_diagnostics(database: Path) -> dict[str, object]:
     repository = _repository_root()
     chunker = DeterministicKnowledgeChunker()
     settings = load_llm_runtime_settings()
+    embedding_settings = load_embedding_runtime_settings()
 
     return {
         "build": {
@@ -147,9 +202,22 @@ def _runtime_diagnostics(database: Path) -> dict[str, object]:
             "chunking_strategy": chunker.strategy_version,
             "chunk_max_characters": chunker.max_characters,
         },
-        "storage": _database_diagnostics(database),
+        "storage": _database_diagnostics(
+            database,
+            embedding_strategy_version=(
+                f"openai:{embedding_settings.model}:{embedding_settings.dimensions}:v1"
+                if embedding_settings.provider == "openai"
+                else None
+            ),
+        ),
         "retrieval": {
-            "strategy": SQLiteFtsKnowledgeRetriever.strategy_version_name,
+            "default_strategy": RetrievalStrategy.BM25.value,
+            "bm25_strategy": SQLiteFtsKnowledgeRetriever.strategy_version_name,
+            "available_strategies": tuple(strategy.value for strategy in RetrievalStrategy),
+            "embedding_provider": embedding_settings.provider,
+            "embedding_model": embedding_settings.model,
+            "embedding_dimensions": embedding_settings.dimensions,
+            "embedding_configured": embedding_settings.configured,
         },
         "model": {
             "provider": settings.provider,
@@ -240,6 +308,15 @@ def _resolve_payload(result: ResolveResult) -> dict[str, object]:
                 "locator": item.reference.locator,
                 "rank": item.retrieval_rank,
                 "score": item.retrieval_score,
+                "strategy": item.retrieval_strategy_version,
+                "components": [
+                    {
+                        "strategy": component.strategy_version,
+                        "rank": component.rank,
+                        "score": component.score,
+                    }
+                    for component in item.retrieval_score_components
+                ],
             }
             for item in result.evidence_set.items
         ]
@@ -338,6 +415,7 @@ def _trace_summary(trace: dict[str, object]) -> dict[str, object]:
         "outcome": trace.get("outcome"),
         "recorded_at": trace.get("recorded_at"),
         "retrieval_strategy": retrieval.get("strategy_version"),
+        "retrieval_latency_ms": retrieval.get("latency_ms"),
         "result_count": retrieval.get("result_count"),
         "gate_status": gate_span.get("status") if gate_span else None,
         "gate_reason": gate.get("reason"),
@@ -392,11 +470,22 @@ def _observability_payload(path: Path) -> dict[str, object]:
     }
 
 
-def _build_runtime(database: Path, trace_file: Path) -> ResolveQuestion:
+def _build_runtime(
+    database: Path,
+    trace_file: Path,
+    *,
+    retrieval_strategy: RetrievalStrategy,
+) -> ResolveQuestion:
+    retrieval = build_runtime_retrieval(
+        database_path=database,
+        strategy=retrieval_strategy,
+        embedding_settings=load_embedding_runtime_settings(),
+        materialize_missing=False,
+    )
     settings = load_llm_runtime_settings()
     model = build_default_groq_llm(settings)
     return ResolveQuestion(
-        retriever=SQLiteFtsKnowledgeRetriever(database),
+        retriever=retrieval.retriever,
         sufficiency_judge=LLMEvidenceSufficiencyJudge(model),
         answer_generator=LLMGroundedAnswerGenerator(model),
         trace_sink=JsonlTraceSink(trace_file),
@@ -412,7 +501,9 @@ def _safe_upload_name(filename: str) -> str:
     return safe_name
 
 
-def _coerce_resolve_request(payload: object) -> tuple[str, str, tuple[str, ...], int, float | None]:
+def _coerce_resolve_request(
+    payload: object,
+) -> tuple[str, str, tuple[str, ...], int, float | None, RetrievalStrategy]:
     if not isinstance(payload, dict):
         raise ValueError("Resolve request must be a JSON object.")
     query = payload.get("query")
@@ -428,6 +519,14 @@ def _coerce_resolve_request(payload: object) -> tuple[str, str, tuple[str, ...],
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 20:
         raise ValueError("limit must be between 1 and 20")
     threshold = payload.get("retrieval_threshold")
+    raw_strategy = payload.get("retrieval_strategy", RetrievalStrategy.BM25.value)
+    if not isinstance(raw_strategy, str):
+        raise ValueError("retrieval_strategy must be a string")
+    try:
+        retrieval_strategy = RetrievalStrategy(raw_strategy)
+    except ValueError as exc:
+        allowed = ", ".join(strategy.value for strategy in RetrievalStrategy)
+        raise ValueError(f"retrieval_strategy must be one of: {allowed}") from exc
     if threshold is not None and (
         isinstance(threshold, bool) or not isinstance(threshold, int | float)
     ):
@@ -438,6 +537,7 @@ def _coerce_resolve_request(payload: object) -> tuple[str, str, tuple[str, ...],
         _normalize_groups(raw_groups),
         limit,
         float(threshold) if threshold is not None else None,
+        retrieval_strategy,
     )
 
 
@@ -525,6 +625,8 @@ def build_server(
                         "model": settings.model,
                         "model_configured": settings.configured,
                         "retrieval": "sqlite-fts5-bm25-v1",
+                        "retrieval_strategies": [strategy.value for strategy in RetrievalStrategy],
+                        "embedding_configured": load_embedding_runtime_settings().configured,
                     },
                 )
                 return
@@ -565,6 +667,31 @@ def build_server(
                     str(exc),
                     code="INVALID_REQUEST",
                     stage="request",
+                )
+                return
+
+            if parsed.path == "/api/embeddings/materialize":
+                try:
+                    materialized = materialize_runtime_embeddings(
+                        database_path=database,
+                        settings=load_embedding_runtime_settings(),
+                    )
+                except (ValueError, OSError, RuntimeError) as exc:
+                    self._error(
+                        HTTPStatus.BAD_GATEWAY,
+                        str(exc),
+                        code="EMBEDDING_RUNTIME_FAILED",
+                        stage="embeddings",
+                        retryable=True,
+                    )
+                    return
+                self._send_json(
+                    HTTPStatus.OK,
+                    {
+                        "embedded_count": materialized.embedded_count,
+                        "strategy_version": materialized.strategy_version,
+                        "model": materialized.model_identifier,
+                    },
                 )
                 return
 
@@ -613,8 +740,13 @@ def build_server(
                         groups,
                         limit,
                         threshold,
+                        retrieval_strategy,
                     ) = _coerce_resolve_request(decoded)
-                    runtime = _build_runtime(database, trace_file)
+                    runtime = _build_runtime(
+                        database,
+                        trace_file,
+                        retrieval_strategy=retrieval_strategy,
+                    )
                     resolved = runtime.execute(
                         RuntimeRequest(
                             request_id=f"request_{uuid4().hex}",
@@ -644,12 +776,14 @@ def build_server(
                     self._error(
                         HTTPStatus.BAD_GATEWAY,
                         str(exc),
-                        code="MODEL_RUNTIME_FAILED",
+                        code="RUNTIME_DEPENDENCY_FAILED",
                         stage="resolve",
                         retryable=True,
                     )
                     return
-                self._send_json(HTTPStatus.OK, _resolve_payload(resolved))
+                payload = _resolve_payload(resolved)
+                payload["retrieval_strategy"] = retrieval_strategy.value
+                self._send_json(HTTPStatus.OK, payload)
                 return
 
             self._error(HTTPStatus.NOT_FOUND, "Not found.")

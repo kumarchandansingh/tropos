@@ -46,6 +46,9 @@ def test_web_shell_exposes_sources_resolve_and_observability(tmp_path: Path) -> 
         assert ">Resolve<" in html
         assert ">Observability<" in html
         assert "Runtime diagnostics" in html
+        assert "Build semantic index" in html
+        assert 'value="dense_exact"' in html
+        assert 'value="hybrid_rrf"' in html
         assert "Already ingested. Existing knowledge version retained" in html
     finally:
         server.shutdown()
@@ -328,7 +331,16 @@ def test_runtime_diagnostics_identify_loaded_processing_and_storage(tmp_path: Pa
         )
         assert parsed["ingestion"]["chunking_strategy"] == "structural-character-v1"
         assert parsed["ingestion"]["chunk_max_characters"] == 1200
-        assert parsed["retrieval"]["strategy"] == "sqlite-fts5-bm25-v1"
+        assert parsed["retrieval"]["default_strategy"] == "bm25"
+        assert parsed["retrieval"]["bm25_strategy"] == "sqlite-fts5-bm25-v1"
+        assert parsed["retrieval"]["available_strategies"] == [
+            "bm25",
+            "dense_exact",
+            "hybrid_rrf",
+        ]
+        assert parsed["retrieval"]["embedding_configured"] is False
+        assert parsed["storage"]["embedding_count"] == 0
+        assert parsed["storage"]["missing_embedding_count"] >= 1
         assert parsed["storage"]["path"] == str(database.resolve())
         assert parsed["storage"]["knowledge_count"] == 1
         assert parsed["storage"]["current_chunk_count"] >= 1
@@ -337,6 +349,78 @@ def test_runtime_diagnostics_identify_loaded_processing_and_storage(tmp_path: Pa
         serialized = json.dumps(parsed).casefold()
         assert "api_key" not in serialized
         assert "authorization" not in serialized
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
+
+
+def test_dense_resolve_fails_closed_when_embedding_runtime_is_unconfigured(
+    tmp_path: Path,
+) -> None:
+    server, base, thread = _start_server(tmp_path)
+    try:
+        ingest = Request(
+            base + "/api/ingest?filename=runbook.md&tenant=local",
+            data=b"# Rotation\n\nRestart after certificate rotation.",
+            method="POST",
+        )
+        _read_json(ingest)
+
+        request = Request(
+            base + "/api/resolve",
+            data=json.dumps(
+                {
+                    "query": "What should I do after rotation?",
+                    "retrieval_strategy": "dense_exact",
+                }
+            ).encode(),
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            urlopen(request, timeout=3)
+        except HTTPError as exc:
+            payload = json.loads(exc.read())
+            assert exc.code == 502
+            assert payload["error"]["code"] == "RUNTIME_DEPENDENCY_FAILED"
+            assert payload["error"]["stage"] == "resolve"
+            assert "TROPOS_OPENAI_API_KEY" in payload["error"]["message"]
+        else:
+            raise AssertionError("dense retrieval must fail closed without embedding credential")
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
+
+
+def test_embedding_materialization_endpoint_fails_closed_without_secret(
+    tmp_path: Path,
+) -> None:
+    server, base, thread = _start_server(tmp_path)
+    try:
+        ingest = Request(
+            base + "/api/ingest?filename=runbook.md&tenant=local",
+            data=b"# Rotation\n\nRestart after certificate rotation.",
+            method="POST",
+        )
+        _read_json(ingest)
+
+        request = Request(
+            base + "/api/embeddings/materialize",
+            data=b"",
+            method="POST",
+        )
+        try:
+            urlopen(request, timeout=3)
+        except HTTPError as exc:
+            payload = json.loads(exc.read())
+            assert exc.code == 502
+            assert payload["error"]["code"] == "EMBEDDING_RUNTIME_FAILED"
+            assert payload["error"]["stage"] == "embeddings"
+            assert "TROPOS_OPENAI_API_KEY" in payload["error"]["message"]
+        else:
+            raise AssertionError("embedding materialization must require a credential")
     finally:
         server.shutdown()
         thread.join(timeout=3)

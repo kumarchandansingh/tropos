@@ -5,7 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from tropos.core.application.retrieval.models import RetrievedKnowledgeChunk
+from tropos.core.application.retrieval.models import (
+    RetrievalScoreComponent,
+    RetrievedKnowledgeChunk,
+)
 from tropos.core.domain.evidence import EvidenceRef
 
 
@@ -36,6 +39,7 @@ class EvidenceItem:
     retrieval_rank: int
     retrieval_score: float
     retrieval_strategy_version: str
+    retrieval_score_components: tuple[RetrievalScoreComponent, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.alias.strip():
@@ -136,6 +140,7 @@ def evidence_set_from_retrieval(
                 retrieval_rank=result.rank,
                 retrieval_score=result.score,
                 retrieval_strategy_version=result.strategy_version,
+                retrieval_score_components=result.score_components,
             )
         )
     return EvidenceSet(evidence_set_id=evidence_set_id, query=query, items=tuple(items))

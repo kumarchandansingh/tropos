@@ -137,6 +137,7 @@ Pages are added only when they support a distinct user task. Technical implement
 | #96 | Admin can use a real LLM without coupling product logic to one provider | Dify, Langfuse/Phoenix provenance | Models & APIs → Connections → Deployments → Role assignments | ModelProvider, ModelConnection, ModelDeployment, ModelAssignment, LLMInvocationMetadata |
 | #97 | Resolve can decide whether eligible evidence is enough and explain why | Phoenix, Langfuse, Glean permission boundary, sufficient-context research | Evaluations → Evidence Sufficiency; Resolve evidence assessment; UNVALIDATED state | EvidenceSet, SufficiencyDecision, LLMInvocationMetadata; human benchmark remains separate |
 | #98 | User can ask and get a grounded answer or useful abstention with citations and trace | Glean, Phoenix, Langfuse, KCS | Resolve Ask/Evidence; Traces & Incidents; later Knowledge Operations hand-off | RuntimeRequest, GroundedAnswer, ResolveResult, RuntimeTrace/TraceSpan |
+| Operational retrieval V1 | Quality operator can compare BM25, exact dense cosine, and hybrid RRF in the live Resolve path | Weaviate hybrid patterns, Langfuse retrieval observations, ADR-015 | Resolve retrieval selector; semantic-index readiness; trace provenance | EmbeddingProvider/Repository, KnowledgeEmbedding, RetrievalScoreComponent; existing retrievers reused |
 
 ## Sources & Ingestion UX contract
 
@@ -312,6 +313,8 @@ Source
 → canonical KnowledgeDocument/state
 → KnowledgeChunk
 → derived indexes
+    ├── SQLite FTS5/BM25
+    └── versioned embeddings
 
 RuntimeRequest
 → retrieval results

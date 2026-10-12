@@ -28,6 +28,7 @@ from tropos.core.application.ports.llm import LLMInvocationMetadata
 from tropos.core.application.retrieval.models import (
     KnowledgeSearchRequest,
     RetrievalAccessContext,
+    RetrievalScoreComponent,
     RetrievedKnowledgeChunk,
 )
 from tropos.core.domain.access import AccessPolicy, AccessScope
@@ -47,7 +48,11 @@ def _metadata(prompt: str) -> LLMInvocationMetadata:
     )
 
 
-def _result(text: str = "Restart after certificate rotation.") -> RetrievedKnowledgeChunk:
+def _result(
+    text: str = "Restart after certificate rotation.",
+    *,
+    score_components: tuple[RetrievalScoreComponent, ...] = (),
+) -> RetrievedKnowledgeChunk:
     fingerprint = sha256(text.encode()).hexdigest()
     chunk = KnowledgeChunk(
         chunk_id="chunk-1",
@@ -72,6 +77,7 @@ def _result(text: str = "Restart after certificate rotation.") -> RetrievedKnowl
         rank=1,
         score=0.9,
         strategy_version="retrieval-v1",
+        score_components=score_components,
     )
 
 
@@ -287,3 +293,46 @@ def test_citation_failure_is_traced_as_runtime_failure() -> None:
     assert sink.traces[0].outcome == "RUNTIME_FAILED"
     assert sink.traces[0].spans[-1].name == "resolve.citation_validation"
     assert sink.traces[0].spans[-1].status == "ERROR"
+
+
+def test_trace_preserves_hybrid_component_rank_provenance() -> None:
+    sink = InMemoryTraceSink()
+    result = _result(
+        score_components=(
+            RetrievalScoreComponent(
+                strategy_version="bm25-v1",
+                rank=2,
+                score=4.2,
+            ),
+            RetrievalScoreComponent(
+                strategy_version="dense-v1",
+                rank=1,
+                score=0.91,
+            ),
+        )
+    )
+    judge = StaticJudge(
+        SufficiencyDecision(
+            label=SufficiencyLabel.INSUFFICIENT,
+            failure_type=SufficiencyFailureType.NO_ANSWER_SUPPORT,
+            required_facts=("answer",),
+            supported_facts=(),
+            missing_facts=("answer",),
+            contradictions=(),
+            rationale="No answer support.",
+        )
+    )
+    runtime = ResolveQuestion(
+        retriever=StaticRetriever((result,)),
+        sufficiency_judge=judge,
+        answer_generator=FailingGenerator(),
+        trace_sink=sink,
+    )
+
+    runtime.execute(_request())
+
+    retrieval_span = next(span for span in sink.traces[0].spans if span.name == "resolve.retrieval")
+    assert retrieval_span.attributes["ranks"] == ("1",)
+    assert retrieval_span.attributes["score_components"] == (
+        "bm25-v1@2=4.2000000000000002|dense-v1@1=0.91000000000000003",
+    )
