@@ -456,7 +456,6 @@ def test_embedding_materialization_endpoint_fails_closed_without_secret(
         server.server_close()
 
 
-
 def test_local_web_rejects_foreign_host_before_returning_diagnostics(tmp_path: Path) -> None:
     server, base, thread = _start_server(tmp_path)
     try:
