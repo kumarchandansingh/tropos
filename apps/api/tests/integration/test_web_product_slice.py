@@ -225,6 +225,7 @@ def test_web_errors_have_structured_operation_envelope(tmp_path: Path) -> None:
             base + "/api/ingest?filename=secret.exe",
             data=b"not allowed",
             method="POST",
+            headers=_security_headers(server, content_type="application/octet-stream"),
         )
         try:
             urlopen(request, timeout=3)
