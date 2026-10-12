@@ -48,11 +48,15 @@ AI Quality / Product Owner:
     ├── Sources & Ingestion
     │   ├── Upload
     │   └── Latest ingestion result
-    └── Resolve
-        ├── Ask
-        ├── Answer / abstention
-        ├── Evidence
-        └── Decision & trace
+    ├── Resolve
+    │   ├── Ask
+    │   ├── Answer / abstention
+    │   ├── Evidence
+    │   └── Decision
+    └── Observability
+        ├── Runtime summary
+        ├── Recent traces
+        └── Trace detail
 
 This is intentionally not a vanity dashboard.
 
@@ -138,14 +142,14 @@ The presentation layer composes existing application and domain contracts. It do
 
 ## Technical architecture
 
-The first UI is a single local FastAPI application.
+The first UI is a single local same-origin HTTP application.
 
-- FastAPI provides same-origin HTML and JSON endpoints.
-- Uvicorn is the local server.
+- Python's standard-library HTTP server provides HTML and JSON endpoints.
+- No additional web framework dependency is introduced in this slice.
 - Existing SQLite remains the system of record for this slice.
 - Uploaded bytes are staged in a temporary directory and run through the canonical local-file connector.
 - Temporary staged files are deleted after ingestion.
-- Trace detail reads the existing JSONL trace sink.
+- Trace detail and the Observability workspace read the existing JSONL trace sink through a query projection.
 - tropos web starts on 127.0.0.1:8000 by default.
 
 A separate React / Next.js deployment is deferred until the interaction model and API contracts have been exercised. The product object model must survive that later presentation change.
@@ -180,3 +184,8 @@ The answer includes trace_id. The trace panel exposes request, retrieval, retrie
 ## Deferred decisions
 
 Production authentication, remote deployment, connector catalog, durable SourceConnection, ingestion-run history, trace search, RBAC web administration, Models & APIs UI, dense/hybrid runtime promotion, production database/queue/object storage, and a separate frontend framework remain deferred rather than simulated.
+
+
+## Operations UX V2
+
+The initial slice was strengthened after live use exposed three operational gaps: duplicate/no-change uploads were too easy to misread, errors were only transient banners, and trace inspection was buried inside a single Resolve result. The follow-on design and implementation are documented in `docs/product/OPERATIONS_UX_V2.md`.
