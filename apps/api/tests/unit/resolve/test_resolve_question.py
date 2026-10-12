@@ -295,7 +295,6 @@ def test_citation_failure_is_traced_as_runtime_failure() -> None:
     assert sink.traces[0].spans[-1].status == "ERROR"
 
 
-
 def test_trace_preserves_hybrid_component_rank_provenance() -> None:
     sink = InMemoryTraceSink()
     result = _result(
@@ -332,9 +331,7 @@ def test_trace_preserves_hybrid_component_rank_provenance() -> None:
 
     runtime.execute(_request())
 
-    retrieval_span = next(
-        span for span in sink.traces[0].spans if span.name == "resolve.retrieval"
-    )
+    retrieval_span = next(span for span in sink.traces[0].spans if span.name == "resolve.retrieval")
     assert retrieval_span.attributes["ranks"] == ("1",)
     assert retrieval_span.attributes["score_components"] == (
         "bm25-v1@2=4.2000000000000002|dense-v1@1=0.91000000000000003",
