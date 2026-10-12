@@ -45,7 +45,7 @@ def test_web_shell_exposes_sources_resolve_and_observability(tmp_path: Path) -> 
         assert "Sources & Ingestion" in html
         assert ">Resolve<" in html
         assert ">Observability<" in html
-        assert "No content change. Existing knowledge version retained." in html
+        assert "Already ingested. Existing knowledge version retained" in html
     finally:
         server.shutdown()
         thread.join(timeout=3)
