@@ -24,6 +24,7 @@ from tropos.core.application.ports.llm import (
 from tropos.core.runtime_config import LLMRuntimeSettings
 
 _GROQ_CHAT_COMPLETIONS_URL = "https://api.groq.com/openai/v1/chat/completions"
+_TROPOS_USER_AGENT = "tropos/0.1"
 
 
 class LLMProviderError(RuntimeError):
@@ -70,7 +71,11 @@ class UrllibJsonTransport:
             with urlopen(request, timeout=timeout_seconds) as response:
                 raw = response.read()
         except HTTPError as exc:
-            raise LLMProviderError(f"Groq returned HTTP {exc.code}") from exc
+            detail = self._http_error_detail(exc)
+            message = f"Groq returned HTTP {exc.code}"
+            if detail is not None:
+                message = f"{message}: {detail}"
+            raise LLMProviderError(message) from exc
         except TimeoutError as exc:
             raise LLMTimeoutError("Groq request timed out") from exc
         except URLError as exc:
@@ -85,6 +90,31 @@ class UrllibJsonTransport:
         if not isinstance(parsed, dict):
             raise LLMResponseError("Groq returned an unexpected JSON shape")
         return cast(dict[str, object], parsed)
+
+    @staticmethod
+    def _http_error_detail(exc: HTTPError) -> str | None:
+        """Extract a bounded provider message without exposing request credentials."""
+
+        try:
+            raw = exc.read(16_384)
+        except OSError:
+            return None
+        if not raw:
+            return None
+        try:
+            payload = json.loads(raw)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        error = payload.get("error")
+        if not isinstance(error, dict):
+            return None
+        message = error.get("message")
+        if not isinstance(message, str):
+            return None
+        normalized = " ".join(message.split())
+        return normalized[:500] or None
 
 
 class GroqLLMAdapter:
@@ -191,6 +221,7 @@ class GroqLLMAdapter:
             headers={
                 "Authorization": f"Bearer {self._api_key}",
                 "Content-Type": "application/json",
+                "User-Agent": _TROPOS_USER_AGENT,
             },
             payload=payload,
             timeout_seconds=self._timeout_seconds,
