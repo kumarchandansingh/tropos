@@ -13,10 +13,10 @@ from tropos.core.application.retrieval.models import (
     KnowledgeSearchRequest,
     RetrievalAccessContext,
 )
-from tropos.web import build_server
+from tropos.web import TroposThreadingHTTPServer, build_server
 
 
-def _start_server(tmp_path: Path) -> tuple[ThreadingHTTPServer, str, Thread]:
+def _start_server(tmp_path: Path) -> tuple[TroposThreadingHTTPServer, str, Thread]:
     server = build_server(
         host="127.0.0.1",
         port=0,
@@ -30,12 +30,12 @@ def _start_server(tmp_path: Path) -> tuple[ThreadingHTTPServer, str, Thread]:
 
 
 def _security_headers(
-    server: ThreadingHTTPServer,
+    server: TroposThreadingHTTPServer,
     *,
     content_type: str,
     origin: str | None = None,
 ) -> dict[str, str]:
-    token = cast(str, server.tropos_session_token)
+    token = server.tropos_session_token
     headers = {
         "Content-Type": content_type,
         "X-Tropos-Session-Token": token,
@@ -67,7 +67,7 @@ def test_web_shell_exposes_sources_resolve_and_observability(tmp_path: Path) -> 
         assert 'value="hybrid_rrf"' in html
         assert "Already ingested. Existing knowledge version retained" in html
         assert "__TROPOS_SESSION_TOKEN__" not in html
-        assert cast(str, server.tropos_session_token) in html
+        assert server.tropos_session_token in html
     finally:
         server.shutdown()
         thread.join(timeout=3)
