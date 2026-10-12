@@ -339,7 +339,13 @@ def build_server(
             if parsed.path == "/api/resolve":
                 try:
                     decoded = json.loads(body)
-                    resolve_query, tenant, groups, limit, threshold = _coerce_resolve_request(decoded)
+                    (
+                        resolve_query,
+                        tenant,
+                        groups,
+                        limit,
+                        threshold,
+                    ) = _coerce_resolve_request(decoded)
                     runtime = _build_runtime(database, trace_file)
                     resolved = runtime.execute(
                         RuntimeRequest(
