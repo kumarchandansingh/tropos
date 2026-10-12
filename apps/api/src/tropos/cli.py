@@ -254,14 +254,14 @@ def main() -> int:
                 tenant_id=arguments.tenant,
                 groups=groups,
             )
-            settings = load_llm_runtime_settings()
-            model = build_default_groq_llm(settings)
             retrieval = build_runtime_retrieval(
                 database_path=database,
                 strategy=RetrievalStrategy(arguments.retrieval_strategy),
                 embedding_settings=load_embedding_runtime_settings(),
                 materialize_missing=False,
             )
+            settings = load_llm_runtime_settings()
+            model = build_default_groq_llm(settings)
             runtime = ResolveQuestion(
                 retriever=retrieval.retriever,
                 sufficiency_judge=LLMEvidenceSufficiencyJudge(model),
@@ -281,6 +281,7 @@ def main() -> int:
             payload: dict[str, object] = {
                 "trace_id": resolved.trace_id,
                 "outcome": resolved.outcome.value,
+                "retrieval_strategy": arguments.retrieval_strategy,
             }
             if resolved.evidence_set is not None:
                 payload["evidence"] = [
@@ -289,6 +290,17 @@ def main() -> int:
                         "title": item.reference.source_record_id,
                         "source_version": item.reference.source_version,
                         "locator": item.reference.locator,
+                        "rank": item.retrieval_rank,
+                        "score": item.retrieval_score,
+                        "strategy": item.retrieval_strategy_version,
+                        "components": [
+                            {
+                                "strategy": component.strategy_version,
+                                "rank": component.rank,
+                                "score": component.score,
+                            }
+                            for component in item.retrieval_score_components
+                        ],
                     }
                     for item in resolved.evidence_set.items
                 ]
