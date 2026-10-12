@@ -46,6 +46,21 @@ class KnowledgeSearchRequest:
 
 
 @dataclass(frozen=True, slots=True)
+class RetrievalScoreComponent:
+    strategy_version: str
+    rank: int
+    score: float
+
+    def __post_init__(self) -> None:
+        if not self.strategy_version.strip():
+            raise ValueError("component strategy_version must not be blank")
+        if self.rank < 1:
+            raise ValueError("component rank must be at least 1")
+        if not isfinite(self.score):
+            raise ValueError("component score must be finite")
+
+
+@dataclass(frozen=True, slots=True)
 class RetrievedKnowledgeChunk:
     """One authorized evidence chunk returned by a versioned retrieval strategy."""
 
@@ -53,6 +68,7 @@ class RetrievedKnowledgeChunk:
     rank: int
     score: float
     strategy_version: str
+    score_components: tuple[RetrievalScoreComponent, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.chunk, KnowledgeChunk):
