@@ -185,6 +185,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Local JSONL trace sink (default: .tropos/traces.jsonl)",
     )
 
+    web = commands.add_parser("web", help="Run the local Tropos product UI")
+    web.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1)")
+    web.add_argument("--port", type=int, default=8000, help="Bind port (default: 8000)")
+
     models = commands.add_parser("models", help="Inspect and test configured model runtime")
     model_commands = models.add_subparsers(dest="models_command", required=True)
     model_commands.add_parser(
@@ -276,6 +280,14 @@ def main() -> int:
                 payload["abstention_reason"] = resolved.abstention_reason
 
             print(json.dumps(payload, indent=2))
+            return 0
+
+        if arguments.command == "web":
+            from tropos.web import serve
+
+            if not 1 <= arguments.port <= 65535:
+                raise ValueError("port must be between 1 and 65535")
+            serve(host=arguments.host, port=arguments.port)
             return 0
 
         if arguments.command == "models" and arguments.models_command == "test":
