@@ -20,7 +20,7 @@ from tropos.capabilities.resolve.application.generate_grounded_answer import (
     LLMGroundedAnswerGenerator,
 )
 from tropos.capabilities.resolve.application.resolve_question import ResolveQuestion
-from tropos.capabilities.resolve.domain.runtime import ResolveOutcome, RuntimeRequest
+from tropos.capabilities.resolve.domain.runtime import ResolveOutcome, ResolveResult, RuntimeRequest
 from tropos.core.adapters.chunking.deterministic import DeterministicKnowledgeChunker
 from tropos.core.adapters.llm.groq import build_default_groq_llm
 from tropos.core.adapters.normalization.deterministic import DeterministicKnowledgeNormalizer
@@ -118,8 +118,7 @@ def _ingestion_payload(result: IngestionResult) -> dict[str, object]:
     }
 
 
-def _resolve_payload(resolved: object) -> dict[str, object]:
-    result = resolved
+def _resolve_payload(result: ResolveResult) -> dict[str, object]:
     payload: dict[str, object] = {
         "trace_id": result.trace_id,
         "outcome": result.outcome.value,
