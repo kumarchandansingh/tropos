@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from tropos.capabilities.resolve.application.evaluate_evidence_sufficiency import (
     LLMEvidenceSufficiencyJudge,
+    _SufficiencyOutput,
 )
 from tropos.capabilities.resolve.domain.evidence_sufficiency import (
     SufficiencyFailureType,
@@ -150,3 +151,10 @@ def test_sufficient_decision_cannot_hide_missing_facts() -> None:
 
     with pytest.raises(ValueError, match="cannot declare missing facts"):
         LLMEvidenceSufficiencyJudge(fake).judge(evidence)
+
+
+def test_sufficiency_output_schema_is_closed_for_strict_structured_output() -> None:
+    schema = _SufficiencyOutput.model_json_schema()
+
+    assert schema["additionalProperties"] is False
+    assert set(schema["required"]) == set(schema["properties"])

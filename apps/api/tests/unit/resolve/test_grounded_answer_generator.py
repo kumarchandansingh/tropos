@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from tropos.capabilities.resolve.application.generate_grounded_answer import (
     LLMGroundedAnswerGenerator,
+    _GroundedAnswerOutput,
 )
 from tropos.capabilities.resolve.domain.evidence_sufficiency import (
     EvidenceItem,
@@ -62,3 +63,10 @@ def test_generator_fails_closed_on_unknown_citation() -> None:
 
     with pytest.raises(ValueError, match="unknown evidence citation"):
         generator.generate(_evidence())
+
+
+def test_grounded_answer_schema_is_closed_for_strict_structured_output() -> None:
+    schema = _GroundedAnswerOutput.model_json_schema()
+
+    assert schema["additionalProperties"] is False
+    assert set(schema["required"]) == set(schema["properties"])

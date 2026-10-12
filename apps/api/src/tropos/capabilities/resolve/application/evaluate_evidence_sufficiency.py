@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from tropos.capabilities.resolve.domain.evidence_sufficiency import (
     EvidenceSet,
@@ -22,6 +22,8 @@ from tropos.core.application.ports.llm import (
 
 
 class _SufficiencyOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     label: Literal["SUFFICIENT", "INSUFFICIENT"]
     failure_type: Literal[
         "NONE",
