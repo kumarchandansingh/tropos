@@ -238,3 +238,11 @@ Future ingestion diagnostics should expose parser strategy and extraction counts
 - admin controls for custom embedded-data selectors.
 
 Complexity should be added only when measured source failures justify it.
+
+
+## 14. Implementation strategy identifiers
+
+- parser: `deterministic-parser-v2-embedded-html-data`
+- ingestion processing identity: `ingestion-pipeline-v2-embedded-html-data`
+
+These identifiers are deliberately separate from raw source version and raw payload fingerprint.
