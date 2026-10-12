@@ -164,7 +164,6 @@ def test_invalid_docx_package_is_rejected() -> None:
         )
 
 
-
 def test_html_parser_extracts_safe_data_bearing_javascript_literal() -> None:
     parser = DeterministicKnowledgeParser()
     html = b"""

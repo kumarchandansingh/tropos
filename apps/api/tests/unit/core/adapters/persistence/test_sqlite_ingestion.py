@@ -185,7 +185,6 @@ def test_parser_failure_is_persisted_as_failed_run(tmp_path: Path) -> None:
     assert row == ("FAILED", "FAILED", "UnsupportedContentTypeError")
 
 
-
 def test_processing_version_reprocesses_same_raw_source_without_changing_raw_identity(
     tmp_path: Path,
 ) -> None:
@@ -234,7 +233,6 @@ def test_processing_version_reprocesses_same_raw_source_without_changing_raw_ide
     }
 
 
-
 def test_sqlite_store_migrates_legacy_ingestion_run_identity(tmp_path: Path) -> None:
     database = tmp_path / "legacy.db"
     with sqlite3.connect(database) as connection:
@@ -265,8 +263,7 @@ def test_sqlite_store_migrates_legacy_ingestion_run_identity(tmp_path: Path) -> 
 
     with sqlite3.connect(database) as connection:
         columns = {
-            row[1]
-            for row in connection.execute("PRAGMA table_info(ingestion_runs)").fetchall()
+            row[1] for row in connection.execute("PRAGMA table_info(ingestion_runs)").fetchall()
         }
         indexes = connection.execute("PRAGMA index_list(ingestion_runs)").fetchall()
 

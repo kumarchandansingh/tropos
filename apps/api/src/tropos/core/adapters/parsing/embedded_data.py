@@ -8,9 +8,7 @@ from html.parser import HTMLParser
 from typing import cast
 
 _ASSIGNMENT = re.compile(r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=")
-_IDENTIFIER_START = frozenset(
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_$"
-)
+_IDENTIFIER_START = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_$")
 _IDENTIFIER_CONTINUE = _IDENTIFIER_START | frozenset("0123456789")
 _MAX_SCRIPT_CHARACTERS = 2_000_000
 _MAX_LITERAL_CHARACTERS = 1_000_000
@@ -154,10 +152,7 @@ def _valid_data(value: object) -> bool:
     if isinstance(value, list):
         return all(_valid_data(item) for item in value)
     if isinstance(value, dict):
-        return all(
-            isinstance(key, str) and _valid_data(item)
-            for key, item in value.items()
-        )
+        return all(isinstance(key, str) and _valid_data(item) for key, item in value.items())
     return False
 
 
@@ -272,7 +267,7 @@ def extract_embedded_data_markdown(html: str, *, visible_text: str) -> tuple[str
 
             try:
                 parsed = ast.literal_eval(_pythonize_js_literal(literal))
-            except (SyntaxError, ValueError):
+            except SyntaxError, ValueError:
                 continue
 
             value = cast(object, parsed)

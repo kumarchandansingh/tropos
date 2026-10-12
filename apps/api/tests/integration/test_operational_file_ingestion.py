@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 # ruff: noqa: E501
-
 from pathlib import Path
 
 from tropos.cli import ingest_local_file
@@ -92,7 +91,6 @@ def test_restricted_file_is_not_retrieved_without_matching_group(tmp_path: Path)
 
     assert denied == ()
     assert allowed
-
 
 
 def test_dynamic_html_embedded_data_becomes_searchable(tmp_path: Path) -> None:
