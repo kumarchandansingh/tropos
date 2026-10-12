@@ -430,6 +430,7 @@ def test_embedding_materialization_endpoint_fails_closed_without_secret(
             base + "/api/ingest?filename=runbook.md&tenant=local",
             data=b"# Rotation\n\nRestart after certificate rotation.",
             method="POST",
+            headers=_security_headers(server, content_type="text/markdown"),
         )
         _read_json(ingest)
 
