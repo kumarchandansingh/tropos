@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from datetime import UTC, datetime
 from io import BytesIO
 from zipfile import ZipFile
