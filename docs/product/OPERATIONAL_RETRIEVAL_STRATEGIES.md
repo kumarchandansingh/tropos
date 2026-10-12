@@ -101,7 +101,8 @@ No embedding configuration is required.
     → if embedding provider missing:
          inline configuration error
     → if current chunks are missing embeddings:
-         materialize derived embeddings
+         explicit semantic-index incomplete error
+         → operator runs Build semantic index
     → exact cosine over eligible current chunks
     → retrieval gate
     → sufficiency
@@ -221,9 +222,9 @@ No application/domain layer imports infrastructure adapters.
 
 ### Materialization
 
-Expose explicit CLI/UI materialization, and permit the web Resolve path to ensure missing embeddings are materialized before dense/hybrid execution in the local slice.
+Expose explicit CLI/UI materialization. Resolve never creates embeddings implicitly: if the semantic index is incomplete, dense/hybrid fail closed with an actionable message.
 
-The operation is idempotent for the current embedding strategy.
+The materialization operation is idempotent for the current embedding strategy. This avoids surprising provider egress/cost on a question submission.
 
 ### Trace
 
