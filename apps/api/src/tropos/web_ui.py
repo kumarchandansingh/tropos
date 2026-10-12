@@ -171,6 +171,7 @@ TROPOS_WEB_HTML = r"""<!doctype html>
 
 <script>
 (() => {
+  const sessionToken='__TROPOS_SESSION_TOKEN__';
   const state={file:null,traceId:null,activity:[],observability:null,diagnostics:null,embeddingConfigured:false};
   const el=id=>document.getElementById(id);
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -180,7 +181,7 @@ TROPOS_WEB_HTML = r"""<!doctype html>
   document.querySelectorAll('.nav button').forEach(button=>button.addEventListener('click',()=>activate(button.dataset.section)));
   function activate(section){document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.section===section));document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===section));if(section==='observability')loadObservability();}
 
-  async function api(url,options={}){const response=await fetch(url,options);const data=await response.json().catch(()=>({}));if(!response.ok){const e=data.error||{};const error=new Error(e.message||data.detail||('Request failed: '+response.status));error.info={code:e.code||('HTTP_'+response.status),stage:e.stage||'request',retryable:!!e.retryable,status:response.status};throw error;}return data;}
+  async function api(url,options={}){if((options.method||'GET').toUpperCase()==='POST'){options.headers={...(options.headers||{}),'X-Tropos-Session-Token':sessionToken};}const response=await fetch(url,options);const data=await response.json().catch(()=>({}));if(!response.ok){const e=data.error||{};const error=new Error(e.message||data.detail||('Request failed: '+response.status));error.info={code:e.code||('HTTP_'+response.status),stage:e.stage||'request',retryable:!!e.retryable,status:response.status};throw error;}return data;}
   function renderError(target,title,error,retry){const box=el(target),info=error.info||{};box.innerHTML='<div class="inline-error-head"><strong>'+esc(title)+'</strong><span class="badge danger">ERROR</span></div><p>'+esc(error.message)+'</p><div class="error-meta">Stage: '+esc(info.stage||'unknown')+' · Code: '+esc(info.code||'UNKNOWN')+(info.status?' · HTTP '+esc(info.status):'')+'</div>'+(retry?'<div class="retry"><button class="button" id="'+target+'-retry">Retry</button></div>':'');box.classList.add('show');if(retry)el(target+'-retry').onclick=retry;}
   function clearError(target){el(target).classList.remove('show');el(target).innerHTML='';}
 
@@ -199,7 +200,7 @@ TROPOS_WEB_HTML = r"""<!doctype html>
   function renderActivity(){el('activity-empty').style.display=state.activity.length?'none':'block';el('activity').innerHTML=state.activity.map(item=>'<div class="activity-row"><strong>'+esc(item.filename)+'</strong><span>'+esc(item.ok?(item.replayed?'Already ingested':friendlyOutcome(item.outcome)):'Failed')+'</span><span class="badge '+(item.ok?'success':'danger')+'">'+(item.ok?(item.replayed?'REPLAY':'DONE'):'ERROR')+'</span><span class="muted">'+esc(item.ok?(item.replayed?'Existing version retained · run '+item.run_id:(item.outcome==='NO_CHANGE'?'Existing version retained':item.run_id)):(item.error||''))+'</span></div>').join('');}
 
   el('materialize-embeddings').onclick=()=>materializeEmbeddings();
-  async function materializeEmbeddings(){const button=el('materialize-embeddings'),original=button.textContent;clearError('ingest-error');button.disabled=true;button.innerHTML='<span class="loading"></span>Building';try{const data=await api('/api/embeddings/materialize',{method:'POST'});el('semantic-status').textContent=data.embedded_count===0?'Semantic index already current.':'Embedded '+data.embedded_count+' current chunks with '+data.model+'.';}catch(error){renderError('ingest-error','Semantic index failed',error,()=>materializeEmbeddings());}finally{button.disabled=!state.embeddingConfigured;button.textContent=original;}}
+  async function materializeEmbeddings(){const button=el('materialize-embeddings'),original=button.textContent;clearError('ingest-error');button.disabled=true;button.innerHTML='<span class="loading"></span>Building';try{const data=await api('/api/embeddings/materialize',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});el('semantic-status').textContent=data.embedded_count===0?'Semantic index already current.':'Embedded '+data.embedded_count+' current chunks with '+data.model+'.';}catch(error){renderError('ingest-error','Semantic index failed',error,()=>materializeEmbeddings());}finally{button.disabled=!state.embeddingConfigured;button.textContent=original;}}
 
   el('retrieval-strategy').onchange=()=>updateRetrievalReadiness();
   function updateRetrievalReadiness(){const strategy=el('retrieval-strategy').value,label=el('retrieval-readiness');if(strategy==='bm25'){label.textContent='Lexical baseline';return;}label.textContent=state.embeddingConfigured?'Semantic runtime configured; build the semantic index before use.':'Requires TROPOS_OPENAI_API_KEY';}
