@@ -334,16 +334,16 @@ def main() -> int:
             return 0
 
         if arguments.command == "embeddings" and arguments.embeddings_command == "materialize":
-            result = materialize_runtime_embeddings(
+            materialization_result = materialize_runtime_embeddings(
                 database_path=arguments.database.expanduser().resolve(),
                 settings=load_embedding_runtime_settings(),
             )
             print(
                 json.dumps(
                     {
-                        "embedded_count": result.embedded_count,
-                        "strategy_version": result.strategy_version,
-                        "model": result.model_identifier,
+                        "embedded_count": materialization_result.embedded_count,
+                        "strategy_version": materialization_result.strategy_version,
+                        "model": materialization_result.model_identifier,
                     },
                     indent=2,
                 )
