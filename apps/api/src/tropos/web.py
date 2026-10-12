@@ -255,6 +255,15 @@ def _resolve_payload(result: ResolveResult) -> dict[str, object]:
                 "locator": item.reference.locator,
                 "rank": item.retrieval_rank,
                 "score": item.retrieval_score,
+                "strategy": item.retrieval_strategy_version,
+                "components": [
+                    {
+                        "strategy": component.strategy_version,
+                        "rank": component.rank,
+                        "score": component.score,
+                    }
+                    for component in item.retrieval_score_components
+                ],
             }
             for item in result.evidence_set.items
         ]
