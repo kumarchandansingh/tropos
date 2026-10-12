@@ -414,6 +414,7 @@ def _trace_summary(trace: dict[str, object]) -> dict[str, object]:
         "outcome": trace.get("outcome"),
         "recorded_at": trace.get("recorded_at"),
         "retrieval_strategy": retrieval.get("strategy_version"),
+        "retrieval_latency_ms": retrieval.get("latency_ms"),
         "result_count": retrieval.get("result_count"),
         "gate_status": gate_span.get("status") if gate_span else None,
         "gate_reason": gate.get("reason"),
