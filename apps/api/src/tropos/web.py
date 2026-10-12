@@ -82,7 +82,11 @@ def _git_value(repository: Path | None, *arguments: str) -> str | None:
     return value or None
 
 
-def _database_diagnostics(database: Path) -> dict[str, object]:
+def _database_diagnostics(
+    database: Path,
+    *,
+    embedding_strategy_version: str | None = None,
+) -> dict[str, object]:
     payload: dict[str, object] = {
         "path": str(database),
         "exists": database.exists(),
@@ -90,6 +94,8 @@ def _database_diagnostics(database: Path) -> dict[str, object]:
         "knowledge_count": 0,
         "chunk_count": 0,
         "current_chunk_count": 0,
+        "embedding_count": 0,
+        "missing_embedding_count": 0,
         "latest_processing_version": None,
         "error": None,
     }
@@ -126,6 +132,45 @@ def _database_diagnostics(database: Path) -> dict[str, object]:
                 """
             ).fetchone()
             payload["latest_processing_version"] = str(row[0]) if row else None
+
+            tables = {
+                str(row[0])
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            if embedding_strategy_version is not None:
+                if "knowledge_embeddings" in tables:
+                    payload["embedding_count"] = int(
+                        connection.execute(
+                            """
+                            SELECT COUNT(*)
+                            FROM knowledge_embeddings
+                            WHERE embedding_strategy_version = ?
+                            """,
+                            (embedding_strategy_version,),
+                        ).fetchone()[0]
+                    )
+                    payload["missing_embedding_count"] = int(
+                        connection.execute(
+                            """
+                            SELECT COUNT(*)
+                            FROM knowledge_chunks AS c
+                            JOIN knowledge_state AS s
+                              ON s.knowledge_id = c.knowledge_id
+                            LEFT JOIN knowledge_embeddings AS e
+                              ON e.chunk_id = c.chunk_id
+                             AND e.embedding_strategy_version = ?
+                            WHERE s.lifecycle_status = 'ACTIVE'
+                              AND c.normalized_content_fingerprint = s.content_fingerprint
+                              AND c.normalization_strategy_version = s.normalization_strategy_version
+                              AND e.chunk_id IS NULL
+                            """,
+                            (embedding_strategy_version,),
+                        ).fetchone()[0]
+                    )
+                else:
+                    payload["missing_embedding_count"] = payload["current_chunk_count"]
     except (sqlite3.DatabaseError, OSError) as exc:
         payload["error"] = f"{type(exc).__name__}: {exc}"
     return payload
@@ -156,7 +201,14 @@ def _runtime_diagnostics(database: Path) -> dict[str, object]:
             "chunking_strategy": chunker.strategy_version,
             "chunk_max_characters": chunker.max_characters,
         },
-        "storage": _database_diagnostics(database),
+        "storage": _database_diagnostics(
+            database,
+            embedding_strategy_version=(
+                f"openai:{embedding_settings.model}:{embedding_settings.dimensions}:v1"
+                if embedding_settings.provider == "openai"
+                else None
+            ),
+        ),
         "retrieval": {
             "default_strategy": RetrievalStrategy.BM25.value,
             "bm25_strategy": SQLiteFtsKnowledgeRetriever.strategy_version_name,
@@ -422,14 +474,14 @@ def _build_runtime(
     *,
     retrieval_strategy: RetrievalStrategy,
 ) -> ResolveQuestion:
-    settings = load_llm_runtime_settings()
-    model = build_default_groq_llm(settings)
     retrieval = build_runtime_retrieval(
         database_path=database,
         strategy=retrieval_strategy,
         embedding_settings=load_embedding_runtime_settings(),
         materialize_missing=retrieval_strategy is not RetrievalStrategy.BM25,
     )
+    settings = load_llm_runtime_settings()
+    model = build_default_groq_llm(settings)
     return ResolveQuestion(
         retriever=retrieval.retriever,
         sufficiency_judge=LLMEvidenceSufficiencyJudge(model),
