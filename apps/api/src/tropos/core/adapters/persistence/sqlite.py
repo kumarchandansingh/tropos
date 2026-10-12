@@ -130,6 +130,7 @@ class SQLiteIngestionStore:
                     run_id TEXT PRIMARY KEY,
                     knowledge_id TEXT NOT NULL,
                     ingestion_fingerprint TEXT NOT NULL,
+                    processing_version TEXT NOT NULL,
                     status TEXT NOT NULL,
                     stage TEXT NOT NULL,
                     outcome TEXT,
@@ -142,7 +143,7 @@ class SQLiteIngestionStore:
                     error_message TEXT,
                     started_at TEXT NOT NULL,
                     completed_at TEXT,
-                    UNIQUE (knowledge_id, ingestion_fingerprint)
+                    UNIQUE (knowledge_id, ingestion_fingerprint, processing_version)
                 );
                 """
             )
@@ -158,6 +159,76 @@ class SQLiteIngestionStore:
             if "lifecycle_changed_at" not in state_columns:
                 connection.execute(
                     "ALTER TABLE knowledge_state ADD COLUMN lifecycle_changed_at TEXT"
+                )
+
+            run_columns = {
+                str(row[1])
+                for row in connection.execute("PRAGMA table_info(ingestion_runs)").fetchall()
+            }
+            if "processing_version" not in run_columns:
+                connection.executescript(
+                    """
+                    ALTER TABLE ingestion_runs RENAME TO ingestion_runs_legacy;
+
+                    CREATE TABLE ingestion_runs (
+                        run_id TEXT PRIMARY KEY,
+                        knowledge_id TEXT NOT NULL,
+                        ingestion_fingerprint TEXT NOT NULL,
+                        processing_version TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        stage TEXT NOT NULL,
+                        outcome TEXT,
+                        version_action TEXT,
+                        version_reason TEXT,
+                        canonical_content_fingerprint TEXT,
+                        chunks_written INTEGER NOT NULL DEFAULT 0,
+                        governance_refreshed INTEGER NOT NULL DEFAULT 0,
+                        error_type TEXT,
+                        error_message TEXT,
+                        started_at TEXT NOT NULL,
+                        completed_at TEXT,
+                        UNIQUE (knowledge_id, ingestion_fingerprint, processing_version)
+                    );
+
+                    INSERT INTO ingestion_runs (
+                        run_id,
+                        knowledge_id,
+                        ingestion_fingerprint,
+                        processing_version,
+                        status,
+                        stage,
+                        outcome,
+                        version_action,
+                        version_reason,
+                        canonical_content_fingerprint,
+                        chunks_written,
+                        governance_refreshed,
+                        error_type,
+                        error_message,
+                        started_at,
+                        completed_at
+                    )
+                    SELECT
+                        run_id,
+                        knowledge_id,
+                        ingestion_fingerprint,
+                        'ingestion-pipeline-v1',
+                        status,
+                        stage,
+                        outcome,
+                        version_action,
+                        version_reason,
+                        canonical_content_fingerprint,
+                        chunks_written,
+                        governance_refreshed,
+                        error_type,
+                        error_message,
+                        started_at,
+                        completed_at
+                    FROM ingestion_runs_legacy;
+
+                    DROP TABLE ingestion_runs_legacy;
+                    """
                 )
 
     def record(self, raw_record: RawKnowledgeRecord) -> None:
@@ -474,6 +545,7 @@ class SQLiteIngestionStore:
         *,
         knowledge_id: str,
         ingestion_fingerprint: str,
+        processing_version: str,
     ) -> IngestionResult | None:
         with self._connect() as connection:
             row = cast(
@@ -493,9 +565,10 @@ class SQLiteIngestionStore:
                     FROM ingestion_runs
                     WHERE knowledge_id = ?
                       AND ingestion_fingerprint = ?
+                      AND processing_version = ?
                       AND status = 'COMPLETED'
                     """,
-                    (knowledge_id, ingestion_fingerprint),
+                    (knowledge_id, ingestion_fingerprint, processing_version),
                 ).fetchone(),
             )
 
@@ -520,6 +593,7 @@ class SQLiteIngestionStore:
         run_id: str,
         knowledge_id: str,
         ingestion_fingerprint: str,
+        processing_version: str,
     ) -> None:
         now = datetime.now(UTC).isoformat()
         try:
@@ -530,15 +604,17 @@ class SQLiteIngestionStore:
                         run_id,
                         knowledge_id,
                         ingestion_fingerprint,
+                        processing_version,
                         status,
                         stage,
                         started_at
-                    ) VALUES (?, ?, ?, 'RUNNING', ?, ?)
+                    ) VALUES (?, ?, ?, ?, 'RUNNING', ?, ?)
                     """,
                     (
                         run_id,
                         knowledge_id,
                         ingestion_fingerprint,
+                        processing_version,
                         IngestionStage.RECEIVED.value,
                         now,
                     ),
