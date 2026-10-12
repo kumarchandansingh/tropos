@@ -7,6 +7,7 @@ from html.parser import HTMLParser
 from io import BytesIO
 from zipfile import BadZipFile, ZipFile
 
+from tropos.core.adapters.parsing.embedded_data import extract_embedded_data_markdown
 from tropos.core.application.ingestion.normalization import ExtractedKnowledgeText, TextFormat
 from tropos.core.application.ingestion.parsing import (
     KnowledgeParseError,
@@ -292,6 +293,8 @@ def _docx_title(archive: ZipFile, blocks: list[str], fallback: str) -> str:
 class DeterministicKnowledgeParser:
     """Route supported source formats through deterministic, non-LLM parsing."""
 
+    strategy_version = "deterministic-parser-v2-embedded-html-data"
+
     def parse(
         self,
         raw_record: RawKnowledgeRecord,
@@ -347,13 +350,20 @@ class DeterministicKnowledgeParser:
         source_uri: str | None,
         source_updated_at: datetime | None,
     ) -> ExtractedKnowledgeText:
+        html = _decode_utf8(raw_record.payload)
         parser = _HTMLToMarkdown()
         try:
-            parser.feed(_decode_utf8(raw_record.payload))
+            parser.feed(html)
             parser.close()
         except (ValueError, AssertionError) as exc:
             raise KnowledgeParseError("HTML payload could not be parsed") from exc
-        text = "\n\n".join(parser.blocks).strip()
+
+        visible_text = "\n\n".join(parser.blocks).strip()
+        embedded = extract_embedded_data_markdown(
+            html,
+            visible_text=visible_text,
+        )
+        text = "\n\n".join(part for part in (visible_text, *embedded) if part).strip()
         if not text:
             raise KnowledgeParseError("HTML parsing produced no usable text")
         return ExtractedKnowledgeText(
