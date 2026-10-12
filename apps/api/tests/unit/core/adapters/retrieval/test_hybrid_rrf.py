@@ -100,6 +100,12 @@ def test_rrf_promotes_evidence_supported_by_both_retrievers() -> None:
     )
     assert results[0].score == 2 * (1 / 62)
     assert all(result.strategy_version.startswith("hybrid-rrf-v1") for result in results)
+    assert tuple(component.strategy_version for component in results[0].score_components) == (
+        "bm25-test",
+        "dense-test",
+    )
+    assert tuple(component.rank for component in results[0].score_components) == (2, 2)
+    assert tuple(component.score for component in results[0].score_components) == (8.0, 0.89)
 
 
 def test_hybrid_uses_rank_not_incomparable_raw_scores() -> None:
