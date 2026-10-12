@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from tropos.capabilities.resolve.domain.evidence_sufficiency import EvidenceSet
 from tropos.capabilities.resolve.domain.runtime import GroundedAnswer
@@ -20,6 +20,8 @@ class CitationResolutionError(ValueError):
 
 
 class _GroundedAnswerOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     answer: str = Field(min_length=1)
     citations: list[str] = Field(min_length=1)
 
