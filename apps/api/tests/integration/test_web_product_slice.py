@@ -355,7 +355,6 @@ def test_runtime_diagnostics_identify_loaded_processing_and_storage(tmp_path: Pa
         server.server_close()
 
 
-
 def test_dense_resolve_fails_closed_when_embedding_runtime_is_unconfigured(
     tmp_path: Path,
 ) -> None:
