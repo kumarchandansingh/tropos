@@ -6,7 +6,16 @@ import argparse
 import json
 from hashlib import sha256
 from pathlib import Path
+from uuid import uuid4
 
+from tropos.capabilities.resolve.application.evaluate_evidence_sufficiency import (
+    LLMEvidenceSufficiencyJudge,
+)
+from tropos.capabilities.resolve.application.generate_grounded_answer import (
+    LLMGroundedAnswerGenerator,
+)
+from tropos.capabilities.resolve.application.resolve_question import ResolveQuestion
+from tropos.capabilities.resolve.domain.runtime import ResolveOutcome, RuntimeRequest
 from tropos.core.adapters.chunking.deterministic import DeterministicKnowledgeChunker
 from tropos.core.adapters.llm.groq import build_default_groq_llm
 from tropos.core.adapters.normalization.deterministic import DeterministicKnowledgeNormalizer
@@ -20,7 +29,9 @@ from tropos.core.application.ingestion.ingest_from_source import (
 )
 from tropos.core.application.ingestion.ingest_knowledge import IngestKnowledge
 from tropos.core.application.ingestion.run_state import IngestionOutcome, IngestionResult
+from tropos.core.application.observability.trace import JsonlTraceSink
 from tropos.core.application.ports.llm import TextCompletionRequest
+from tropos.core.application.retrieval.models import RetrievalAccessContext
 from tropos.core.domain.access import AccessPolicy, AccessScope
 from tropos.core.runtime_config import load_llm_runtime_settings
 
@@ -143,6 +154,37 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Stable Tropos knowledge ID; generated from local source identity when omitted",
     )
 
+    ask = commands.add_parser(
+        "ask",
+        help="Ask a grounded question against governed local Tropos knowledge",
+    )
+    ask.add_argument("query")
+    ask.add_argument(
+        "--database",
+        type=Path,
+        default=Path(".tropos/tropos.db"),
+        help="SQLite runtime database (default: .tropos/tropos.db)",
+    )
+    ask.add_argument("--tenant", default="local", help="Tenant identifier (default: local)")
+    ask.add_argument(
+        "--group",
+        action="append",
+        default=[],
+        help="Local operator access group; repeat for multiple groups",
+    )
+    ask.add_argument("--limit", type=int, default=5, help="Maximum eligible evidence chunks")
+    ask.add_argument(
+        "--retrieval-threshold",
+        type=float,
+        help="Optional explicit top-score runtime threshold; omitted by default",
+    )
+    ask.add_argument(
+        "--trace-file",
+        type=Path,
+        default=Path(".tropos/traces.jsonl"),
+        help="Local JSONL trace sink (default: .tropos/traces.jsonl)",
+    )
+
     models = commands.add_parser("models", help="Inspect and test configured model runtime")
     model_commands = models.add_subparsers(dest="models_command", required=True)
     model_commands.add_parser(
@@ -167,6 +209,74 @@ def main() -> int:
             )
             print(json.dumps(_result_payload(result, arguments.database), indent=2))
             return 3 if result.outcome is IngestionOutcome.REBASELINE_REQUIRED else 0
+
+        if arguments.command == "ask":
+            database = arguments.database.expanduser().resolve()
+            groups = tuple(sorted({group.strip() for group in arguments.group if group.strip()}))
+            access = RetrievalAccessContext(
+                tenant_id=arguments.tenant,
+                groups=groups,
+            )
+            settings = load_llm_runtime_settings()
+            model = build_default_groq_llm(settings)
+            runtime = ResolveQuestion(
+                retriever=SQLiteFtsKnowledgeRetriever(database),
+                sufficiency_judge=LLMEvidenceSufficiencyJudge(model),
+                answer_generator=LLMGroundedAnswerGenerator(model),
+                trace_sink=JsonlTraceSink(arguments.trace_file),
+            )
+            resolved = runtime.execute(
+                RuntimeRequest(
+                    request_id=f"request_{uuid4().hex}",
+                    query=arguments.query,
+                    access=access,
+                    retrieval_limit=arguments.limit,
+                    retrieval_threshold=arguments.retrieval_threshold,
+                )
+            )
+
+            payload: dict[str, object] = {
+                "trace_id": resolved.trace_id,
+                "outcome": resolved.outcome.value,
+            }
+            if resolved.evidence_set is not None:
+                payload["evidence"] = [
+                    {
+                        "alias": item.alias,
+                        "title": item.reference.source_record_id,
+                        "source_version": item.reference.source_version,
+                        "locator": item.reference.locator,
+                    }
+                    for item in resolved.evidence_set.items
+                ]
+            if resolved.sufficiency is not None:
+                payload["evidence_assessment"] = {
+                    "label": resolved.sufficiency.label.value,
+                    "failure_type": resolved.sufficiency.failure_type.value,
+                    "validation_status": resolved.sufficiency.validation_status.value,
+                    "missing_facts": list(resolved.sufficiency.missing_facts),
+                    "contradictions": list(resolved.sufficiency.contradictions),
+                }
+            if resolved.outcome is ResolveOutcome.ANSWERED and resolved.answer is not None:
+                payload["answer"] = resolved.answer.text
+                payload["citations"] = [
+                    {
+                        "alias": alias,
+                        "chunk_id": citation.chunk_id,
+                        "knowledge_id": citation.knowledge_id,
+                        "locator": citation.locator,
+                    }
+                    for alias, citation in zip(
+                        resolved.answer.citation_aliases,
+                        resolved.answer.citations,
+                        strict=True,
+                    )
+                ]
+            else:
+                payload["abstention_reason"] = resolved.abstention_reason
+
+            print(json.dumps(payload, indent=2))
+            return 0
 
         if arguments.command == "models" and arguments.models_command == "test":
             settings = load_llm_runtime_settings()
