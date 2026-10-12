@@ -625,9 +625,7 @@ def build_server(
                         "model": settings.model,
                         "model_configured": settings.configured,
                         "retrieval": "sqlite-fts5-bm25-v1",
-                        "retrieval_strategies": [
-                            strategy.value for strategy in RetrievalStrategy
-                        ],
+                        "retrieval_strategies": [strategy.value for strategy in RetrievalStrategy],
                         "embedding_configured": load_embedding_runtime_settings().configured,
                     },
                 )
