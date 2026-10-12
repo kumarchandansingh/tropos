@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
+from time import perf_counter
 from typing import Protocol
 from uuid import uuid4
 
@@ -81,6 +82,7 @@ class ResolveQuestion:
             )
         ]
 
+        retrieval_started = perf_counter()
         try:
             results = self._retriever.search(
                 KnowledgeSearchRequest(
@@ -105,6 +107,7 @@ class ResolveQuestion:
                 status="OK",
                 attributes={
                     "strategy_version": self._retriever.strategy_version,
+                    "latency_ms": round((perf_counter() - retrieval_started) * 1000, 3),
                     "result_count": len(results),
                     "chunk_ids": tuple(result.chunk.chunk_id for result in results),
                     "ranks": tuple(str(result.rank) for result in results),
