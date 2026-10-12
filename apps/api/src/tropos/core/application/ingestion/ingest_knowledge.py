@@ -74,6 +74,10 @@ class IngestKnowledge:
         self._run_id_factory = run_id_factory or (lambda: uuid4().hex)
         self._processing_version = version
 
+    @property
+    def processing_version(self) -> str:
+        return self._processing_version
+
     def execute(self, command: IngestKnowledgeCommand) -> IngestionResult:
         fingerprint = command.raw_record.ingestion_fingerprint
         previous_result = self._runs.find_completed(
