@@ -49,16 +49,20 @@ class RecordingTransport(JsonTransport):
         return self.response
 
 
-def _adapter(transport: JsonTransport, secret: str = "gsk_secret") -> GroqLLMAdapter:
+def _adapter(
+    transport: JsonTransport,
+    secret: str = "gsk_secret",
+    model_identifier: str = "test-model",
+) -> GroqLLMAdapter:
     connection = ModelConnection(
         connection_id="groq-test",
         provider_id="groq",
         credential_reference="env:TROPOS_GROQ_API_KEY",
     )
     deployment = ModelDeployment(
-        deployment_id="groq:test-model",
+        deployment_id=f"groq:{model_identifier}",
         connection_id=connection.connection_id,
-        model_identifier="test-model",
+        model_identifier=model_identifier,
         capabilities=("text", "structured-output"),
     )
     return GroqLLMAdapter(
@@ -108,6 +112,52 @@ def test_groq_structured_completion_sends_schema_and_captures_usage() -> None:
     response_format = transport.payload["response_format"]
     assert isinstance(response_format, dict)
     assert response_format["type"] == "json_schema"
+
+
+
+def test_gpt_oss_requests_use_low_reasoning_without_returning_reasoning() -> None:
+    transport = RecordingTransport(
+        {"choices": [{"message": {"content": "OK"}, "finish_reason": "stop"}]}
+    )
+    adapter = _adapter(transport, model_identifier="openai/gpt-oss-120b")
+
+    adapter.complete_text(
+        TextCompletionRequest(
+            system_prompt="System",
+            user_prompt="User",
+            prompt_version="text-v1",
+            max_output_tokens=256,
+        )
+    )
+
+    assert transport.payload is not None
+    assert transport.payload["reasoning_effort"] == "low"
+    assert transport.payload["include_reasoning"] is False
+    assert transport.payload["max_completion_tokens"] == 256
+
+
+def test_groq_length_finish_reason_is_reported_as_truncation() -> None:
+    adapter = _adapter(
+        RecordingTransport(
+            {
+                "choices": [
+                    {
+                        "message": {"content": ""},
+                        "finish_reason": "length",
+                    }
+                ]
+            }
+        )
+    )
+
+    with pytest.raises(LLMResponseError, match="truncated"):
+        adapter.complete_text(
+            TextCompletionRequest(
+                system_prompt="System",
+                user_prompt="User",
+                prompt_version="text-v1",
+            )
+        )
 
 
 def test_groq_secret_is_not_exposed_in_repr() -> None:
