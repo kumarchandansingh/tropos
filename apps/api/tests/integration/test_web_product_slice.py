@@ -35,7 +35,7 @@ def _security_headers(
     content_type: str,
     origin: str | None = None,
 ) -> dict[str, str]:
-    token = cast(str, getattr(server, "tropos_session_token"))
+    token = cast(str, server.tropos_session_token)
     headers = {
         "Content-Type": content_type,
         "X-Tropos-Session-Token": token,
@@ -67,7 +67,7 @@ def test_web_shell_exposes_sources_resolve_and_observability(tmp_path: Path) -> 
         assert 'value="hybrid_rrf"' in html
         assert "Already ingested. Existing knowledge version retained" in html
         assert "__TROPOS_SESSION_TOKEN__" not in html
-        assert cast(str, getattr(server, "tropos_session_token")) in html
+        assert cast(str, server.tropos_session_token) in html
     finally:
         server.shutdown()
         thread.join(timeout=3)

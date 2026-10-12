@@ -872,7 +872,7 @@ def build_server(
             self._error(HTTPStatus.NOT_FOUND, "Not found.")
 
     server = ThreadingHTTPServer((host, port), Handler)
-    setattr(server, "tropos_session_token", request_token)
+    server.tropos_session_token = request_token
     return server
 
 
@@ -881,7 +881,7 @@ def serve(*, host: str = "127.0.0.1", port: int = 8000) -> None:
 
     server = build_server(host=host, port=port)
     print(f"Tropos web UI: http://{host}:{port}")
-    print(f"Tropos local session token: {getattr(server, 'tropos_session_token')}")
+    print(f"Tropos local session token: {server.tropos_session_token}")
     print("Local request protection: Host + Origin + session-token checks enabled")
     try:
         server.serve_forever()
