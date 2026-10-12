@@ -260,7 +260,7 @@ def main() -> int:
                 database_path=database,
                 strategy=RetrievalStrategy(arguments.retrieval_strategy),
                 embedding_settings=load_embedding_runtime_settings(),
-                materialize_missing=arguments.retrieval_strategy != RetrievalStrategy.BM25.value,
+                materialize_missing=False,
             )
             runtime = ResolveQuestion(
                 retriever=retrieval.retriever,
