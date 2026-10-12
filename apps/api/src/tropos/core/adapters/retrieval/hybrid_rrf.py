@@ -4,6 +4,7 @@ from tropos.core.application.ports.retrieval import KnowledgeChunkRetriever
 from tropos.core.application.retrieval.models import (
     KnowledgeSearchRequest,
     RetrievedKnowledgeChunk,
+    RetrievalScoreComponent,
 )
 from tropos.core.domain.knowledge_chunk import KnowledgeChunk
 
@@ -15,6 +16,7 @@ class _FusionCandidate:
     chunk: KnowledgeChunk
     score: float
     best_rank: int
+    components: list[RetrievalScoreComponent]
 
 
 class HybridRrfKnowledgeRetriever:
@@ -74,11 +76,25 @@ class HybridRrfKnowledgeRetriever:
                         chunk=result.chunk,
                         score=contribution,
                         best_rank=result.rank,
+                        components=[
+                            RetrievalScoreComponent(
+                                strategy_version=result.strategy_version,
+                                rank=result.rank,
+                                score=result.score,
+                            )
+                        ],
                     )
                     continue
 
                 existing.score += contribution
                 existing.best_rank = min(existing.best_rank, result.rank)
+                existing.components.append(
+                    RetrievalScoreComponent(
+                        strategy_version=result.strategy_version,
+                        rank=result.rank,
+                        score=result.score,
+                    )
+                )
 
         ordered = sorted(
             fused.values(),
@@ -97,6 +113,12 @@ class HybridRrfKnowledgeRetriever:
                 rank=rank,
                 score=candidate.score,
                 strategy_version=self.strategy_version,
+                score_components=tuple(
+                    sorted(
+                        candidate.components,
+                        key=lambda component: component.strategy_version,
+                    )
+                ),
             )
             for rank, candidate in enumerate(ordered, start=1)
         )
