@@ -76,7 +76,6 @@ def load_llm_runtime_settings(
     )
 
 
-
 @dataclass(frozen=True, slots=True)
 class EmbeddingRuntimeSettings:
     """Bootstrap configuration for derived embedding materialization and search."""
