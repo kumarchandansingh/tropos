@@ -551,6 +551,12 @@ def _coerce_resolve_request(
     )
 
 
+class TroposThreadingHTTPServer(ThreadingHTTPServer):
+    """Typed local-only HTTP server carrying the process session token."""
+
+    tropos_session_token: str
+
+
 def build_server(
     *,
     host: str = "127.0.0.1",
@@ -558,7 +564,7 @@ def build_server(
     database_path: Path | None = None,
     trace_path: Path | None = None,
     session_token: str | None = None,
-) -> ThreadingHTTPServer:
+) -> TroposThreadingHTTPServer:
     if host not in _ALLOWED_BIND_HOSTS:
         raise ValueError("Tropos local web only binds to 127.0.0.1 or localhost")
     database = (database_path or Path(".tropos/tropos.db")).expanduser().resolve()
@@ -573,7 +579,8 @@ def build_server(
             return
 
         def _expected_hosts(self) -> set[str]:
-            bound_port = int(self.server.server_address[1])
+            server_address = cast(tuple[str, int], self.server.server_address)
+            bound_port = server_address[1]
             return {f"127.0.0.1:{bound_port}", f"localhost:{bound_port}"}
 
         def _expected_origins(self) -> set[str]:
@@ -871,7 +878,7 @@ def build_server(
 
             self._error(HTTPStatus.NOT_FOUND, "Not found.")
 
-    server = ThreadingHTTPServer((host, port), Handler)
+    server = TroposThreadingHTTPServer((host, port), Handler)
     server.tropos_session_token = request_token
     return server
 
