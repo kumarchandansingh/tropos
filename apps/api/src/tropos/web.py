@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import secrets
 import sqlite3
 import subprocess
 import sys
@@ -51,6 +52,18 @@ from tropos.core.runtime_config import (
 )
 from tropos.web_ui import TROPOS_WEB_HTML
 
+_SESSION_TOKEN_PLACEHOLDER = "__TROPOS_SESSION_TOKEN__"
+_SESSION_HEADER = "X-Tropos-Session-Token"
+_ALLOWED_BIND_HOSTS = {"127.0.0.1", "localhost"}
+_ALLOWED_UPLOAD_CONTENT_TYPES = {
+    "application/octet-stream",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/xhtml+xml",
+    "text/html",
+    "text/markdown",
+    "text/plain",
+    "text/x-markdown",
+}
 _SUPPORTED_SUFFIXES = {".txt", ".md", ".markdown", ".html", ".htm", ".xhtml", ".docx"}
 _MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
@@ -88,7 +101,7 @@ def _database_diagnostics(
     embedding_strategy_version: str | None = None,
 ) -> dict[str, object]:
     payload: dict[str, object] = {
-        "path": str(database),
+        "name": database.name,
         "exists": database.exists(),
         "size_bytes": database.stat().st_size if database.exists() else 0,
         "knowledge_count": 0,
@@ -187,14 +200,11 @@ def _runtime_diagnostics(database: Path) -> dict[str, object]:
         "build": {
             "git_commit": _git_value(repository, "rev-parse", "--short", "HEAD"),
             "git_branch": _git_value(repository, "rev-parse", "--abbrev-ref", "HEAD"),
-            "repository_root": str(repository) if repository is not None else None,
         },
         "python": {
             "version": sys.version.split()[0],
-            "executable": sys.executable,
-            "working_directory": str(Path.cwd()),
-            "web_module": str(Path(__file__).resolve()),
-            "parser_module": str(Path(inspect.getfile(DeterministicKnowledgeParser)).resolve()),
+            "web_module": Path(__file__).name,
+            "parser_module": Path(inspect.getfile(DeterministicKnowledgeParser)).name,
         },
         "ingestion": {
             "parser_strategy": DeterministicKnowledgeParser.strategy_version,
@@ -541,22 +551,77 @@ def _coerce_resolve_request(
     )
 
 
+class TroposThreadingHTTPServer(ThreadingHTTPServer):
+    """Typed local-only HTTP server carrying the process session token."""
+
+    tropos_session_token: str
+
+
 def build_server(
     *,
     host: str = "127.0.0.1",
     port: int = 8000,
     database_path: Path | None = None,
     trace_path: Path | None = None,
-) -> ThreadingHTTPServer:
+    session_token: str | None = None,
+) -> TroposThreadingHTTPServer:
+    if host not in _ALLOWED_BIND_HOSTS:
+        raise ValueError("Tropos local web only binds to 127.0.0.1 or localhost")
     database = (database_path or Path(".tropos/tropos.db")).expanduser().resolve()
     trace_file = (trace_path or Path(".tropos/traces.jsonl")).expanduser().resolve()
     database.parent.mkdir(parents=True, exist_ok=True)
+    request_token = session_token or secrets.token_urlsafe(32)
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "TroposLocal/0.1"
 
         def log_message(self, format: str, *args: Any) -> None:
             return
+
+        def _expected_hosts(self) -> set[str]:
+            server_address = cast(tuple[str, int], self.server.server_address)
+            bound_port = server_address[1]
+            return {f"127.0.0.1:{bound_port}", f"localhost:{bound_port}"}
+
+        def _expected_origins(self) -> set[str]:
+            return {f"http://{host}" for host in self._expected_hosts()}
+
+        def _validate_host(self) -> bool:
+            host_header = self.headers.get("Host", "")
+            if host_header in self._expected_hosts():
+                return True
+            self._error(
+                HTTPStatus.MISDIRECTED_REQUEST,
+                "Invalid Host header for local Tropos.",
+                code="INVALID_HOST",
+                stage="request",
+            )
+            return False
+
+        def _validate_post_security(self) -> bool:
+            if not self._validate_host():
+                return False
+            origin = self.headers.get("Origin")
+            if origin is not None and origin not in self._expected_origins():
+                self._error(
+                    HTTPStatus.FORBIDDEN,
+                    "Cross-origin requests are not allowed.",
+                    code="INVALID_ORIGIN",
+                    stage="request",
+                )
+                return False
+            if self.headers.get(_SESSION_HEADER) != request_token:
+                self._error(
+                    HTTPStatus.FORBIDDEN,
+                    "Missing or invalid local session token.",
+                    code="INVALID_SESSION_TOKEN",
+                    stage="request",
+                )
+                return False
+            return True
+
+        def _content_type(self) -> str:
+            return self.headers.get("Content-Type", "").split(";", 1)[0].strip().casefold()
 
         def _send_json(self, status: HTTPStatus, payload: dict[str, object]) -> None:
             body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
@@ -568,7 +633,8 @@ def build_server(
             self.wfile.write(body)
 
         def _send_html(self, html: str) -> None:
-            body = html.encode("utf-8")
+            rendered = html.replace(_SESSION_TOKEN_PLACEHOLDER, request_token)
+            body = rendered.encode("utf-8")
             self.send_response(HTTPStatus.OK.value)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
@@ -611,6 +677,8 @@ def build_server(
             return self.rfile.read(length)
 
         def do_GET(self) -> None:
+            if not self._validate_host():
+                return
             parsed = urlparse(self.path)
             if parsed.path == "/":
                 self._send_html(TROPOS_WEB_HTML)
@@ -650,7 +718,29 @@ def build_server(
             self._error(HTTPStatus.NOT_FOUND, "Not found.")
 
         def do_POST(self) -> None:
+            if not self._validate_post_security():
+                return
             parsed = urlparse(self.path)
+            if parsed.path in {"/api/resolve", "/api/embeddings/materialize"}:
+                if self._content_type() != "application/json":
+                    self._error(
+                        HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+                        "JSON endpoints require Content-Type: application/json.",
+                        code="INVALID_CONTENT_TYPE",
+                        stage="request",
+                    )
+                    return
+            elif (
+                parsed.path == "/api/ingest"
+                and self._content_type() not in _ALLOWED_UPLOAD_CONTENT_TYPES
+            ):
+                self._error(
+                    HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+                    "Unsupported upload Content-Type.",
+                    code="INVALID_CONTENT_TYPE",
+                    stage="upload",
+                )
+                return
             try:
                 body = self._body()
             except OverflowError:
@@ -788,7 +878,9 @@ def build_server(
 
             self._error(HTTPStatus.NOT_FOUND, "Not found.")
 
-    return ThreadingHTTPServer((host, port), Handler)
+    server = TroposThreadingHTTPServer((host, port), Handler)
+    server.tropos_session_token = request_token
+    return server
 
 
 def serve(*, host: str = "127.0.0.1", port: int = 8000) -> None:
@@ -796,6 +888,8 @@ def serve(*, host: str = "127.0.0.1", port: int = 8000) -> None:
 
     server = build_server(host=host, port=port)
     print(f"Tropos web UI: http://{host}:{port}")
+    print(f"Tropos local session token: {server.tropos_session_token}")
+    print("Local request protection: Host + Origin + session-token checks enabled")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
