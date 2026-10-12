@@ -33,7 +33,15 @@ from tropos.core.application.observability.trace import JsonlTraceSink
 from tropos.core.application.ports.llm import TextCompletionRequest
 from tropos.core.application.retrieval.models import RetrievalAccessContext
 from tropos.core.domain.access import AccessPolicy, AccessScope
-from tropos.core.runtime_config import load_llm_runtime_settings
+from tropos.core.retrieval_runtime import (
+    build_runtime_retrieval,
+    materialize_runtime_embeddings,
+)
+from tropos.core.runtime_config import (
+    RetrievalStrategy,
+    load_embedding_runtime_settings,
+    load_llm_runtime_settings,
+)
 
 
 def _default_knowledge_id(source_namespace: str, source_record_id: str) -> str:
@@ -174,6 +182,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     ask.add_argument("--limit", type=int, default=5, help="Maximum eligible evidence chunks")
     ask.add_argument(
+        "--retrieval-strategy",
+        choices=[strategy.value for strategy in RetrievalStrategy],
+        default=RetrievalStrategy.BM25.value,
+        help="Retrieval strategy: bm25, dense_exact, or hybrid_rrf",
+    )
+    ask.add_argument(
         "--retrieval-threshold",
         type=float,
         help="Optional explicit top-score runtime threshold; omitted by default",
@@ -183,6 +197,25 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path(".tropos/traces.jsonl"),
         help="Local JSONL trace sink (default: .tropos/traces.jsonl)",
+    )
+
+    embeddings = commands.add_parser(
+        "embeddings",
+        help="Manage derived semantic embeddings",
+    )
+    embedding_commands = embeddings.add_subparsers(
+        dest="embeddings_command",
+        required=True,
+    )
+    materialize = embedding_commands.add_parser(
+        "materialize",
+        help="Materialize missing current-chunk embeddings",
+    )
+    materialize.add_argument(
+        "--database",
+        type=Path,
+        default=Path(".tropos/tropos.db"),
+        help="SQLite runtime database (default: .tropos/tropos.db)",
     )
 
     web = commands.add_parser("web", help="Run the local Tropos product UI")
@@ -223,8 +256,14 @@ def main() -> int:
             )
             settings = load_llm_runtime_settings()
             model = build_default_groq_llm(settings)
+            retrieval = build_runtime_retrieval(
+                database_path=database,
+                strategy=RetrievalStrategy(arguments.retrieval_strategy),
+                embedding_settings=load_embedding_runtime_settings(),
+                materialize_missing=arguments.retrieval_strategy != RetrievalStrategy.BM25.value,
+            )
             runtime = ResolveQuestion(
-                retriever=SQLiteFtsKnowledgeRetriever(database),
+                retriever=retrieval.retriever,
                 sufficiency_judge=LLMEvidenceSufficiencyJudge(model),
                 answer_generator=LLMGroundedAnswerGenerator(model),
                 trace_sink=JsonlTraceSink(arguments.trace_file),
@@ -280,6 +319,23 @@ def main() -> int:
                 payload["abstention_reason"] = resolved.abstention_reason
 
             print(json.dumps(payload, indent=2))
+            return 0
+
+        if arguments.command == "embeddings" and arguments.embeddings_command == "materialize":
+            result = materialize_runtime_embeddings(
+                database_path=arguments.database.expanduser().resolve(),
+                settings=load_embedding_runtime_settings(),
+            )
+            print(
+                json.dumps(
+                    {
+                        "embedded_count": result.embedded_count,
+                        "strategy_version": result.strategy_version,
+                        "model": result.model_identifier,
+                    },
+                    indent=2,
+                )
+            )
             return 0
 
         if arguments.command == "web":
