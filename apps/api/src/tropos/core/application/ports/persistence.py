@@ -62,6 +62,7 @@ class IngestionRunStore(Protocol):
         *,
         knowledge_id: str,
         ingestion_fingerprint: str,
+        processing_version: str,
     ) -> IngestionResult | None: ...
 
     def start(
@@ -70,6 +71,7 @@ class IngestionRunStore(Protocol):
         run_id: str,
         knowledge_id: str,
         ingestion_fingerprint: str,
+        processing_version: str,
     ) -> None: ...
 
     def set_stage(self, run_id: str, stage: IngestionStage) -> None: ...
