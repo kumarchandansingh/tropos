@@ -60,6 +60,7 @@ class IngestKnowledge:
         knowledge_repository: KnowledgeStateRepository,
         runs: IngestionRunStore,
         run_id_factory: Callable[[], str] | None = None,
+        processing_version: str = "ingestion-pipeline-v2-embedded-html-data",
     ) -> None:
         self._parser = parser
         self._normalizer = normalizer
@@ -67,13 +68,18 @@ class IngestKnowledge:
         self._source_captures = source_captures
         self._knowledge_repository = knowledge_repository
         self._runs = runs
+        version = processing_version.strip()
+        if not version:
+            raise ValueError("processing_version must not be blank")
         self._run_id_factory = run_id_factory or (lambda: uuid4().hex)
+        self._processing_version = version
 
     def execute(self, command: IngestKnowledgeCommand) -> IngestionResult:
         fingerprint = command.raw_record.ingestion_fingerprint
         previous_result = self._runs.find_completed(
             knowledge_id=command.knowledge_id,
             ingestion_fingerprint=fingerprint,
+            processing_version=self._processing_version,
         )
         if previous_result is not None:
             return replace(previous_result, replayed=True)
@@ -88,6 +94,7 @@ class IngestKnowledge:
             run_id=run_id,
             knowledge_id=command.knowledge_id,
             ingestion_fingerprint=fingerprint,
+            processing_version=self._processing_version,
         )
 
         stage = IngestionStage.RECEIVED

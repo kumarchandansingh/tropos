@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from datetime import UTC, datetime
 from io import BytesIO
 from zipfile import ZipFile
@@ -161,3 +162,63 @@ def test_invalid_docx_package_is_rejected() -> None:
                 ),
             )
         )
+
+
+def test_html_parser_extracts_safe_data_bearing_javascript_literal() -> None:
+    parser = DeterministicKnowledgeParser()
+    html = b"""
+<html>
+  <head><title>Retail Analytics</title></head>
+  <body><h1>Solution map</h1><div id="cards"></div>
+  <script>
+  const CARDS=[
+    {id:'traffic',title:'Falling traffic / footfall',
+     problem:'Footfall declining without a clear cause. Marketing spend is rising while visits do not respond.',
+     analytics:'Marketing mix modelling separates incremental visits. Geo-lift testing isolates store-level impact.',
+     steps:[
+       {n:'1',title:'Baseline footfall',desc:'Segment by store, day-part, and week to identify the decline pattern.'},
+       {n:'2',title:'Attribution audit',desc:'Identify which media spend drives store visits rather than online sessions only.'}
+     ]},
+    {id:'conversion',title:'Low conversion rate',
+     problem:'High footfall but low purchase rate and high checkout abandonment.',
+     analytics:'Funnel analytics identifies the largest drop-off and controlled tests measure interventions.',
+     steps:[
+       {n:'1',title:'Funnel diagnosis',desc:'Map entry, browse, cart, checkout, and purchase conversion.'}
+     ]}
+  ];
+  </script>
+  </body>
+</html>
+"""
+
+    source = parser.parse(_raw(html, content_type="text/html"))
+
+    assert source.title == "Retail Analytics"
+    assert "# Solution map" in source.text
+    assert "## Embedded data: CARDS" in source.text
+    assert "### Falling traffic / footfall" in source.text
+    assert "Baseline footfall" in source.text
+    assert "### Low conversion rate" in source.text
+    assert "Funnel diagnosis" in source.text
+
+
+def test_html_parser_does_not_execute_or_extract_javascript_expressions() -> None:
+    parser = DeterministicKnowledgeParser()
+    html = b"""
+<html><body><h1>Safe page</h1><p>Visible support guidance remains available.</p>
+<script>
+const CONFIG = buildConfig(fetch('/private'));
+const handler = () => window.location.href;
+alert('never execute this');
+</script>
+</body></html>
+"""
+
+    source = parser.parse(_raw(html, content_type="text/html"))
+
+    assert "# Safe page" in source.text
+    assert "Visible support guidance" in source.text
+    assert "buildConfig" not in source.text
+    assert "fetch" not in source.text
+    assert "window.location" not in source.text
+    assert "alert" not in source.text
