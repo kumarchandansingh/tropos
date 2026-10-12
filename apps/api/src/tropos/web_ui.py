@@ -1,5 +1,7 @@
 """Embedded local product shell for the first Tropos web vertical slice."""
 
+# ruff: noqa: E501
+
 TROPOS_WEB_HTML = r"""<!doctype html>
 <html lang="en">
 <head>
