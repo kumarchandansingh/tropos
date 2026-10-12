@@ -286,7 +286,7 @@ def main() -> int:
                     system_prompt="You are a connectivity probe. Reply only with OK.",
                     user_prompt="Tropos model connection health check.",
                     prompt_version="model-connection-health-v1",
-                    max_output_tokens=128,
+                    max_output_tokens=256,
                 )
             )
             metadata = completion.metadata
