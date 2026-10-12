@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
 from typing import cast
