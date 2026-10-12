@@ -103,6 +103,8 @@ def test_groq_structured_completion_sends_schema_and_captures_usage() -> None:
     assert result.metadata.output_tokens == 3
     assert result.metadata.provider_request_id == "req-123"
     assert transport.payload is not None
+    assert transport.headers is not None
+    assert transport.headers["User-Agent"] == "tropos/0.1"
     response_format = transport.payload["response_format"]
     assert isinstance(response_format, dict)
     assert response_format["type"] == "json_schema"
