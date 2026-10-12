@@ -339,12 +339,12 @@ def build_server(
             if parsed.path == "/api/resolve":
                 try:
                     decoded = json.loads(body)
-                    query, tenant, groups, limit, threshold = _coerce_resolve_request(decoded)
+                    resolve_query, tenant, groups, limit, threshold = _coerce_resolve_request(decoded)
                     runtime = _build_runtime(database, trace_file)
                     resolved = runtime.execute(
                         RuntimeRequest(
                             request_id=f"request_{uuid4().hex}",
-                            query=query,
+                            query=resolve_query,
                             access=RetrievalAccessContext(tenant_id=tenant, groups=groups),
                             retrieval_limit=limit,
                             retrieval_threshold=threshold,
