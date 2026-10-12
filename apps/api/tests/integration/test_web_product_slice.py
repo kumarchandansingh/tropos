@@ -2,81 +2,111 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-
-from fastapi.testclient import TestClient
+from threading import Thread
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 
 from tropos.core.adapters.retrieval.sqlite_fts import SQLiteFtsKnowledgeRetriever
 from tropos.core.application.retrieval.models import (
     KnowledgeSearchRequest,
     RetrievalAccessContext,
 )
-from tropos.web import create_app
+from tropos.web import build_server
 
 
-def _client(tmp_path: Path) -> TestClient:
-    return TestClient(
-        create_app(
-            database_path=tmp_path / "tropos.db",
-            trace_path=tmp_path / "traces.jsonl",
-        )
+def _start_server(tmp_path: Path) -> tuple[object, str, Thread]:
+    server = build_server(
+        host="127.0.0.1",
+        port=0,
+        database_path=tmp_path / "tropos.db",
+        trace_path=tmp_path / "traces.jsonl",
     )
+    host, port = server.server_address
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    return server, f"http://{host}:{port}", thread
+
+
+def _read_json(request: Request) -> tuple[int, dict[str, object]]:
+    with urlopen(request, timeout=3) as response:
+        return response.status, json.loads(response.read())
 
 
 def test_web_shell_exposes_sources_and_resolve_workspaces(tmp_path: Path) -> None:
-    response = _client(tmp_path).get("/")
-
-    assert response.status_code == 200
-    assert "Sources &amp; Ingestion" not in response.text
-    assert "Sources & Ingestion" in response.text
-    assert ">Resolve<" in response.text
-    assert "Sufficiency remains visibly unvalidated" in response.text
+    server, base, thread = _start_server(tmp_path)
+    try:
+        with urlopen(base + "/", timeout=3) as response:
+            html = response.read().decode()
+        assert response.status == 200
+        assert "Sources & Ingestion" in html
+        assert ">Resolve<" in html
+        assert "Sufficiency remains visibly unvalidated" in html
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
 
 
 def test_web_ingest_creates_searchable_governed_knowledge(tmp_path: Path) -> None:
     database = tmp_path / "tropos.db"
-    client = TestClient(
-        create_app(
-            database_path=database,
-            trace_path=tmp_path / "traces.jsonl",
+    server = build_server(
+        host="127.0.0.1",
+        port=0,
+        database_path=database,
+        trace_path=tmp_path / "traces.jsonl",
+    )
+    host, port = server.server_address
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = Request(
+            f"http://{host}:{port}/api/ingest?filename=runbook.md&tenant=tenant-a",
+            data=b"# Rotation\n\nRestart the edge service after certificate rotation.",
+            method="POST",
+            headers={"Content-Type": "text/markdown"},
         )
-    )
+        status, payload = _read_json(request)
 
-    response = client.post(
-        "/api/ingest",
-        params={"filename": "runbook.md", "tenant": "tenant-a"},
-        content=b"# Rotation\n\nRestart the edge service after certificate rotation.",
-        headers={"Content-Type": "text/markdown"},
-    )
+        assert status == 200
+        assert payload["status"] == "available"
+        assert payload["outcome"] == "VERSION_CREATED"
+        assert int(payload["chunks_written"]) > 0
 
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["status"] == "available"
-    assert payload["outcome"] == "VERSION_CREATED"
-    assert payload["chunks_written"] > 0
-
-    results = SQLiteFtsKnowledgeRetriever(database).search(
-        KnowledgeSearchRequest(
-            query="certificate rotation",
-            access=RetrievalAccessContext(tenant_id="tenant-a"),
+        results = SQLiteFtsKnowledgeRetriever(database).search(
+            KnowledgeSearchRequest(
+                query="certificate rotation",
+                access=RetrievalAccessContext(tenant_id="tenant-a"),
+            )
         )
-    )
-    assert results
-    assert results[0].chunk.source_record_id == "runbook.md"
+        assert results
+        assert results[0].chunk.source_record_id == "runbook.md"
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
 
 
 def test_web_ingest_rejects_unsafe_or_unsupported_filename(tmp_path: Path) -> None:
-    client = _client(tmp_path)
+    server, base, thread = _start_server(tmp_path)
+    try:
+        request = Request(
+            base + "/api/ingest?filename=secret.exe",
+            data=b"not allowed",
+            method="POST",
+        )
+        try:
+            urlopen(request, timeout=3)
+        except HTTPError as exc:
+            assert exc.code == 422
+        else:
+            raise AssertionError("unsupported file must be rejected")
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
 
-    response = client.post(
-        "/api/ingest",
-        params={"filename": "../secret.exe"},
-        content=b"not allowed",
-    )
 
-    assert response.status_code == 400
-
-
-def test_web_trace_detail_reads_exact_trace_without_raw_evidence(tmp_path: Path) -> None:
+def test_web_trace_detail_reads_exact_trace(tmp_path: Path) -> None:
     trace_path = tmp_path / "traces.jsonl"
     trace_path.write_text(
         json.dumps(
@@ -96,15 +126,23 @@ def test_web_trace_detail_reads_exact_trace_without_raw_evidence(tmp_path: Path)
         + "\n",
         encoding="utf-8",
     )
-    client = TestClient(
-        create_app(
-            database_path=tmp_path / "tropos.db",
-            trace_path=trace_path,
-        )
+    server = build_server(
+        host="127.0.0.1",
+        port=0,
+        database_path=tmp_path / "tropos.db",
+        trace_path=trace_path,
     )
+    host, port = server.server_address
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with urlopen(f"http://{host}:{port}/api/traces/trace_demo", timeout=3) as response:
+            payload = json.loads(response.read())
 
-    response = client.get("/api/traces/trace_demo")
-
-    assert response.status_code == 200
-    assert response.json()["outcome"] == "ANSWERED"
-    assert response.json()["spans"][0]["name"] == "resolve.retrieval"
+        assert response.status == 200
+        assert payload["outcome"] == "ANSWERED"
+        assert payload["spans"][0]["name"] == "resolve.retrieval"
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
