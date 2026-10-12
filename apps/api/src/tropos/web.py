@@ -245,21 +245,19 @@ def _observability_payload(path: Path) -> dict[str, object]:
         for summary in summaries
     )
     failed = sum(summary.get("outcome") == "RUNTIME_FAILED" for summary in summaries)
-    input_tokens = sum(
-        int(summary["input_tokens"])
-        for summary in summaries
-        if isinstance(summary.get("input_tokens"), int)
-    )
-    output_tokens = sum(
-        int(summary["output_tokens"])
-        for summary in summaries
-        if isinstance(summary.get("output_tokens"), int)
-    )
-    latency_values = [
-        float(summary["model_latency_ms"])
-        for summary in summaries
-        if isinstance(summary.get("model_latency_ms"), int | float)
-    ]
+    input_tokens = 0
+    output_tokens = 0
+    latency_values: list[float] = []
+    for summary in summaries:
+        input_value = summary.get("input_tokens")
+        output_value = summary.get("output_tokens")
+        latency_value = summary.get("model_latency_ms")
+        if isinstance(input_value, int):
+            input_tokens += input_value
+        if isinstance(output_value, int):
+            output_tokens += output_value
+        if isinstance(latency_value, int | float):
+            latency_values.append(float(latency_value))
     return {
         "summary": {
             "trace_count": len(summaries),
