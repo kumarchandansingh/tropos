@@ -7,7 +7,7 @@ import re
 from html.parser import HTMLParser
 from typing import cast
 
-_ASSIGNMENT = re.compile(r"\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=")
+_ASSIGNMENT = re.compile(r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=")
 _IDENTIFIER_START = frozenset(
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_$"
 )
