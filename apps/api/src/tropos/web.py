@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import inspect
 import json
+import sqlite3
+import subprocess
+import sys
 from hashlib import sha256
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -41,6 +45,118 @@ from tropos.web_ui import TROPOS_WEB_HTML
 
 _SUPPORTED_SUFFIXES = {".txt", ".md", ".markdown", ".html", ".htm", ".xhtml", ".docx"}
 _MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+
+def _repository_root() -> Path | None:
+    current = Path(__file__).resolve()
+    for candidate in (current.parent, *current.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return None
+
+
+def _git_value(repository: Path | None, *arguments: str) -> str | None:
+    if repository is None:
+        return None
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(repository), *arguments],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=1.0,
+        )
+    except OSError, subprocess.SubprocessError:
+        return None
+    if completed.returncode != 0:
+        return None
+    value = completed.stdout.strip()
+    return value or None
+
+
+def _database_diagnostics(database: Path) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "path": str(database),
+        "exists": database.exists(),
+        "size_bytes": database.stat().st_size if database.exists() else 0,
+        "knowledge_count": 0,
+        "chunk_count": 0,
+        "current_chunk_count": 0,
+        "latest_processing_version": None,
+        "error": None,
+    }
+    if not database.exists():
+        return payload
+
+    try:
+        with sqlite3.connect(database) as connection:
+            payload["knowledge_count"] = int(
+                connection.execute("SELECT COUNT(*) FROM knowledge_state").fetchone()[0]
+            )
+            payload["chunk_count"] = int(
+                connection.execute("SELECT COUNT(*) FROM knowledge_chunks").fetchone()[0]
+            )
+            payload["current_chunk_count"] = int(
+                connection.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM knowledge_chunks AS c
+                    JOIN knowledge_state AS s
+                      ON s.knowledge_id = c.knowledge_id
+                    WHERE s.lifecycle_status = 'ACTIVE'
+                      AND c.normalized_content_fingerprint = s.content_fingerprint
+                      AND c.normalization_strategy_version = s.normalization_strategy_version
+                    """
+                ).fetchone()[0]
+            )
+            row = connection.execute(
+                """
+                SELECT processing_version
+                FROM ingestion_runs
+                ORDER BY started_at DESC
+                LIMIT 1
+                """
+            ).fetchone()
+            payload["latest_processing_version"] = str(row[0]) if row else None
+    except (sqlite3.DatabaseError, OSError) as exc:
+        payload["error"] = f"{type(exc).__name__}: {exc}"
+    return payload
+
+
+def _runtime_diagnostics(database: Path) -> dict[str, object]:
+    repository = _repository_root()
+    chunker = DeterministicKnowledgeChunker()
+    settings = load_llm_runtime_settings()
+
+    return {
+        "build": {
+            "git_commit": _git_value(repository, "rev-parse", "--short", "HEAD"),
+            "git_branch": _git_value(repository, "rev-parse", "--abbrev-ref", "HEAD"),
+            "repository_root": str(repository) if repository is not None else None,
+        },
+        "python": {
+            "version": sys.version.split()[0],
+            "executable": sys.executable,
+            "working_directory": str(Path.cwd()),
+            "web_module": str(Path(__file__).resolve()),
+            "parser_module": str(Path(inspect.getfile(DeterministicKnowledgeParser)).resolve()),
+        },
+        "ingestion": {
+            "parser_strategy": DeterministicKnowledgeParser.strategy_version,
+            "processing_version": IngestKnowledge.default_processing_version,
+            "chunking_strategy": chunker.strategy_version,
+            "chunk_max_characters": chunker.max_characters,
+        },
+        "storage": _database_diagnostics(database),
+        "retrieval": {
+            "strategy": SQLiteFtsKnowledgeRetriever.strategy_version_name,
+        },
+        "model": {
+            "provider": settings.provider,
+            "model": settings.model,
+            "configured": settings.configured,
+        },
+    }
 
 
 def _default_knowledge_id(source_namespace: str, source_record_id: str) -> str:
@@ -414,6 +530,9 @@ def build_server(
                 return
             if parsed.path == "/api/observability":
                 self._send_json(HTTPStatus.OK, _observability_payload(trace_file))
+                return
+            if parsed.path == "/api/runtime-diagnostics":
+                self._send_json(HTTPStatus.OK, _runtime_diagnostics(database))
                 return
             if parsed.path.startswith("/api/traces/"):
                 trace_id = parsed.path.removeprefix("/api/traces/")

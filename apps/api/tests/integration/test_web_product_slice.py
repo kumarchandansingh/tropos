@@ -45,6 +45,7 @@ def test_web_shell_exposes_sources_resolve_and_observability(tmp_path: Path) -> 
         assert "Sources & Ingestion" in html
         assert ">Resolve<" in html
         assert ">Observability<" in html
+        assert "Runtime diagnostics" in html
         assert "Already ingested. Existing knowledge version retained" in html
     finally:
         server.shutdown()
@@ -290,6 +291,52 @@ def test_observability_lists_recent_traces_and_summary(tmp_path: Path) -> None:
         assert parsed["summary"]["cost"] is None
         assert parsed["traces"][0]["retrieval_strategy"] == "sqlite-fts5-bm25-v1"
         assert parsed["traces"][0]["sufficiency"] == "SUFFICIENT"
+    finally:
+        server.shutdown()
+        thread.join(timeout=3)
+        server.server_close()
+
+
+def test_runtime_diagnostics_identify_loaded_processing_and_storage(tmp_path: Path) -> None:
+    database = tmp_path / "tropos.db"
+    server = build_server(
+        host="127.0.0.1",
+        port=0,
+        database_path=database,
+        trace_path=tmp_path / "traces.jsonl",
+    )
+    host, port = cast(tuple[str, int], server.server_address)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        ingest = Request(
+            f"http://{host}:{port}/api/ingest?filename=runbook.md&tenant=local",
+            data=b"# Rotation\n\nRestart the edge service after certificate rotation.",
+            method="POST",
+        )
+        _read_json(ingest)
+
+        with urlopen(f"http://{host}:{port}/api/runtime-diagnostics", timeout=3) as response:
+            parsed = json.loads(response.read())
+
+        assert response.status == 200
+        assert parsed["ingestion"]["parser_strategy"] == (
+            "deterministic-parser-v2-embedded-html-data"
+        )
+        assert parsed["ingestion"]["processing_version"] == (
+            "ingestion-pipeline-v2-embedded-html-data"
+        )
+        assert parsed["ingestion"]["chunking_strategy"] == "structural-character-v1"
+        assert parsed["ingestion"]["chunk_max_characters"] == 1200
+        assert parsed["retrieval"]["strategy"] == "sqlite-fts5-bm25-v1"
+        assert parsed["storage"]["path"] == str(database.resolve())
+        assert parsed["storage"]["knowledge_count"] == 1
+        assert parsed["storage"]["current_chunk_count"] >= 1
+        assert parsed["model"]["provider"]
+        assert parsed["model"]["model"]
+        serialized = json.dumps(parsed).casefold()
+        assert "api_key" not in serialized
+        assert "authorization" not in serialized
     finally:
         server.shutdown()
         thread.join(timeout=3)

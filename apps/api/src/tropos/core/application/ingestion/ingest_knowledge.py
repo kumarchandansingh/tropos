@@ -50,6 +50,8 @@ class IngestKnowledgeCommand:
 class IngestKnowledge:
     """Coordinate deterministic ingestion without owning worker implementation details."""
 
+    default_processing_version = "ingestion-pipeline-v2-embedded-html-data"
+
     def __init__(
         self,
         *,
@@ -60,7 +62,7 @@ class IngestKnowledge:
         knowledge_repository: KnowledgeStateRepository,
         runs: IngestionRunStore,
         run_id_factory: Callable[[], str] | None = None,
-        processing_version: str = "ingestion-pipeline-v2-embedded-html-data",
+        processing_version: str = default_processing_version,
     ) -> None:
         self._parser = parser
         self._normalizer = normalizer
@@ -73,6 +75,10 @@ class IngestKnowledge:
             raise ValueError("processing_version must not be blank")
         self._run_id_factory = run_id_factory or (lambda: uuid4().hex)
         self._processing_version = version
+
+    @property
+    def processing_version(self) -> str:
+        return self._processing_version
 
     def execute(self, command: IngestKnowledgeCommand) -> IngestionResult:
         fingerprint = command.raw_record.ingestion_fingerprint
