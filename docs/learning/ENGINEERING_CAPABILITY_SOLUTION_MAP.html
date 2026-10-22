@@ -18,7 +18,7 @@ main{padding:28px 20px 80px}.section{margin:0 auto 34px}.section h2{font-size:27
 .term{color:var(--accent);font-weight:700}.principle{color:var(--accent2);font-weight:700}
 .refs{margin-top:13px;padding-top:11px;border-top:1px solid var(--line)}.refs a{display:block;color:#2457d6;text-decoration:none;font-size:12.5px;margin:4px 0;overflow-wrap:anywhere}.refs a:hover{text-decoration:underline}.refs .kind{display:inline-block;width:64px;color:#6b7280;font-size:10px;text-transform:uppercase;letter-spacing:.05em}
 .callout{border:1px solid var(--line);background:white;border-radius:12px;padding:18px;margin:16px 0}.callout h3{margin:0 0 8px}.flow{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#111827;color:#e5edf8;padding:18px;border-radius:10px;overflow:auto;white-space:pre;line-height:1.55}
-.small{font-size:12px;color:var(--muted)}code{background:#eef1f4;padding:2px 5px;border-radius:5px;font-size:.92em}.toccol{columns:2;column-gap:26px}.toccol a{display:block;text-decoration:none;color:#2457d6;padding:3px 0;font-size:13px}
+.small{font-size:12px;color:var(--muted)}code{background:#eef1f4;padding:2px 5px;border-radius:5px;font-size:.92em}.toccol{columns:2;column-gap:26px}.toccol a{display:block;text-decoration:none;color:#2457d6;padding:3px 0;font-size:13px}.contents{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px}.contents section{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px}.contents h3{font-size:14px;margin:0 0 7px}.contents a{display:block;color:#2457d6;text-decoration:none;font-size:12.5px;padding:2px 0}.contents a.sub{padding-left:12px;color:#52617a}.tradeoff{background:#fffaf0;border-left:3px solid #d59200;padding:10px 12px;border-radius:7px}.practical{background:#f1f7ff;border-left:3px solid #4b7bec;padding:10px 12px;border-radius:7px}
 footer{border-top:1px solid var(--line);padding:28px 20px;color:var(--muted);font-size:12px;background:white}
 @media(max-width:760px){h1{font-size:30px}.grid{grid-template-columns:1fr}.matrix{display:block;overflow:auto}.toccol{columns:1}.card{padding:16px}}
 </style>
@@ -32,7 +32,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;color:var(--muted);fon
 </div></header>
 
 <nav><div class="wrap">
-<a href="#method">Method</a><a href="#matrix">Capability matrix</a><a href="#knowledge">Knowledge pipeline</a><a href="#retrieval">Retrieval</a><a href="#evidence">Evidence &amp; citations</a><a href="#generation">Generation</a><a href="#security">Security</a><a href="#quality">Testing &amp; evaluation</a><a href="#operations">Operations</a><a href="#architecture">Architecture</a><a href="#references">Reference index</a>
+<a href="#method">Scope</a><a href="#contents">Contents</a><a href="#knowledge">Knowledge pipeline</a><a href="#retrieval">Retrieval</a><a href="#evidence">Evidence &amp; citations</a><a href="#generation">Generation</a><a href="#security">Security</a><a href="#quality">Testing &amp; evaluation</a><a href="#operations">Operations</a><a href="#architecture">Architecture</a><a href="#matrix">Capability matrix</a><a href="#references">Reference index</a>
 </div></nav>
 
 <main class="wrap">
@@ -51,39 +51,26 @@ footer{border-top:1px solid var(--line);padding:28px 20px;color:var(--muted);fon
 <a href="https://arxiv.org/abs/2005.11401">Retrieval-Augmented Generation — Lewis et al.</a>
 <a href="https://research.google/pubs/sufficient-context-a-new-lens-on-retrieval-augmented-generation-systems/">Sufficient context — Google Research</a>
 </div></div>
-</section>
-
-<section class="section" id="matrix">
-<h2>2. Capability-to-mechanism matrix</h2>
-<table class="matrix">
-<thead><tr><th>Capability</th><th>Established engineering concept</th><th>Concrete mechanism in Tropos</th><th>Status</th><th>Primary extension direction</th></tr></thead>
-<tbody>
-<tr><td>Source ingestion</td><td>Ingestion pipeline; adapter boundary; deterministic parsing</td><td>Connector → raw capture → parser → normalizer</td><td><span class="status implemented">Implemented</span></td><td>Enterprise connectors, PDF/OCR, batch orchestration</td></tr>
-<tr><td>Canonicalization</td><td>Canonical representation; normalization; content addressing</td><td>Unicode/whitespace/structure normalization → SHA-256 fingerprint</td><td><span class="status implemented">Implemented</span></td><td>First-class tables/code/media semantics</td></tr>
-<tr><td>Version control</td><td>Content-based versioning; optimistic concurrency; strategy versioning</td><td>Canonical fingerprint + normalization strategy + access fingerprint</td><td><span class="status implemented">Implemented</span></td><td>Version comparison, rollback, rebaseline operations</td></tr>
-<tr><td>Chunking</td><td>Passage segmentation; stable span identity</td><td>Structure-aware bounded character chunks with exact offsets</td><td><span class="status implemented">Implemented</span></td><td>Semantic/topic segmentation and chunk-size experiments</td></tr>
-<tr><td>Lexical retrieval</td><td>Inverted index; probabilistic IR; BM25</td><td>SQLite FTS5 + BM25</td><td><span class="status implemented">Implemented</span></td><td>Field weighting, query expansion, larger corpus calibration</td></tr>
-<tr><td>Dense retrieval</td><td>Bi-encoder representation; vector similarity; nearest-neighbour search</td><td>Versioned embeddings + exact cosine over eligible chunks</td><td><span class="status partial">V1</span></td><td>ANN: HNSW/IVF; pgvector/Pinecone comparison</td></tr>
-<tr><td>Hybrid retrieval</td><td>Rank aggregation / data fusion</td><td>BM25 + dense candidate lists → Reciprocal Rank Fusion</td><td><span class="status partial">V1</span></td><td>Candidate-depth tuning, reranking</td></tr>
-<tr><td>Evidence provenance</td><td>Data lineage; provenance graph; immutable identity</td><td>EvidenceRef + source/version/chunk/strategy lineage</td><td><span class="status implemented">Implemented</span></td><td>Claim-level provenance graph and lineage UI</td></tr>
-<tr><td>Citation resolution</td><td>Identifier indirection; referential integrity; attribution</td><td>Prompt-local aliases → validated deterministic EvidenceRef resolver</td><td><span class="status implemented">Identity layer</span></td><td>Semantic entailment / citation completeness scoring</td></tr>
-<tr><td>Evidence sufficiency</td><td>Answerability; selective generation; abstention</td><td>Structured sufficiency decision with missing facts/contradictions</td><td><span class="status partial">Needs calibration</span></td><td>Human-labelled calibration and selective-risk thresholds</td></tr>
-<tr><td>Grounded generation</td><td>RAG; constrained/structured generation</td><td>EvidenceSet → typed model request → validated citations</td><td><span class="status partial">Baseline</span></td><td>Claim-level grounding and artifact-quality evaluation</td></tr>
-<tr><td>Access-aware retrieval</td><td>Reference monitor; complete mediation; ABAC/RBAC</td><td>Current-state + tenant + group eligibility before ranking</td><td><span class="status implemented">Implemented</span></td><td>OIDC/SSO, centralized policy decision/enforcement</td></tr>
-<tr><td>Evaluation</td><td>IR evaluation; experimental design; regression testing</td><td>EvalDataset → EvalRun → comparison/gate</td><td><span class="status implemented">Strong baseline</span></td><td>nDCG, larger holdouts, confidence intervals, online eval</td></tr>
-<tr><td>Observability</td><td>Logs, metrics, traces; correlation; SRE signals</td><td>Request/trace IDs, retrieval/model spans, latency/tokens, diagnostics</td><td><span class="status partial">Local baseline</span></td><td>OpenTelemetry → LangSmith/Splunk/Grafana</td></tr>
-<tr><td>Performance</td><td>Latency distributions, throughput, capacity, ANN trade-offs</td><td>Stage latency captured; exact cosine baseline</td><td><span class="status gap">Not scale-proven</span></td><td>p50/p95/p99, load/capacity tests, ANN trigger</td></tr>
-<tr><td>Reliability</td><td>Timeouts, retries, idempotency, fail-safe defaults</td><td>Explicit failures, timeouts, idempotent ingestion/materialization</td><td><span class="status partial">Partial</span></td><td>Retry/backoff/jitter, circuit breakers, SLOs</td></tr>
-<tr><td>Maintainability</td><td>Hexagonal architecture; dependency inversion; modular monolith</td><td>Ports/adapters, capability modules, typed domain contracts, ADRs</td><td><span class="status implemented">Strong</span></td><td>Prove replaceability with more adapters</td></tr>
-<tr><td>Application security</td><td>OWASP ASVS; least privilege; secure-by-default boundary controls</td><td>Loopback-only server, Host/Origin validation, session token, ACLs</td><td><span class="status partial">Local baseline</span></td><td>Identity federation, audit, encryption, egress policy</td></tr>
-</tbody></table>
+</section><section class="section" id="contents">
+<h2>2. Document index</h2>
+<p>The index follows the engineering flow from source knowledge to retrieval, evidence, generation, control, operation, and architecture. Detailed entries link directly to the mechanism under discussion.</p>
+<div class="contents">
+<section><h3>3. Knowledge ingestion, identity &amp; lifecycle</h3><a class="sub" href="#ingestion">3.1 Deterministic ingestion and parsing</a><a class="sub" href="#canonicalization">3.2 Canonicalization and fingerprinting</a><a class="sub" href="#versioning">3.3 Versioning and idempotency</a><a class="sub" href="#chunking">3.4 Chunking as evidence segmentation</a></section>
+<section><h3>4. Retrieval engineering</h3><a class="sub" href="#lexical">4.1 Lexical retrieval / BM25</a><a class="sub" href="#dense">4.2 Dense retrieval</a><a class="sub" href="#hybrid">4.3 Hybrid retrieval / RRF</a><a class="sub" href="#ann">4.4 ANN / HNSW / IVF</a><a class="sub" href="#reranking">4.5 Two-stage retrieval / reranking</a><a class="sub" href="#query-transform">4.6 Query transformation</a></section>
+<section><h3>5. Evidence, provenance &amp; citations</h3><a class="sub" href="#provenance">5.1 Evidence provenance</a><a class="sub" href="#citations">5.2 Citation resolution</a><a class="sub" href="#sufficiency">5.3 Evidence sufficiency</a></section>
+<section><h3>6. Grounded generation &amp; artifacts</h3><a class="sub" href="#rag">6.1 Retrieval-Augmented Generation</a><a class="sub" href="#structured-output">6.2 Typed artifact contracts</a><a class="sub" href="#artifact-eval">6.3 Artifact correctness</a></section>
+<section><h3>7. Security &amp; governance</h3><a class="sub" href="#access-control">7.1 Access-aware retrieval</a><a class="sub" href="#app-security">7.2 Application security boundary</a><a class="sub" href="#egress">7.3 Data egress governance</a></section>
+<section><h3>8. Testing &amp; evaluation</h3><a class="sub" href="#verification">8.1 Layered software verification</a><a class="sub" href="#ir-eval">8.2 IR evaluation</a><a class="sub" href="#ai-eval">8.3 AI output evaluation</a><a class="sub" href="#regression">8.4 Regression gating</a></section>
+<section><h3>9. Performance, observability &amp; reliability</h3><a class="sub" href="#observability">9.1 Observability</a><a class="sub" href="#performance">9.2 Performance engineering</a><a class="sub" href="#reliability">9.3 Reliability and resilience</a><a class="sub" href="#kpis">9.4 Product and operational KPIs</a></section>
+<section><h3>10–13. Cross-cutting summaries</h3><a class="sub" href="#architecture">10. Architecture and maintainability</a><a class="sub" href="#system-reading">11. Reading the map as an engineering system</a><a class="sub" href="#matrix">12. Capability-to-mechanism matrix</a><a class="sub" href="#references">13. Consolidated reference index</a></section>
+</div>
 </section>
 
 <section class="section" id="knowledge">
 <h2>3. Knowledge ingestion, identity, and lifecycle</h2>
 <div class="grid">
 
-<article class="card"><span class="status implemented">Implemented</span><h3>3.1 Deterministic ingestion and parsing</h3>
+<article class="card" id="ingestion"><span class="status implemented">Implemented</span><h3>3.1 Deterministic ingestion and parsing</h3>
 <h4>Engineering concept</h4><p><span class="term">Staged ingestion pipeline</span> with a <span class="term">ports-and-adapters</span> source boundary. Acquisition, parsing, canonicalization, and persistence are separate responsibilities so source-system concerns do not determine knowledge identity.</p>
 <h4>How the mechanism works</h4><div class="mechanics">Source connector
 → immutable RawKnowledgeRecord
@@ -100,7 +87,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;color:var(--muted);fon
 <div class="refs"><a href="https://alistair.cockburn.us/hexagonal-architecture/"><span class="kind">Pattern</span> Cockburn — Hexagonal Architecture</a><a href="../architecture/INGESTION_NORMALIZATION.md"><span class="kind">Tropos</span> Ingestion and normalization architecture</a></div>
 </article>
 
-<article class="card"><span class="status implemented">Implemented</span><h3>3.2 Canonicalization and content fingerprinting</h3>
+<article class="card" id="canonicalization"><span class="status implemented">Implemented</span><h3>3.2 Canonicalization and content fingerprinting</h3>
 <h4>Engineering concept</h4><p><span class="term">Canonical representation</span> converts semantically irrelevant representation differences into one stable form. A <span class="term">cryptographic content fingerprint</span> then makes equality and change detection explicit.</p>
 <h4>How the mechanism works</h4><div class="mechanics">Extracted text
 → Unicode normalization
@@ -115,7 +102,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;color:var(--muted);fon
 <div class="refs"><a href="https://www.rfc-editor.org/rfc/rfc8785"><span class="kind">Standard</span> RFC 8785 — JSON Canonicalization Scheme</a><a href="https://unicode.org/reports/tr15/"><span class="kind">Standard</span> Unicode Standard Annex #15 — Normalization Forms</a><a href="../decisions/ADR-004-deterministic-normalization-and-content-versioning.md"><span class="kind">Tropos</span> ADR-004</a></div>
 </article>
 
-<article class="card"><span class="status implemented">Implemented</span><h3>3.3 Content versioning and idempotency</h3>
+<article class="card" id="versioning"><span class="status implemented">Implemented</span><h3>3.3 Content versioning and idempotency</h3>
 <h4>Engineering concept</h4><p><span class="term">Content-based versioning</span>, <span class="term">idempotent processing</span>, and <span class="term">optimistic concurrency</span>. Source version, exact payload identity, canonical content identity, and access state are intentionally different dimensions.</p>
 <h4>How the mechanism works</h4><div class="mechanics">candidate canonical state
   ├─ same content + same policy → NO_CONTENT_VERSION
@@ -128,7 +115,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;color:var(--muted);fon
 <div class="refs"><a href="https://martinfowler.com/articles/patterns-of-distributed-systems/idempotent-receiver.html"><span class="kind">Pattern</span> Idempotent Receiver</a><a href="../architecture/INGESTION_NORMALIZATION.md"><span class="kind">Tropos</span> Canonical version resolution</a></div>
 </article>
 
-<article class="card"><span class="status implemented">Implemented</span><h3>3.4 Chunking as evidence segmentation</h3>
+<article class="card" id="chunking"><span class="status implemented">Implemented</span><h3>3.4 Chunking as evidence segmentation</h3>
 <h4>Engineering concept</h4><p><span class="term">Passage segmentation</span> converts canonical documents into retrieval units. Chunk design is a bias/variance trade-off: very small chunks improve local precision but lose context; very large chunks preserve context but dilute retrieval specificity and consume model context.</p>
 <h4>How the mechanism works</h4><div class="mechanics">Canonical structural blocks
 → bounded grouping under chunk-size constraint
@@ -147,7 +134,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;color:var(--muted);fon
 <h2>4. Retrieval engineering</h2>
 <div class="grid">
 
-<article class="card"><span class="status implemented">Implemented</span><h3>4.1 Lexical retrieval: inverted index + BM25</h3>
+<article class="card" id="lexical"><span class="status implemented">Implemented</span><h3>4.1 Lexical retrieval: inverted index + BM25</h3>
 <h4>Underlying theory</h4><p>Lexical search belongs to classical <span class="term">Information Retrieval (IR)</span>. An <span class="term">inverted index</span> maps each term to postings identifying the documents/chunks that contain it. Ranking then estimates how useful each matching document is for the query.</p>
 <h4>BM25 mechanics</h4><p><span class="term">BM25</span> combines term frequency, inverse document frequency, and document-length normalization. Rare query terms carry more discriminative value; repeated occurrences help with diminishing returns; long documents are normalized so length alone does not dominate.</p>
 <div class="mechanics">query terms
@@ -162,7 +149,7 @@ footer{border-top:1px solid var(--line);padding:28px 20px;color:var(--muted);fon
 <div class="refs"><a href="https://www-nlp.stanford.edu/IR-book/"><span class="kind">Book</span> Manning, Raghavan &amp; Schütze — Introduction to Information Retrieval</a><a href="https://www.sqlite.org/fts5.html"><span class="kind">Docs</span> SQLite FTS5 and BM25</a></div>
 </article>
 
-<article class="card"><span class="status partial">V1</span><h3>4.2 Dense retrieval: bi-encoder + vector similarity</h3>
+<article class="card" id="dense"><span class="status partial">V1</span><h3>4.2 Dense retrieval: bi-encoder + vector similarity</h3>
 <h4>Underlying theory</h4><p><span class="term">Dense retrieval</span> represents queries and passages as vectors in a learned embedding space. A <span class="term">bi-encoder</span> encodes query and document independently, making document vectors precomputable and query-time search efficient.</p>
 <h4>Mechanics</h4><div class="mechanics">document chunk → embedding model → document vector (persist)
 query          → same vector-space contract → query vector
@@ -177,7 +164,7 @@ eligible document vectors
 <div class="refs"><a href="https://arxiv.org/abs/2004.04906"><span class="kind">Paper</span> Karpukhin et al. — Dense Passage Retrieval</a><a href="DENSE_RETRIEVAL_V1.md"><span class="kind">Tropos</span> Dense Retrieval V1 deep dive</a></div>
 </article>
 
-<article class="card"><span class="status partial">V1</span><h3>4.3 Hybrid retrieval: Reciprocal Rank Fusion</h3>
+<article class="card" id="hybrid"><span class="status partial">V1</span><h3>4.3 Hybrid retrieval: Reciprocal Rank Fusion</h3>
 <h4>Underlying theory</h4><p><span class="term">Data fusion / rank aggregation</span> combines multiple retrieval systems. This is preferable to blindly adding raw BM25 and cosine scores because the scores are not calibrated onto the same statistical scale.</p>
 <h4>RRF mechanics</h4><div class="mechanics">score(d) = Σ 1 / (k + rank_i(d))
 
@@ -190,7 +177,7 @@ Dense ranked list ─┘</div>
 <div class="refs"><a href="https://doi.org/10.1145/1571941.1572114"><span class="kind">Paper</span> Cormack, Clarke &amp; Büttcher — Reciprocal Rank Fusion</a><a href="HYBRID_RETRIEVAL_V1.md"><span class="kind">Tropos</span> Hybrid Retrieval V1</a></div>
 </article>
 
-<article class="card"><span class="status deferred">Deferred</span><h3>4.4 Approximate nearest-neighbour indexing</h3>
+<article class="card" id="ann"><span class="status deferred">Deferred</span><h3>4.4 Approximate nearest-neighbour indexing</h3>
 <h4>Engineering problem</h4><p>Exact dense search is O(N) over eligible vectors. At large N, vector search typically moves to <span class="term">Approximate Nearest Neighbour (ANN)</span> methods that trade some recall for lower query latency.</p>
 <h4>HNSW</h4><p><span class="term">Hierarchical Navigable Small World</span> builds a multilayer proximity graph. Search begins at sparse upper layers and progressively descends toward local neighbours. Important controls include construction quality, query candidate breadth, memory, and recall.</p>
 <h4>IVF / IVFFlat</h4><p>An inverted-file index clusters vectors into lists. The query probes only selected nearby lists. More probes generally improve recall at higher latency.</p>
@@ -205,7 +192,7 @@ Dense ranked list ─┘</div>
 <div class="refs"><a href="https://arxiv.org/abs/1603.09320"><span class="kind">Paper</span> Malkov &amp; Yashunin — HNSW</a><a href="https://github.com/pgvector/pgvector"><span class="kind">Docs</span> pgvector — exact, HNSW, IVFFlat and filtering</a></div>
 </article>
 
-<article class="card"><span class="status deferred">Deferred</span><h3>4.5 Reranking: two-stage retrieval</h3>
+<article class="card" id="reranking"><span class="status deferred">Deferred</span><h3>4.5 Reranking: two-stage retrieval</h3>
 <h4>Underlying theory</h4><p>Candidate generation and final ranking have different cost constraints. A <span class="term">two-stage retrieval architecture</span> uses a fast retriever to find a bounded candidate set, then a slower, more expressive <span class="term">cross-encoder reranker</span> scores query-document pairs jointly.</p>
 <div class="mechanics">query
 → BM25 / dense / hybrid top 50
@@ -218,7 +205,7 @@ Dense ranked list ─┘</div>
 <div class="refs"><a href="https://arxiv.org/abs/1901.04085"><span class="kind">Paper</span> Nogueira &amp; Cho — Passage Re-ranking with BERT</a></div>
 </article>
 
-<article class="card"><span class="status deferred">Candidate</span><h3>4.6 Query transformation and retrieval extension</h3>
+<article class="card" id="query-transform"><span class="status deferred">Candidate</span><h3>4.6 Query transformation and retrieval extension</h3>
 <h4>Established patterns</h4><ul><li><strong>Query expansion:</strong> add related terms to improve recall.</li><li><strong>Relevance feedback / Rocchio:</strong> move the query representation toward relevant examples and away from irrelevant ones.</li><li><strong>Multi-query retrieval:</strong> generate multiple formulations and fuse results.</li><li><strong>HyDE:</strong> generate a hypothetical relevant document and embed that representation for retrieval.</li><li><strong>Metadata filtering:</strong> constrain candidates by structured fields before/within ranking.</li></ul>
 <h4>Engineering principle</h4><p>Each transformation must be evaluated as an independent retrieval stage. Query rewriting can improve semantic recall but may also drift from the original intent and expand the authorization/egress surface.</p>
 <h4>Tropos criterion</h4><p>Add only when labelled failure analysis identifies a query-understanding problem rather than a ranking, chunking, or evidence-sufficiency problem.</p>
@@ -231,7 +218,7 @@ Dense ranked list ─┘</div>
 <h2>5. Evidence, provenance, and citations</h2>
 <div class="grid">
 
-<article class="card"><span class="status implemented">Implemented</span><h3>5.1 Evidence management: provenance + lineage</h3>
+<article class="card" id="provenance"><span class="status implemented">Implemented</span><h3>5.1 Evidence management: provenance + lineage</h3>
 <h4>Established concept</h4><p><span class="term">Data provenance</span> records where an information item came from, how it was transformed, and what identities/processes are related to it. W3C PROV models provenance around <strong>Entity</strong>, <strong>Activity</strong>, and <strong>Agent</strong> relationships.</p>
 <h4>Tropos technique</h4><p>Tropos does not claim W3C PROV conformance, but the architecture follows the same provenance objective. A retrieved evidence item can be traced through stable knowledge/chunk identity to canonical content, source record/version, processing strategy, and access state.</p>
 <div class="mechanics">source record/version
@@ -248,7 +235,7 @@ Dense ranked list ─┘</div>
 <div class="refs"><a href="https://www.w3.org/TR/prov-o/"><span class="kind">Standard</span> W3C PROV-O — Provenance Ontology</a><a href="https://www.w3.org/TR/prov-dm/"><span class="kind">Standard</span> W3C PROV-DM — Provenance Data Model</a><a href="../architecture/KNOWLEDGE_MODEL.md"><span class="kind">Tropos</span> Knowledge model</a></div>
 </article>
 
-<article class="card"><span class="status implemented">Identity correctness</span><h3>5.2 Citation management: alias indirection + deterministic resolution</h3>
+<article class="card" id="citations"><span class="status implemented">Identity correctness</span><h3>5.2 Citation management: alias indirection + deterministic resolution</h3>
 <h4>Engineering concept</h4><p>The core technique is <span class="term">identifier indirection</span> combined with <span class="term">referential integrity</span>. The model receives short, prompt-local symbolic references; application code—not the model—owns durable identity.</p>
 <h4>How it works</h4><div class="mechanics">Authoritative EvidenceRef objects
       ↓
@@ -278,7 +265,7 @@ persist/display stable citation identity</div>
 <div class="refs"><a href="https://aclanthology.org/2023.emnlp-main.398/"><span class="kind">Paper</span> Gao et al. — Enabling LLMs to Generate Text with Citations (ALCE)</a><a href="https://www.w3.org/TR/prov-o/"><span class="kind">Standard</span> W3C PROV-O</a><a href="../product/RESOLVE.md"><span class="kind">Tropos</span> Stable EvidenceRef alias resolution</a></div>
 </article>
 
-<article class="card"><span class="status partial">Calibration pending</span><h3>5.3 Evidence sufficiency and selective generation</h3>
+<article class="card" id="sufficiency"><span class="status partial">Calibration pending</span><h3>5.3 Evidence sufficiency and selective generation</h3>
 <h4>Engineering concept</h4><p><span class="term">Answerability</span> asks whether an answer exists in the available context. <span class="term">Sufficient context</span> is stronger than relevance: relevant evidence may still omit a critical fact. <span class="term">Selective prediction/generation</span> allows a system to abstain when uncertainty or evidence insufficiency exceeds an accepted risk.</p>
 <h4>Tropos technique</h4><div class="mechanics">Retrieved evidence
 → deterministic authorization/currentness/integrity gates
@@ -301,7 +288,7 @@ persist/display stable citation identity</div>
 <h2>6. Grounded generation and knowledge artifacts</h2>
 <div class="grid">
 
-<article class="card"><span class="status partial">Baseline</span><h3>6.1 Retrieval-Augmented Generation</h3>
+<article class="card" id="rag"><span class="status partial">Baseline</span><h3>6.1 Retrieval-Augmented Generation</h3>
 <h4>Established concept</h4><p><span class="term">Retrieval-Augmented Generation (RAG)</span> combines parametric model knowledge with non-parametric retrieved evidence. The production engineering problem is not only “retrieve then prompt”; it is to control identity, authorization, context sufficiency, prompt construction, output schema, attribution, and evaluation.</p>
 <h4>Tropos mechanism</h4><div class="mechanics">governed retrieval
 → retrieval gate
@@ -316,7 +303,7 @@ persist/display stable citation identity</div>
 <div class="refs"><a href="https://arxiv.org/abs/2005.11401"><span class="kind">Paper</span> Lewis et al. — Retrieval-Augmented Generation</a><a href="../architecture/RAG_ARCHITECTURE.md"><span class="kind">Tropos</span> RAG architecture</a></div>
 </article>
 
-<article class="card"><span class="status partial">Implemented baseline</span><h3>6.2 Structured output as a typed artifact contract</h3>
+<article class="card" id="structured-output"><span class="status partial">Implemented baseline</span><h3>6.2 Structured output as a typed artifact contract</h3>
 <h4>Engineering concept</h4><p><span class="term">Schema-constrained generation</span> narrows a generative model into a typed application boundary. The schema acts as a syntactic contract; application/domain validation then enforces stronger semantics.</p>
 <h4>Tropos technique</h4><p>Knowledge Articles use fixed domain structures for Troubleshooting, How-to and FAQ artifacts rather than unconstrained Markdown. Provider output is validated against typed models before becoming a domain object.</p>
 <h4>Why this matters</h4><ul><li>Stable downstream rendering.</li><li>Deterministic validation of required fields.</li><li>Section-level and step-level evaluation.</li><li>Clear separation between “model produced parseable structure” and “content is correct.”</li></ul>
@@ -330,7 +317,7 @@ persist/display stable citation identity</div>
 <div class="refs"><a href="https://json-schema.org/specification"><span class="kind">Standard</span> JSON Schema specification</a><a href="../architecture/KNOWLEDGE_ARTICLE.md"><span class="kind">Tropos</span> Knowledge Article architecture</a></div>
 </article>
 
-<article class="card"><span class="status gap">Next maturity layer</span><h3>6.3 Artifact correctness: deterministic + semantic evaluators</h3>
+<article class="card" id="artifact-eval"><span class="status gap">Next maturity layer</span><h3>6.3 Artifact correctness: deterministic + semantic evaluators</h3>
 <h4>Engineering concept</h4><p>A generated artifact can be evaluated at multiple layers. Conflating them into one “LLM judge” hides failure causes.</p>
 <div class="mechanics">1. schema validity
 2. structural constraints
@@ -351,7 +338,7 @@ persist/display stable citation identity</div>
 <h2>7. Security, authorization, and AI governance</h2>
 <div class="grid">
 
-<article class="card"><span class="status implemented">Core invariant</span><h3>7.1 Access-aware retrieval: reference monitor / complete mediation</h3>
+<article class="card" id="access-control"><span class="status implemented">Core invariant</span><h3>7.1 Access-aware retrieval: reference monitor / complete mediation</h3>
 <h4>Established security theory</h4><p>Saltzer and Schroeder’s <span class="term">complete mediation</span> principle requires checking authority on every access to every protected object. A <span class="term">reference monitor</span> is the conceptual enforcement boundary through which access must pass.</p>
 <h4>Tropos mechanism</h4><div class="mechanics">query + tenant/groups
 → canonical current-state eligibility
@@ -365,14 +352,14 @@ persist/display stable citation identity</div>
 <div class="refs"><a href="https://csrc.nist.gov/pubs/sp/800/162/upd2/final"><span class="kind">Standard</span> NIST SP 800-162 — Attribute Based Access Control</a><a href="https://www.cs.virginia.edu/~evans/cs551/saltzer/"><span class="kind">Paper</span> Saltzer &amp; Schroeder — Protection of Information in Computer Systems</a></div>
 </article>
 
-<article class="card"><span class="status partial">Local web baseline</span><h3>7.2 Application security boundary</h3>
+<article class="card" id="app-security"><span class="status partial">Local web baseline</span><h3>7.2 Application security boundary</h3>
 <h4>Industry framework</h4><p><span class="term">OWASP ASVS</span> organizes verifiable application-security requirements across architecture, authentication, sessions, access control, input validation, cryptography, logging, data protection, APIs and configuration.</p>
 <h4>Tropos current controls</h4><ul><li>Loopback-only local binding.</li><li>Host validation to reduce DNS-rebinding exposure.</li><li>Origin validation for browser POSTs.</li><li>Random per-process request token.</li><li>Content-Type allow-listing.</li><li>Bounded file size/type handling.</li><li>Secrets excluded from browser diagnostics and repr.</li><li>Tenant/group authorization before retrieval.</li></ul>
 <h4>Not yet equivalent to production authentication</h4><p>The process token is a local request-protection mechanism, not user authentication, SSO, identity federation, MFA, or production session management.</p>
 <div class="refs"><a href="https://asvs.owasp.org/"><span class="kind">Standard</span> OWASP ASVS 5.0</a><a href="../security/LOCAL_WEB_SECURITY.md"><span class="kind">Tropos</span> Local web origin security</a></div>
 </article>
 
-<article class="card"><span class="status gap">Explicit next control</span><h3>7.3 Data egress and model-provider governance</h3>
+<article class="card" id="egress"><span class="status gap">Explicit next control</span><h3>7.3 Data egress and model-provider governance</h3>
 <h4>Engineering problem</h4><p>Remote embeddings, generation, evaluation and hosted observability can transmit governed data to external processors. Authorization to <em>read</em> data inside Tropos does not automatically imply authorization to <em>export</em> it to a provider.</p>
 <h4>Recommended mechanism</h4><div class="mechanics">data object
 → classification / sensitivity
@@ -391,14 +378,14 @@ persist/display stable citation identity</div>
 <h2>8. Testing, evaluation, and quality engineering</h2>
 <div class="grid">
 
-<article class="card"><span class="status implemented">Strong baseline</span><h3>8.1 Layered software verification</h3>
+<article class="card" id="verification"><span class="status implemented">Strong baseline</span><h3>8.1 Layered software verification</h3>
 <h4>Engineering concept</h4><p>Different tests provide evidence about different failure scopes. Line coverage alone cannot establish behavioral correctness.</p>
 <h4>Tropos layers</h4><ul><li><strong>Unit tests:</strong> isolated rules, value objects, adapters.</li><li><strong>Integration tests:</strong> persistence, ingestion, retrieval and local web/runtime boundaries.</li><li><strong>Contract tests:</strong> shared expectations across interchangeable BM25/dense/hybrid retrievers.</li><li><strong>Invariant tests:</strong> authorization, current-version, lifecycle and evidence integrity.</li><li><strong>Negative tests:</strong> unsupported input, missing configuration, denied access, no-answer behavior.</li><li><strong>Static typing:</strong> strict mypy.</li><li><strong>Static analysis/formatting:</strong> Ruff.</li><li><strong>Mutation sampling:</strong> evidence that assertions fail under deliberate behavioral mutations.</li></ul>
 <h4>Technical distinction</h4><p><span class="term">Coverage</span> answers what code executed; <span class="term">mutation testing</span> asks whether tests detect changed behavior; <span class="term">contract tests</span> ask whether alternative implementations satisfy one behavioral interface.</p>
 <div class="refs"><a href="https://martinfowler.com/articles/practical-test-pyramid.html"><span class="kind">Pattern</span> Fowler — Practical Test Pyramid</a><a href="https://hypothesis.works/articles/what-is-property-based-testing/"><span class="kind">Method</span> Property-based testing overview</a></div>
 </article>
 
-<article class="card"><span class="status implemented">Strong baseline</span><h3>8.2 Information-retrieval evaluation</h3>
+<article class="card" id="ir-eval"><span class="status implemented">Strong baseline</span><h3>8.2 Information-retrieval evaluation</h3>
 <h4>Metrics and what they answer</h4><ul><li><strong>Recall@k:</strong> did top-k contain expected relevant evidence?</li><li><strong>Precision@k:</strong> what fraction of returned items are relevant?</li><li><strong>MRR:</strong> how early does the first relevant item appear?</li><li><strong>nDCG:</strong> how good is the ranking when relevance has multiple grades?</li><li><strong>No-answer accuracy:</strong> does retrieval correctly avoid evidence when nothing is relevant?</li></ul>
 <h4>Tropos experiment architecture</h4><div class="mechanics">versioned EvalDataset
 → same cases
@@ -412,7 +399,7 @@ persist/display stable citation identity</div>
 <div class="refs"><a href="https://www-nlp.stanford.edu/IR-book/html/htmledition/evaluation-in-information-retrieval-1.html"><span class="kind">Book</span> Stanford IR — Evaluation in information retrieval</a><a href="../architecture/EVALUATION_MODEL.md"><span class="kind">Tropos</span> Evaluation product model</a></div>
 </article>
 
-<article class="card"><span class="status partial">Growing</span><h3>8.3 AI output evaluation</h3>
+<article class="card" id="ai-eval"><span class="status partial">Growing</span><h3>8.3 AI output evaluation</h3>
 <h4>Evaluation decomposition</h4><div class="mechanics">retrieval quality
 ≠ context sufficiency
 ≠ groundedness
@@ -426,7 +413,7 @@ persist/display stable citation identity</div>
 <div class="refs"><a href="https://research.google/pubs/sufficient-context-a-new-lens-on-retrieval-augmented-generation-systems/"><span class="kind">Paper</span> Sufficient Context</a><a href="https://aclanthology.org/2023.emnlp-main.398/"><span class="kind">Paper</span> ALCE</a><a href="../quality/EVAL_STRATEGY.md"><span class="kind">Tropos</span> Evaluation strategy</a></div>
 </article>
 
-<article class="card"><span class="status implemented">Delivery control</span><h3>8.4 Regression gating and change evidence</h3>
+<article class="card" id="regression"><span class="status implemented">Delivery control</span><h3>8.4 Regression gating and change evidence</h3>
 <h4>Engineering concept</h4><p>A <span class="term">quality gate</span> converts measured behavior into a release decision. The important distinction is between zero-tolerance invariants (e.g., authorization leakage) and degradable quality metrics (e.g., small recall change).</p>
 <h4>Tropos mechanism</h4><p>Baseline and candidate EvalRuns are compared under fixed dataset/provenance. Hard invariant failures remain release-blocking; retrieval-quality movement is interpreted under explicit tolerances rather than mixed with security correctness.</p>
 <h4>Related deployment pattern</h4><p>This is analogous to <span class="term">continuous verification</span>: CI tests source correctness while evaluation gates check AI-system behavior under representative cases.</p>
@@ -439,7 +426,7 @@ persist/display stable citation identity</div>
 <h2>9. Performance, observability, and reliability</h2>
 <div class="grid">
 
-<article class="card"><span class="status partial">Local baseline</span><h3>9.1 Observability: traces, metrics, logs</h3>
+<article class="card" id="observability"><span class="status partial">Local baseline</span><h3>9.1 Observability: traces, metrics, logs</h3>
 <h4>Established concept</h4><p><span class="term">Observability</span> is commonly built from correlated telemetry signals. OpenTelemetry standardizes <strong>traces</strong>, <strong>metrics</strong>, <strong>logs</strong> and context propagation without binding instrumentation to one vendor.</p>
 <h4>Tropos current trace</h4><div class="mechanics">Resolve request / trace ID
 ├─ retrieval span
@@ -464,7 +451,7 @@ persist/display stable citation identity</div>
 <div class="refs"><a href="https://opentelemetry.io/docs/concepts/signals/"><span class="kind">Standard</span> OpenTelemetry Signals</a><a href="https://sre.google/sre-book/monitoring-distributed-systems/"><span class="kind">Book</span> Google SRE — Monitoring Distributed Systems</a></div>
 </article>
 
-<article class="card"><span class="status gap">Scale evidence pending</span><h3>9.2 Performance engineering</h3>
+<article class="card" id="performance"><span class="status gap">Scale evidence pending</span><h3>9.2 Performance engineering</h3>
 <h4>Established measures</h4><ul><li><strong>Latency distribution:</strong> p50, p95, p99 rather than mean alone.</li><li><strong>Throughput:</strong> requests/operations per second.</li><li><strong>Concurrency:</strong> simultaneous in-flight work.</li><li><strong>Saturation:</strong> degree to which a constrained resource is fully utilized.</li><li><strong>Capacity:</strong> maximum sustainable load under SLOs.</li></ul>
 <h4>Tropos current evidence</h4><p>Stage latency is captured and exact vector search provides a clean baseline, but the system does not yet have production-scale load/capacity evidence.</p>
 <h4>Scale rehearsal</h4><div class="mechanics">10k → 50k → 100k → 500k chunks
@@ -480,14 +467,14 @@ for each scale:
 <div class="refs"><a href="https://research.google/pubs/the-tail-at-scale/"><span class="kind">Paper</span> Dean &amp; Barroso — The Tail at Scale</a><a href="https://sre.google/sre-book/monitoring-distributed-systems/"><span class="kind">Book</span> Four Golden Signals</a></div>
 </article>
 
-<article class="card"><span class="status partial">Partial</span><h3>9.3 Reliability and resilience</h3>
+<article class="card" id="reliability"><span class="status partial">Partial</span><h3>9.3 Reliability and resilience</h3>
 <h4>Established mechanisms</h4><ul><li><strong>Timeout:</strong> bound dependency wait time.</li><li><strong>Retry:</strong> repeat transient failures only when operation semantics allow it.</li><li><strong>Exponential backoff + jitter:</strong> avoid synchronized retry storms.</li><li><strong>Circuit breaker:</strong> stop repeated calls to an unhealthy dependency.</li><li><strong>Idempotency:</strong> repeated request does not create unintended duplicate state.</li><li><strong>Bulkhead/backpressure:</strong> limit failure propagation/resource exhaustion.</li><li><strong>Graceful degradation:</strong> preserve safe partial capability.</li></ul>
 <h4>Tropos today</h4><p>Provider timeouts, explicit fail-closed errors, idempotent ingestion/materialization and BM25 independence provide part of this foundation. General retry/backoff/circuit-breaker policies are not yet systemic.</p>
 <h4>Reliability metrics</h4><p>Availability, error rate, dependency failure rate, retry rate, recovery time, SLO attainment, and eventually RTO/RPO for durable production state.</p>
 <div class="refs"><a href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/"><span class="kind">Article</span> Amazon Builders' Library — Timeouts, retries and backoff with jitter</a><a href="https://sre.google/sre-book/service-best-practices/"><span class="kind">Book</span> Google SRE — Production service practices</a></div>
 </article>
 
-<article class="card"><span class="status gap">Product telemetry pending</span><h3>9.4 Product and operational KPIs</h3>
+<article class="card" id="kpis"><span class="status gap">Product telemetry pending</span><h3>9.4 Product and operational KPIs</h3>
 <h4>Engineering distinction</h4><p>Technical telemetry and product outcomes are different measurement planes.</p>
 <div class="mechanics">System health
   latency / errors / saturation / availability
@@ -533,8 +520,34 @@ Delivery health
 </div>
 </section>
 
+<section class="section" id="matrix">
+<h2>12. Capability-to-mechanism matrix</h2>
+<table class="matrix">
+<thead><tr><th>Capability</th><th>Established engineering concept</th><th>Concrete mechanism in Tropos</th><th>Status</th><th>Primary extension direction</th></tr></thead>
+<tbody>
+<tr><td>Source ingestion</td><td>Ingestion pipeline; adapter boundary; deterministic parsing</td><td>Connector → raw capture → parser → normalizer</td><td><span class="status implemented">Implemented</span></td><td>Enterprise connectors, PDF/OCR, batch orchestration</td></tr>
+<tr><td>Canonicalization</td><td>Canonical representation; normalization; content addressing</td><td>Unicode/whitespace/structure normalization → SHA-256 fingerprint</td><td><span class="status implemented">Implemented</span></td><td>First-class tables/code/media semantics</td></tr>
+<tr><td>Version control</td><td>Content-based versioning; optimistic concurrency; strategy versioning</td><td>Canonical fingerprint + normalization strategy + access fingerprint</td><td><span class="status implemented">Implemented</span></td><td>Version comparison, rollback, rebaseline operations</td></tr>
+<tr><td>Chunking</td><td>Passage segmentation; stable span identity</td><td>Structure-aware bounded character chunks with exact offsets</td><td><span class="status implemented">Implemented</span></td><td>Semantic/topic segmentation and chunk-size experiments</td></tr>
+<tr><td>Lexical retrieval</td><td>Inverted index; probabilistic IR; BM25</td><td>SQLite FTS5 + BM25</td><td><span class="status implemented">Implemented</span></td><td>Field weighting, query expansion, larger corpus calibration</td></tr>
+<tr><td>Dense retrieval</td><td>Bi-encoder representation; vector similarity; nearest-neighbour search</td><td>Versioned embeddings + exact cosine over eligible chunks</td><td><span class="status partial">V1</span></td><td>ANN: HNSW/IVF; pgvector/Pinecone comparison</td></tr>
+<tr><td>Hybrid retrieval</td><td>Rank aggregation / data fusion</td><td>BM25 + dense candidate lists → Reciprocal Rank Fusion</td><td><span class="status partial">V1</span></td><td>Candidate-depth tuning, reranking</td></tr>
+<tr><td>Evidence provenance</td><td>Data lineage; provenance graph; immutable identity</td><td>EvidenceRef + source/version/chunk/strategy lineage</td><td><span class="status implemented">Implemented</span></td><td>Claim-level provenance graph and lineage UI</td></tr>
+<tr><td>Citation resolution</td><td>Identifier indirection; referential integrity; attribution</td><td>Prompt-local aliases → validated deterministic EvidenceRef resolver</td><td><span class="status implemented">Identity layer</span></td><td>Semantic entailment / citation completeness scoring</td></tr>
+<tr><td>Evidence sufficiency</td><td>Answerability; selective generation; abstention</td><td>Structured sufficiency decision with missing facts/contradictions</td><td><span class="status partial">Needs calibration</span></td><td>Human-labelled calibration and selective-risk thresholds</td></tr>
+<tr><td>Grounded generation</td><td>RAG; constrained/structured generation</td><td>EvidenceSet → typed model request → validated citations</td><td><span class="status partial">Baseline</span></td><td>Claim-level grounding and artifact-quality evaluation</td></tr>
+<tr><td>Access-aware retrieval</td><td>Reference monitor; complete mediation; ABAC/RBAC</td><td>Current-state + tenant + group eligibility before ranking</td><td><span class="status implemented">Implemented</span></td><td>OIDC/SSO, centralized policy decision/enforcement</td></tr>
+<tr><td>Evaluation</td><td>IR evaluation; experimental design; regression testing</td><td>EvalDataset → EvalRun → comparison/gate</td><td><span class="status implemented">Strong baseline</span></td><td>nDCG, larger holdouts, confidence intervals, online eval</td></tr>
+<tr><td>Observability</td><td>Logs, metrics, traces; correlation; SRE signals</td><td>Request/trace IDs, retrieval/model spans, latency/tokens, diagnostics</td><td><span class="status partial">Local baseline</span></td><td>OpenTelemetry → LangSmith/Splunk/Grafana</td></tr>
+<tr><td>Performance</td><td>Latency distributions, throughput, capacity, ANN trade-offs</td><td>Stage latency captured; exact cosine baseline</td><td><span class="status gap">Not scale-proven</span></td><td>p50/p95/p99, load/capacity tests, ANN trigger</td></tr>
+<tr><td>Reliability</td><td>Timeouts, retries, idempotency, fail-safe defaults</td><td>Explicit failures, timeouts, idempotent ingestion/materialization</td><td><span class="status partial">Partial</span></td><td>Retry/backoff/jitter, circuit breakers, SLOs</td></tr>
+<tr><td>Maintainability</td><td>Hexagonal architecture; dependency inversion; modular monolith</td><td>Ports/adapters, capability modules, typed domain contracts, ADRs</td><td><span class="status implemented">Strong</span></td><td>Prove replaceability with more adapters</td></tr>
+<tr><td>Application security</td><td>OWASP ASVS; least privilege; secure-by-default boundary controls</td><td>Loopback-only server, Host/Origin validation, session token, ACLs</td><td><span class="status partial">Local baseline</span></td><td>Identity federation, audit, encryption, egress policy</td></tr>
+</tbody></table>
+</section>
+
 <section class="section" id="references">
-<h2>11. Consolidated reference index</h2>
+<h2>13. Consolidated reference index</h2>
 <p>Primary references below are grouped by the engineering question they support. Preference is given to standards, original papers, canonical books, and official implementation documentation.</p>
 <table class="matrix">
 <thead><tr><th>Area</th><th>Reference</th><th>Use</th></tr></thead>
@@ -564,8 +577,8 @@ Delivery health
 </tbody></table>
 </section>
 
-<section class="section">
-<h2>12. Reading the map as an engineering system</h2>
+<section class="section" id="system-reading">
+<h2>11. Reading the map as an engineering system</h2>
 <div class="callout">
 <h3>Capability is not mechanism</h3>
 <p>“Semantic retrieval” is a capability. “OpenAI embeddings + exact cosine search” is the present mechanism. “HNSW in pgvector” is a possible scale mechanism. The capability should remain stable while implementations can be replaced under explicit contracts.</p>
