@@ -524,6 +524,21 @@ Delivery health
 </div>
 </section>
 
+<section class="section" id="system-reading">
+<h2>11. Reading the map as an engineering system</h2>
+<div class="callout">
+<h3>Capability is not mechanism</h3>
+<p>“Semantic retrieval” is a capability. “OpenAI embeddings + exact cosine search” is the present mechanism. “HNSW in pgvector” is a possible scale mechanism. The capability should remain stable while implementations can be replaced under explicit contracts.</p>
+</div>
+<div class="callout">
+<h3>Correctness is not one metric</h3>
+<p>Security invariants, retrieval relevance, evidence sufficiency, citation entailment, generated-artifact structure, latency, reliability, and user outcomes require different evidence. A mature architecture keeps these quality questions separate and composes them into release decisions.</p>
+</div>
+<div class="callout">
+<h3>Derived state should remain replaceable</h3>
+<p>Search indexes, embeddings, fused rankings, telemetry projections and rendered artifacts are reproducible representations. Canonical source/capture identity, governed knowledge, policy state and stable evidence references provide the durable backbone from which those representations can be rebuilt.</p>
+</div>
+</section>
 <section class="section" id="matrix">
 <h2>12. Capability-to-mechanism matrix</h2>
 <table class="matrix">
@@ -589,21 +604,7 @@ Delivery health
 </tbody></table>
 </section>
 
-<section class="section" id="system-reading">
-<h2>11. Reading the map as an engineering system</h2>
-<div class="callout">
-<h3>Capability is not mechanism</h3>
-<p>“Semantic retrieval” is a capability. “OpenAI embeddings + exact cosine search” is the present mechanism. “HNSW in pgvector” is a possible scale mechanism. The capability should remain stable while implementations can be replaced under explicit contracts.</p>
-</div>
-<div class="callout">
-<h3>Correctness is not one metric</h3>
-<p>Security invariants, retrieval relevance, evidence sufficiency, citation entailment, generated-artifact structure, latency, reliability, and user outcomes require different evidence. A mature architecture keeps these quality questions separate and composes them into release decisions.</p>
-</div>
-<div class="callout">
-<h3>Derived state should remain replaceable</h3>
-<p>Search indexes, embeddings, fused rankings, telemetry projections and rendered artifacts are reproducible representations. Canonical source/capture identity, governed knowledge, policy state and stable evidence references provide the durable backbone from which those representations can be rebuilt.</p>
-</div>
-</section>
+
 </main>
 <footer><div class="wrap">Tropos Engineering Capability &amp; Solution Map · Engineering reference. Current implementation status remains subordinate to executable code, tests, living architecture, ADRs, and quality evidence in the repository.</div></footer>
 </body>
