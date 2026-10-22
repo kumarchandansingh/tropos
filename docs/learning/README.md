@@ -8,6 +8,11 @@ These notes are public engineering material. They are not authoritative for impl
 
 ## Current deep dives
 
+### [Engineering Capability & Solution Map](ENGINEERING_CAPABILITY_SOLUTION_MAP.html)
+
+Maps functional and non-functional capabilities to established engineering theory, algorithms, architectural patterns, Tropos mechanisms, alternative implementations, validation methods, and primary technical references. It distinguishes stable system capabilities from replaceable implementation mechanisms and marks current, partial, deferred, and future controls explicitly.
+
+
 ### [Dense Retrieval V1](DENSE_RETRIEVAL_V1.md)
 
 Explains:

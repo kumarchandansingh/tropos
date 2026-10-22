@@ -84,6 +84,8 @@ Architecture documents describe the system as it exists now. They do not present
 
 [Engineering deep dives](learning/README.md) explain selected mechanisms and cross-cutting trade-offs in more detail than living architecture should carry. They are public technical material but are not authoritative for implementation status.
 
+- [Engineering capability & solution map](learning/ENGINEERING_CAPABILITY_SOLUTION_MAP.html)
+
 ## Status vocabulary
 
 | Status | Meaning |
