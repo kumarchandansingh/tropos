@@ -56,7 +56,10 @@ def test_runtime_trace_maps_to_one_parent_with_semantic_children() -> None:
     assert parent.attributes["tropos.mapping_mode"] == "retrospective"
     assert parent.attributes["tropos.outcome"] == "ANSWERED"
     assert all(span.parent is not None for span in spans[:-1])
-    assert all(span.parent is not None and span.parent.span_id == parent.context.span_id for span in spans[:-1])
+    assert all(
+        span.parent is not None and span.parent.span_id == parent.context.span_id
+        for span in spans[:-1]
+    )
 
     retrieval = spans[0]
     assert retrieval.attributes is not None
@@ -121,7 +124,9 @@ def test_governed_identifiers_and_content_are_not_exported() -> None:
         )
     )
 
-    serialized = str([(span.name, dict(span.attributes or {})) for span in exporter.get_finished_spans()])
+    serialized = str(
+        [(span.name, dict(span.attributes or {})) for span in exporter.get_finished_spans()]
+    )
     assert secret not in serialized
     assert "customer-secret" not in serialized
     assert "request-sensitive" not in serialized
