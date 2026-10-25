@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from hashlib import sha256
 from time import perf_counter
-from typing import Protocol
+from contextlib import nullcontext
+from typing import ContextManager, Protocol
 from uuid import uuid4
 
 from tropos.capabilities.resolve.application.evaluate_evidence_sufficiency import (
@@ -25,6 +26,7 @@ from tropos.capabilities.resolve.domain.runtime import (
     RuntimeRequest,
 )
 from tropos.core.application.observability.trace import (
+    LiveSpanRecorder,
     RuntimeTrace,
     TraceSink,
     TraceSpan,
@@ -52,13 +54,24 @@ class ResolveQuestion:
         sufficiency_judge: SufficiencyJudge,
         answer_generator: GroundedAnswerGenerator,
         trace_sink: TraceSink,
+        live_spans: LiveSpanRecorder | None = None,
     ) -> None:
         self._retriever = retriever
         self._sufficiency_judge = sufficiency_judge
         self._answer_generator = answer_generator
         self._trace_sink = trace_sink
+        self._live_spans = live_spans
+
+    def _operation(self, name: str) -> ContextManager[None]:
+        if self._live_spans is None:
+            return nullcontext()
+        return self._live_spans.span(name)
 
     def execute(self, request: RuntimeRequest) -> ResolveResult:
+        with self._operation("resolve.request"):
+            return self._execute_with_trace(request)
+
+    def _execute_with_trace(self, request: RuntimeRequest) -> ResolveResult:
         trace_id = f"trace_{uuid4().hex}"
         runtime_config_fingerprint = sha256(
             (
@@ -84,13 +97,14 @@ class ResolveQuestion:
 
         retrieval_started = perf_counter()
         try:
-            results = self._retriever.search(
+            with self._operation("resolve.retrieval"):
+                results = self._retriever.search(
                 KnowledgeSearchRequest(
                     query=request.query,
                     access=request.access,
                     limit=request.retrieval_limit,
                 )
-            )
+                )
         except (ValueError, RuntimeError, OSError) as exc:
             spans.append(
                 TraceSpan(
@@ -163,7 +177,8 @@ class ResolveQuestion:
         )
 
         try:
-            judged = self._sufficiency_judge.judge(evidence_set)
+            with self._operation("resolve.sufficiency"):
+                judged = self._sufficiency_judge.judge(evidence_set)
         except (ValueError, RuntimeError, OSError) as exc:
             spans.append(
                 TraceSpan(
@@ -205,7 +220,8 @@ class ResolveQuestion:
             return result
 
         try:
-            generated = self._answer_generator.generate(evidence_set)
+            with self._operation("resolve.generation"):
+                generated = self._answer_generator.generate(evidence_set)
         except CitationResolutionError as exc:
             spans.append(
                 TraceSpan(
