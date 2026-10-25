@@ -84,3 +84,5 @@ duplicating the same Resolve request as two trace trees.
 
 Future work includes instrumenting evidence/citation sub-stages and attaching
 governed safe attributes to live spans, followed by an OTLP exporter/backend.
+
+The console exporter is intended only for local development and should remain opt-in.
