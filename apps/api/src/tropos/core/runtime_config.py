@@ -97,7 +97,7 @@ class EmbeddingRuntimeSettings:
 
     @property
     def configured(self) -> bool:
-        return self.api_key is not None
+        return self.provider == "ollama" or self.api_key is not None
 
     def require_api_key(self) -> str:
         if self.api_key is None:
@@ -113,10 +113,12 @@ def load_embedding_runtime_settings(
 ) -> EmbeddingRuntimeSettings:
     values = os.environ if environ is None else environ
     provider = values.get("TROPOS_EMBEDDING_PROVIDER", DEFAULT_EMBEDDING_PROVIDER).strip()
-    model = values.get("TROPOS_EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL).strip()
+    default_model = "nomic-embed-text" if provider == "ollama" else DEFAULT_EMBEDDING_MODEL
+    model = values.get("TROPOS_EMBEDDING_MODEL", default_model).strip()
+    default_dimensions = 768 if provider == "ollama" else DEFAULT_EMBEDDING_DIMENSIONS
     raw_dimensions = values.get(
         "TROPOS_EMBEDDING_DIMENSIONS",
-        str(DEFAULT_EMBEDDING_DIMENSIONS),
+        str(default_dimensions),
     ).strip()
     try:
         dimensions = int(raw_dimensions)
