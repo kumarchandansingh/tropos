@@ -39,3 +39,5 @@ the semantic index. No external embedding API is called in Ollama mode.
 The local adapter validates embedding vector count and dimensions, and the
 test suite mocks the local endpoint (no network or paid services). Existing
 retrieval access controls and exact/hybrid algorithms are unchanged.
+
+This option avoids embedding API charges but uses local compute and disk space.
