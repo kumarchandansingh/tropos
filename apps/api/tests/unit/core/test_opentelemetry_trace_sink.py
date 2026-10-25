@@ -118,12 +118,7 @@ def test_governed_identifiers_and_content_are_not_exported() -> None:
         )
     )
 
-    serialized = str(
-        [
-            (span.name, dict(span.attributes))
-            for span in exporter.get_finished_spans()
-        ]
-    )
+    serialized = str([(span.name, dict(span.attributes)) for span in exporter.get_finished_spans()])
     assert secret not in serialized
     assert "customer-secret" not in serialized
     assert "request-sensitive" not in serialized
