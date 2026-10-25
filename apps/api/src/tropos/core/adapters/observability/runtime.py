@@ -39,9 +39,9 @@ def build_live_span_recorder() -> OpenTelemetryLiveSpanRecorder | None:
     provider = TracerProvider(resource=Resource.create({"service.name": "tropos-api"}))
     if endpoint:
         try:
-            from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+            from opentelemetry.exporter.otlp.proto.http.trace_exporter import (  # type: ignore[import-not-found]
                 OTLPSpanExporter,
-            )  # type: ignore[import-not-found]
+            )
         except ImportError as exc:
             raise RuntimeError(
                 "OTLP export requires opentelemetry-exporter-otlp-proto-http. "
