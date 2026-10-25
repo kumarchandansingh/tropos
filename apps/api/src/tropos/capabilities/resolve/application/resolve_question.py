@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from hashlib import sha256
 from time import perf_counter
-from contextlib import nullcontext
-from typing import ContextManager, Protocol
+from contextlib import AbstractContextManager, nullcontext
+from typing import Protocol
 from uuid import uuid4
 
 from tropos.capabilities.resolve.application.evaluate_evidence_sufficiency import (
@@ -62,7 +62,7 @@ class ResolveQuestion:
         self._trace_sink = trace_sink
         self._live_spans = live_spans
 
-    def _operation(self, name: str) -> ContextManager[None]:
+    def _operation(self, name: str) -> AbstractContextManager[None]:
         if self._live_spans is None:
             return nullcontext()
         return self._live_spans.span(name)
