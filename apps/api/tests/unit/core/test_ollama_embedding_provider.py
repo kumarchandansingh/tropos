@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import io
 import json
-from urllib.request import Request
 from unittest.mock import patch
+from urllib.request import Request
 
 import pytest
 
