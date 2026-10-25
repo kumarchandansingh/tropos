@@ -97,7 +97,7 @@ class EmbeddingRuntimeSettings:
 
     @property
     def configured(self) -> bool:
-        return self.api_key is not None
+        return self.provider == "ollama" or self.api_key is not None
 
     def require_api_key(self) -> str:
         if self.api_key is None:
