@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Protocol
+from typing import ContextManager, Protocol
 
 TraceScalar = str | int | float | bool | None
 TraceValue = TraceScalar | tuple[str, ...]
@@ -57,6 +57,12 @@ class RuntimeTrace:
                 for span in self.spans
             ],
         }
+
+
+class LiveSpanRecorder(Protocol):
+    """Vendor-neutral context manager for real operation timings."""
+
+    def span(self, name: str) -> ContextManager[None]: ...
 
 
 class TraceSink(Protocol):
