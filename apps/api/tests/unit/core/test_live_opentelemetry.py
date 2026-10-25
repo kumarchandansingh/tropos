@@ -6,12 +6,12 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.trace import StatusCode
 
+from tropos.capabilities.resolve.application.resolve_question import ResolveQuestion
+from tropos.capabilities.resolve.domain.runtime import ResolveOutcome, RuntimeRequest
 from tropos.core.adapters.observability.live_opentelemetry import (
     OpenTelemetryLiveSpanRecorder,
 )
 from tropos.core.application.observability.trace import InMemoryTraceSink
-from tropos.capabilities.resolve.application.resolve_question import ResolveQuestion
-from tropos.capabilities.resolve.domain.runtime import RuntimeRequest, ResolveOutcome
 from tropos.core.application.retrieval.models import RetrievalAccessContext
 
 
@@ -37,9 +37,9 @@ class NeverCall:
         raise AssertionError("must not run")
 
 
-def _runtime(retriever: EmptyRetriever | FailingRetriever) -> tuple[
-    ResolveQuestion, InMemoryTraceSink, InMemorySpanExporter
-]:
+def _runtime(
+    retriever: EmptyRetriever | FailingRetriever,
+) -> tuple[ResolveQuestion, InMemoryTraceSink, InMemorySpanExporter]:
     exporter = InMemorySpanExporter()
     provider = TracerProvider()
     provider.add_span_processor(SimpleSpanProcessor(exporter))

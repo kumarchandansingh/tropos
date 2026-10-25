@@ -28,6 +28,7 @@ from tropos.capabilities.resolve.domain.runtime import ResolveOutcome, ResolveRe
 from tropos.core.adapters.chunking.deterministic import DeterministicKnowledgeChunker
 from tropos.core.adapters.llm.groq import build_default_groq_llm
 from tropos.core.adapters.normalization.deterministic import DeterministicKnowledgeNormalizer
+from tropos.core.adapters.observability.runtime import build_live_span_recorder
 from tropos.core.adapters.parsing.deterministic import DeterministicKnowledgeParser
 from tropos.core.adapters.persistence.sqlite import SQLiteIngestionStore
 from tropos.core.adapters.retrieval.sqlite_fts import SQLiteFtsKnowledgeRetriever
@@ -38,7 +39,6 @@ from tropos.core.application.ingestion.ingest_from_source import (
 )
 from tropos.core.application.ingestion.ingest_knowledge import IngestKnowledge
 from tropos.core.application.ingestion.run_state import IngestionOutcome, IngestionResult
-from tropos.core.adapters.observability.runtime import build_live_span_recorder
 from tropos.core.application.observability.trace import JsonlTraceSink
 from tropos.core.application.retrieval.models import RetrievalAccessContext
 from tropos.core.domain.access import AccessPolicy, AccessScope

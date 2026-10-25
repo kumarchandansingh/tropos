@@ -6,8 +6,8 @@ customer identifiers never enter the telemetry path.
 
 from __future__ import annotations
 
-from contextlib import contextmanager
 from collections.abc import Iterator
+from contextlib import contextmanager
 
 from opentelemetry.trace import Tracer
 
@@ -27,6 +27,7 @@ class OpenTelemetryLiveSpanRecorder:
                 yield
             except Exception as exc:
                 from opentelemetry.trace import Status, StatusCode
+
                 current.set_status(Status(StatusCode.ERROR))
                 current.set_attribute("tropos.error_type", type(exc).__name__)
                 raise

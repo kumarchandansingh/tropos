@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from contextlib import AbstractContextManager, nullcontext
 from hashlib import sha256
 from time import perf_counter
-from contextlib import AbstractContextManager, nullcontext
 from typing import Protocol
 from uuid import uuid4
 
