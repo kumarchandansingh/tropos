@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from tropos.core.adapters.embeddings.ollama import OllamaEmbeddingProvider
 from tropos.core.adapters.embeddings.openai import OpenAIEmbeddingProvider
 from tropos.core.adapters.embeddings.sqlite import SQLiteEmbeddingRepository
 from tropos.core.adapters.retrieval.exact_vector import ExactVectorKnowledgeRetriever
@@ -14,6 +15,7 @@ from tropos.core.application.embeddings.materialize import (
     EmbeddingMaterializationResult,
     MaterializeEmbeddings,
 )
+from tropos.core.application.ports.embeddings import EmbeddingProvider
 from tropos.core.application.ports.retrieval import KnowledgeChunkRetriever
 from tropos.core.runtime_config import (
     EmbeddingRuntimeSettings,
@@ -27,17 +29,16 @@ class RetrievalRuntime:
     materialization: EmbeddingMaterializationResult | None
 
 
-def _embedding_provider(settings: EmbeddingRuntimeSettings) -> OpenAIEmbeddingProvider:
-    if settings.provider != "openai":
-        raise RuntimeError(
-            f"unsupported embedding provider: {settings.provider}. "
-            "Operational Retrieval V1 currently supports openai."
+def _embedding_provider(settings: EmbeddingRuntimeSettings) -> EmbeddingProvider:
+    if settings.provider == "ollama":
+        return OllamaEmbeddingProvider(model=settings.model, dimensions=settings.dimensions)
+    if settings.provider == "openai":
+        return OpenAIEmbeddingProvider(
+            api_key=settings.require_api_key(),
+            model=settings.model,
+            dimensions=settings.dimensions,
         )
-    return OpenAIEmbeddingProvider(
-        api_key=settings.require_api_key(),
-        model=settings.model,
-        dimensions=settings.dimensions,
-    )
+    raise RuntimeError(f"unsupported embedding provider: {settings.provider}")
 
 
 def materialize_runtime_embeddings(
