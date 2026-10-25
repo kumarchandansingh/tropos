@@ -45,7 +45,7 @@ def build_live_span_recorder() -> OpenTelemetryLiveSpanRecorder | None:
         try:
             from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
                 OTLPSpanExporter,
-            )
+            )  # type: ignore[import-not-found]
         except ImportError as exc:
             raise RuntimeError(
                 "OTLP export requires opentelemetry-exporter-otlp-proto-http. "
