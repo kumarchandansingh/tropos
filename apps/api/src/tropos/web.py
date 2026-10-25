@@ -38,6 +38,7 @@ from tropos.core.application.ingestion.ingest_from_source import (
 )
 from tropos.core.application.ingestion.ingest_knowledge import IngestKnowledge
 from tropos.core.application.ingestion.run_state import IngestionOutcome, IngestionResult
+from tropos.core.adapters.observability.runtime import build_live_span_recorder
 from tropos.core.application.observability.trace import JsonlTraceSink
 from tropos.core.application.retrieval.models import RetrievalAccessContext
 from tropos.core.domain.access import AccessPolicy, AccessScope
@@ -499,6 +500,7 @@ def _build_runtime(
         sufficiency_judge=LLMEvidenceSufficiencyJudge(model),
         answer_generator=LLMGroundedAnswerGenerator(model),
         trace_sink=JsonlTraceSink(trace_file),
+        live_spans=build_live_span_recorder(),
     )
 
 
