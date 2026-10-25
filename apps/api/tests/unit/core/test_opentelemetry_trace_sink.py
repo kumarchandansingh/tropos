@@ -52,12 +52,14 @@ def test_runtime_trace_maps_to_one_parent_with_semantic_children() -> None:
         "tropos.resolve",
     )
     parent = spans[-1]
+    assert parent.attributes is not None
     assert parent.attributes["tropos.mapping_mode"] == "retrospective"
     assert parent.attributes["tropos.outcome"] == "ANSWERED"
     assert all(span.parent is not None for span in spans[:-1])
-    assert all(span.parent.span_id == parent.context.span_id for span in spans[:-1])
+    assert all(span.parent is not None and span.parent.span_id == parent.context.span_id for span in spans[:-1])
 
     retrieval = spans[0]
+    assert retrieval.attributes is not None
     assert retrieval.attributes["tropos.strategy_version"] == "hybrid_rrf_v1"
     assert retrieval.attributes["tropos.result_count"] == 5
     assert retrieval.attributes["tropos.latency_ms"] == 61.2
@@ -83,6 +85,7 @@ def test_error_status_is_preserved_without_exporting_exception_message() -> None
     child, parent = exporter.get_finished_spans()
     assert child.status.status_code is StatusCode.ERROR
     assert parent.status.status_code is StatusCode.ERROR
+    assert child.attributes is not None
     assert child.attributes["tropos.recorded_status"] == "ERROR"
 
 
@@ -118,7 +121,7 @@ def test_governed_identifiers_and_content_are_not_exported() -> None:
         )
     )
 
-    serialized = str([(span.name, dict(span.attributes)) for span in exporter.get_finished_spans()])
+    serialized = str([(span.name, dict(span.attributes or {})) for span in exporter.get_finished_spans()])
     assert secret not in serialized
     assert "customer-secret" not in serialized
     assert "request-sensitive" not in serialized
