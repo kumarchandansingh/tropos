@@ -7,6 +7,9 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.trace import StatusCode
 
 from tropos.capabilities.resolve.application.resolve_question import ResolveQuestion
+from tropos.capabilities.resolve.application.evaluate_evidence_sufficiency import JudgedSufficiency
+from tropos.capabilities.resolve.application.generate_grounded_answer import GeneratedGroundedAnswer
+from tropos.capabilities.resolve.domain.evidence_sufficiency import EvidenceSet
 from tropos.capabilities.resolve.domain.runtime import ResolveOutcome, RuntimeRequest
 from tropos.core.adapters.observability.live_opentelemetry import (
     OpenTelemetryLiveSpanRecorder,
@@ -30,10 +33,10 @@ class FailingRetriever:
 
 
 class NeverCall:
-    def judge(self, evidence_set: object) -> None:
+    def judge(self, evidence_set: EvidenceSet) -> JudgedSufficiency:
         raise AssertionError("must not run")
 
-    def generate(self, evidence_set: object) -> None:
+    def generate(self, evidence_set: EvidenceSet) -> GeneratedGroundedAnswer:
         raise AssertionError("must not run")
 
 
