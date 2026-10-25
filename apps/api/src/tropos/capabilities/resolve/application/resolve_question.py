@@ -99,11 +99,11 @@ class ResolveQuestion:
         try:
             with self._operation("resolve.retrieval"):
                 results = self._retriever.search(
-                KnowledgeSearchRequest(
-                    query=request.query,
-                    access=request.access,
-                    limit=request.retrieval_limit,
-                )
+                    KnowledgeSearchRequest(
+                        query=request.query,
+                        access=request.access,
+                        limit=request.retrieval_limit,
+                    )
                 )
         except (ValueError, RuntimeError, OSError) as exc:
             spans.append(
