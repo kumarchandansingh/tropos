@@ -6,9 +6,9 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.trace import StatusCode
 
-from tropos.capabilities.resolve.application.resolve_question import ResolveQuestion
 from tropos.capabilities.resolve.application.evaluate_evidence_sufficiency import JudgedSufficiency
 from tropos.capabilities.resolve.application.generate_grounded_answer import GeneratedGroundedAnswer
+from tropos.capabilities.resolve.application.resolve_question import ResolveQuestion
 from tropos.capabilities.resolve.domain.evidence_sufficiency import EvidenceSet
 from tropos.capabilities.resolve.domain.runtime import ResolveOutcome, RuntimeRequest
 from tropos.core.adapters.observability.live_opentelemetry import (
