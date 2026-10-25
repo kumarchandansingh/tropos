@@ -34,10 +34,6 @@ jobs:
       - name: Install Python
         run: uv python install 3.14
 
-      - name: Refresh dependency lockfile for OBS-101
-        working-directory: apps/api
-        run: uv lock
-
       - name: Sync API dependencies
         working-directory: apps/api
         run: uv sync --dev --locked
