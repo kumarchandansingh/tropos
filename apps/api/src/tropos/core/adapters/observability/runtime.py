@@ -33,14 +33,10 @@ def build_live_span_recorder() -> OpenTelemetryLiveSpanRecorder | None:
     if not endpoint and not console:
         return None
 
-    if endpoint and not (
-        endpoint.startswith("http://") or endpoint.startswith("https://")
-    ):
+    if endpoint and not (endpoint.startswith("http://") or endpoint.startswith("https://")):
         raise ValueError("TROPOS_OTEL_OTLP_ENDPOINT must be an HTTP(S) URL")
 
-    provider = TracerProvider(
-        resource=Resource.create({"service.name": "tropos-api"})
-    )
+    provider = TracerProvider(resource=Resource.create({"service.name": "tropos-api"}))
     if endpoint:
         try:
             from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
@@ -53,9 +49,7 @@ def build_live_span_recorder() -> OpenTelemetryLiveSpanRecorder | None:
             ) from exc
         # OTLPSpanExporter supports headers via the standard OTEL_EXPORTER_OTLP_*
         # environment variables. Never emit or log their values.
-        provider.add_span_processor(
-            BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint))
-        )
+        provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint)))
     if console:
         provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
     return OpenTelemetryLiveSpanRecorder(provider.get_tracer("tropos.resolve"))

@@ -31,9 +31,7 @@ def test_otlp_exporter_constructed_with_configured_endpoint(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[str] = []
-    module = types.ModuleType(
-        "opentelemetry.exporter.otlp.proto.http.trace_exporter"
-    )
+    module = types.ModuleType("opentelemetry.exporter.otlp.proto.http.trace_exporter")
 
     class FakeExporter:
         def __init__(self, *, endpoint: str) -> None:
@@ -52,9 +50,7 @@ def test_otlp_exporter_constructed_with_configured_endpoint(
 
     module.OTLPSpanExporter = FakeExporter  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, module.__name__, module)
-    monkeypatch.setenv(
-        "TROPOS_OTEL_OTLP_ENDPOINT", "http://127.0.0.1:4318/v1/traces"
-    )
+    monkeypatch.setenv("TROPOS_OTEL_OTLP_ENDPOINT", "http://127.0.0.1:4318/v1/traces")
     monkeypatch.delenv("TROPOS_OTEL_CONSOLE", raising=False)
     assert build_live_span_recorder() is not None
     assert calls == ["http://127.0.0.1:4318/v1/traces"]
