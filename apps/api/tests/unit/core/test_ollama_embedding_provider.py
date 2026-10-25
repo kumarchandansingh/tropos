@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+from urllib.request import Request
 from unittest.mock import patch
 
 import pytest
@@ -21,7 +22,7 @@ def test_ollama_settings_require_no_paid_key() -> None:
 def test_ollama_adapter_documents_and_query_use_same_model() -> None:
     requests: list[dict[str, object]] = []
 
-    def fake_open(req: object, timeout: int) -> io.BytesIO:
+    def fake_open(req: Request, timeout: int) -> io.BytesIO:
         assert timeout == 120
         data = req.data
         body = json.loads(data)
