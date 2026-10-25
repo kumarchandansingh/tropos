@@ -23,12 +23,10 @@ def test_ollama_adapter_documents_and_query_use_same_model() -> None:
 
     def fake_open(req: object, timeout: int) -> io.BytesIO:
         assert timeout == 120
-        data = getattr(req, "data")
+        data = req.data
         body = json.loads(data)
         requests.append(body)
-        return io.BytesIO(
-            json.dumps({"embeddings": [[0.5] * 768 for _ in body["input"]]}).encode()
-        )
+        return io.BytesIO(json.dumps({"embeddings": [[0.5] * 768 for _ in body["input"]]}).encode())
 
     with patch(
         "tropos.core.adapters.embeddings.ollama.request.urlopen",
@@ -46,9 +44,11 @@ def test_ollama_adapter_documents_and_query_use_same_model() -> None:
 
 
 def test_ollama_rejects_wrong_dimensions() -> None:
-    with patch(
-        "tropos.core.adapters.embeddings.ollama.request.urlopen",
-        return_value=io.BytesIO(json.dumps({"embeddings": [[1.0, 2.0]]}).encode()),
+    with (
+        patch(
+            "tropos.core.adapters.embeddings.ollama.request.urlopen",
+            return_value=io.BytesIO(json.dumps({"embeddings": [[1.0, 2.0]]}).encode()),
+        ),
+        pytest.raises(RuntimeError, match="dimensions/count"),
     ):
-        with pytest.raises(RuntimeError, match="dimensions/count"):
-            OllamaEmbeddingProvider().embed_query("hello")
+        OllamaEmbeddingProvider().embed_query("hello")

@@ -1,4 +1,5 @@
 """Free local Ollama embedding provider."""
+
 from __future__ import annotations
 
 import json
@@ -39,9 +40,7 @@ class OllamaEmbeddingProvider:
     def _embed(self, texts: tuple[str, ...]) -> tuple[EmbeddingVector, ...]:
         if any(not text.strip() for text in texts):
             raise ValueError("embedding text must not be blank")
-        data = json.dumps(
-            {"model": self._model, "input": list(texts), "truncate": False}
-        ).encode()
+        data = json.dumps({"model": self._model, "input": list(texts), "truncate": False}).encode()
         req = request.Request(
             "http://127.0.0.1:11434/api/embed",
             data=data,
@@ -51,8 +50,7 @@ class OllamaEmbeddingProvider:
             with request.urlopen(req, timeout=120) as response:
                 payload = json.loads(response.read())
             vectors = tuple(
-                EmbeddingVector(tuple(float(x) for x in values))
-                for values in payload["embeddings"]
+                EmbeddingVector(tuple(float(x) for x in values)) for values in payload["embeddings"]
             )
         except (OSError, ValueError, TypeError, KeyError) as exc:
             raise RuntimeError(
