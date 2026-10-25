@@ -71,6 +71,19 @@ class InMemoryTraceSink:
         self.traces.append(trace)
 
 
+class CompositeTraceSink:
+    """Fan out one immutable runtime trace to multiple sinks."""
+
+    def __init__(self, *sinks: TraceSink) -> None:
+        if not sinks:
+            raise ValueError("composite trace sink requires at least one sink")
+        self._sinks = sinks
+
+    def write(self, trace: RuntimeTrace) -> None:
+        for sink in self._sinks:
+            sink.write(trace)
+
+
 class JsonlTraceSink:
     """Append traces locally without duplicating raw query/evidence payloads."""
 
