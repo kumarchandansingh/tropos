@@ -28,6 +28,7 @@ from tropos.capabilities.resolve.domain.runtime import ResolveOutcome, ResolveRe
 from tropos.core.adapters.chunking.deterministic import DeterministicKnowledgeChunker
 from tropos.core.adapters.llm.groq import build_default_groq_llm
 from tropos.core.adapters.normalization.deterministic import DeterministicKnowledgeNormalizer
+from tropos.core.adapters.observability.runtime import build_live_span_recorder
 from tropos.core.adapters.parsing.deterministic import DeterministicKnowledgeParser
 from tropos.core.adapters.persistence.sqlite import SQLiteIngestionStore
 from tropos.core.adapters.retrieval.sqlite_fts import SQLiteFtsKnowledgeRetriever
@@ -499,6 +500,7 @@ def _build_runtime(
         sufficiency_judge=LLMEvidenceSufficiencyJudge(model),
         answer_generator=LLMGroundedAnswerGenerator(model),
         trace_sink=JsonlTraceSink(trace_file),
+        live_spans=build_live_span_recorder(),
     )
 
 
