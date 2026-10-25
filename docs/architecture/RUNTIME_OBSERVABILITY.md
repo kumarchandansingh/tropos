@@ -59,3 +59,28 @@ OBS-101B will instrument operations while they execute and capture real span
 timing and parent/child context. Collector, OTLP backend configuration,
 production sampling/retention, dashboards and LangSmith integrations are out
 of scope for OBS-101A.
+
+
+## OBS-101B: live request instrumentation
+
+The `LiveSpanRecorder` application port exposes a context manager for measured
+execution operations. Resolve creates `resolve.request` as the parent operation
+and live child spans for `resolve.retrieval`, `resolve.sufficiency`, and
+`resolve.generation` when those operations run. In an early-abstention path
+there are no sufficiency or generation spans. The previous `RuntimeTrace`
+and local JSONL sink remain unchanged.
+
+The `OpenTelemetryLiveSpanRecorder` infrastructure adapter creates nested
+OTel spans using `start_as_current_span`; span duration represents actual
+wall-clock execution. Its attribute policy deliberately exports only
+`tropos.mapping_mode=live` and the exception type for error cases. It does
+not record exception messages, queries, evidence, answers, or customer IDs.
+
+For a local opt-in console demonstration, set `TROPOS_OTEL_CONSOLE=1` before
+starting `tropos web` or `tropos ask`. The default is off, with no external
+export configured. OBS-101A's retrospective sink is still available as a
+separate adapter but is not enabled alongside live instrumentation, to avoid
+duplicating the same Resolve request as two trace trees.
+
+Future work includes instrumenting evidence/citation sub-stages and attaching
+governed safe attributes to live spans, followed by an OTLP exporter/backend.
