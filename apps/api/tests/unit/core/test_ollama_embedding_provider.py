@@ -25,6 +25,7 @@ def test_ollama_adapter_documents_and_query_use_same_model() -> None:
     def fake_open(req: Request, timeout: int) -> io.BytesIO:
         assert timeout == 120
         data = req.data
+        assert isinstance(data, bytes)
         body = json.loads(data)
         requests.append(body)
         return io.BytesIO(json.dumps({"embeddings": [[0.5] * 768 for _ in body["input"]]}).encode())
