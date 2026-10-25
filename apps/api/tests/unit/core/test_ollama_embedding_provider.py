@@ -17,6 +17,7 @@ def test_ollama_settings_require_no_paid_key() -> None:
     assert settings.model == "nomic-embed-text"
     assert settings.dimensions == 768
     assert settings.api_key is None
+    assert settings.configured is True
 
 
 def test_ollama_adapter_documents_and_query_use_same_model() -> None:
