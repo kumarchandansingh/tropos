@@ -43,9 +43,7 @@ def _seed(db: sqlite3.Connection, tenant: str = "tenant-a") -> dict[str, str]:
     }
     db.execute("INSERT INTO tenants (tenant_id) VALUES (?)", (tenant,))
     for actor in ("author", "reviewer", "publisher"):
-        db.execute(
-            "INSERT INTO principals VALUES (?,?,?)", (tenant, actor, "ACTIVE")
-        )
+        db.execute("INSERT INTO principals VALUES (?,?,?)", (tenant, actor, "ACTIVE"))
     db.execute(
         "INSERT INTO knowledge_items VALUES (?,?,?,?)",
         (tenant, ids["knowledge"], "synthetic-manual", f"{tenant}-document.md"),
@@ -66,8 +64,7 @@ def _seed(db: sqlite3.Connection, tenant: str = "tenant-a") -> dict[str, str]:
     )
     db.execute(
         "INSERT INTO content_versions VALUES (?,?,?,?,?,?,?,?)",
-        (tenant, ids["knowledge"], "a" * 64, "normalizer-v1", ids["capture"],
-         "Demo", "abc", _NOW),
+        (tenant, ids["knowledge"], "a" * 64, "normalizer-v1", ids["capture"], "Demo", "abc", _NOW),
     )
     db.execute(
         "INSERT INTO access_policy_versions VALUES (?,?,?,?,?,?)",
@@ -79,13 +76,23 @@ def _seed(db: sqlite3.Connection, tenant: str = "tenant-a") -> dict[str, str]:
     )
     db.execute(
         "INSERT INTO knowledge_chunks VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-        (tenant, ids["chunk"], ids["knowledge"], "a" * 64,
-         "normalizer-v1", "chunker-v1", 0, 0, 3, "abc", "c" * 64),
+        (
+            tenant,
+            ids["chunk"],
+            ids["knowledge"],
+            "a" * 64,
+            "normalizer-v1",
+            "chunker-v1",
+            0,
+            0,
+            3,
+            "abc",
+            "c" * 64,
+        ),
     )
     db.execute(
         "INSERT INTO resolve_runs VALUES (?,?,?,?,?,?,?,?)",
-        (tenant, ids["run"], "author", "3" * 64, "ANSWERED",
-         f"trace-{tenant}", _NOW, _NOW),
+        (tenant, ids["run"], "author", "3" * 64, "ANSWERED", f"trace-{tenant}", _NOW, _NOW),
     )
     db.execute(
         "INSERT INTO evidence_sets VALUES (?,?,?,?,?)",
@@ -101,8 +108,17 @@ def _seed(db: sqlite3.Connection, tenant: str = "tenant-a") -> dict[str, str]:
     )
     db.execute(
         "INSERT INTO article_revisions VALUES (?,?,?,?,?,?,?,?,?)",
-        (tenant, ids["article"], 1, '{"title":"Synthetic article"}',
-         "d" * 64, "DRAFT", "author", ids["set"], _NOW),
+        (
+            tenant,
+            ids["article"],
+            1,
+            '{"title":"Synthetic article"}',
+            "d" * 64,
+            "DRAFT",
+            "author",
+            ids["set"],
+            _NOW,
+        ),
     )
     db.execute(
         "INSERT INTO article_citations VALUES (?,?,?,?,?,?,?)",
@@ -133,8 +149,16 @@ def _approve(db: sqlite3.Connection, ids: dict[str, str]) -> None:
 def _publish(db: sqlite3.Connection, ids: dict[str, str]) -> None:
     db.execute(
         "INSERT INTO publications VALUES (?,?,?,?,?,?,?,?)",
-        (ids["tenant"], ids["publication"], ids["article"], 1,
-         "PUBLISHED", "publisher", _NOW, None),
+        (
+            ids["tenant"],
+            ids["publication"],
+            ids["article"],
+            1,
+            "PUBLISHED",
+            "publisher",
+            _NOW,
+            None,
+        ),
     )
 
 
@@ -144,14 +168,15 @@ def test_reference_schema_compiles_and_enables_foreign_keys(
     assert db.execute("PRAGMA foreign_keys").fetchone() == (1,)
     violations = db.execute("PRAGMA foreign_key_check").fetchall()
     assert violations == []
-    names = {
-        row[0]
-        for row in db.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        )
-    }
-    assert {"knowledge_heads", "knowledge_chunks", "article_revisions",
-            "review_events", "publication_events", "evidence_members"} <= names
+    names = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert {
+        "knowledge_heads",
+        "knowledge_chunks",
+        "article_revisions",
+        "review_events",
+        "publication_events",
+        "evidence_members",
+    } <= names
 
 
 def test_tenant_and_evidence_fingerprint_integrity(db: sqlite3.Connection) -> None:
@@ -165,8 +190,7 @@ def test_tenant_and_evidence_fingerprint_integrity(db: sqlite3.Connection) -> No
     with pytest.raises(sqlite3.IntegrityError):
         db.execute(
             "INSERT INTO article_citations VALUES (?,?,?,?,?,?,?)",
-            ("tenant-a", ids_a["article"], 1, "content.steps[1]", 1,
-             ids_a["chunk"], "f" * 64),
+            ("tenant-a", ids_a["article"], 1, "content.steps[1]", 1, ids_a["chunk"], "f" * 64),
         )
 
 
@@ -193,9 +217,7 @@ def test_review_is_ordered_auditable_and_separates_author_reviewer(
     with pytest.raises(sqlite3.IntegrityError, match="invalid review transition"):
         _event(db, ids, 3, "REQUEST_CHANGES", "reviewer", "Too late")
     with pytest.raises(sqlite3.IntegrityError, match="immutable"):
-        db.execute(
-            "UPDATE review_events SET note='changed' WHERE event_seq=2"
-        )
+        db.execute("UPDATE review_events SET note='changed' WHERE event_seq=2")
     with pytest.raises(sqlite3.IntegrityError, match="immutable"):
         db.execute(
             "UPDATE article_revisions SET article_json='{}' WHERE article_id=?",
@@ -228,9 +250,7 @@ def test_publication_requires_approval_and_current_evidence(
         _publish(db, ids)
     _approve(db, ids)
     _publish(db, ids)
-    assert db.execute(
-        "SELECT COUNT(*) FROM currently_eligible_publications"
-    ).fetchone() == (1,)
+    assert db.execute("SELECT COUNT(*) FROM currently_eligible_publications").fetchone() == (1,)
     assert db.execute(
         "SELECT event_type FROM publication_events WHERE publication_id=?",
         (ids["publication"],),
@@ -238,8 +258,16 @@ def test_publication_requires_approval_and_current_evidence(
     with pytest.raises(sqlite3.IntegrityError):
         db.execute(
             "INSERT INTO publications VALUES (?,?,?,?,?,?,?,?)",
-            (ids["tenant"], "duplicate-publication", ids["article"], 1,
-             "PUBLISHED", "publisher", _NOW, None),
+            (
+                ids["tenant"],
+                "duplicate-publication",
+                ids["article"],
+                1,
+                "PUBLISHED",
+                "publisher",
+                _NOW,
+                None,
+            ),
         )
     db.execute(
         "INSERT INTO publication_events VALUES (?,?,?,?,?,?)",
@@ -249,9 +277,7 @@ def test_publication_requires_approval_and_current_evidence(
         "SELECT state FROM publications WHERE publication_id=?",
         (ids["publication"],),
     ).fetchone() == ("REVOKED",)
-    assert db.execute(
-        "SELECT COUNT(*) FROM currently_eligible_publications"
-    ).fetchone() == (0,)
+    assert db.execute("SELECT COUNT(*) FROM currently_eligible_publications").fetchone() == (0,)
 
 
 @pytest.mark.parametrize("source_change", ["deleted", "unresolved", "new_version"])
@@ -279,8 +305,16 @@ def test_publication_fails_closed_after_source_change(
     else:
         db.execute(
             "INSERT INTO content_versions VALUES (?,?,?,?,?,?,?,?)",
-            (ids["tenant"], ids["knowledge"], "f" * 64, "normalizer-v1",
-             ids["capture"], "New version", "different", _NOW),
+            (
+                ids["tenant"],
+                ids["knowledge"],
+                "f" * 64,
+                "normalizer-v1",
+                ids["capture"],
+                "New version",
+                "different",
+                _NOW,
+            ),
         )
         db.execute(
             "UPDATE knowledge_heads SET current_content_fingerprint=? WHERE knowledge_id=?",
@@ -288,19 +322,25 @@ def test_publication_fails_closed_after_source_change(
         )
 
     # Previously published row remains in the audit trail but stops being eligible.
-    assert db.execute(
-        "SELECT COUNT(*) FROM publications WHERE state='PUBLISHED'"
-    ).fetchone() == (1,)
-    assert db.execute(
-        "SELECT COUNT(*) FROM currently_eligible_publications"
-    ).fetchone() == (0,)
+    assert db.execute("SELECT COUNT(*) FROM publications WHERE state='PUBLISHED'").fetchone() == (
+        1,
+    )
+    assert db.execute("SELECT COUNT(*) FROM currently_eligible_publications").fetchone() == (0,)
 
     # New publication attempts on the stale revision fail.
     with pytest.raises(sqlite3.IntegrityError, match="stale or ineligible"):
         db.execute(
             "INSERT INTO publications VALUES (?,?,?,?,?,?,?,?)",
-            (ids["tenant"], "publication-later", ids["article"], 1,
-             "PUBLISHED", "publisher", _NOW, None),
+            (
+                ids["tenant"],
+                "publication-later",
+                ids["article"],
+                1,
+                "PUBLISHED",
+                "publisher",
+                _NOW,
+                None,
+            ),
         )
 
 
