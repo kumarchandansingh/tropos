@@ -293,13 +293,38 @@ CREATE INDEX idx_publications_article ON publications(tenant_id, article_id, pub
 
 -- Immutable snapshots and event records: SQL-level protection against accidental edits.
 CREATE TRIGGER article_revision_payload_immutable
-BEFORE UPDATE OF article_json, article_sha256, submitted_by, created_at
+BEFORE UPDATE OF article_json, article_sha256, submitted_by, source_evidence_set_id, created_at
 ON article_revisions
 BEGIN SELECT RAISE(ABORT, 'article revision payload is immutable'); END;
 
 CREATE TRIGGER article_revision_no_delete
 BEFORE DELETE ON article_revisions
 BEGIN SELECT RAISE(ABORT, 'article revision is immutable'); END;
+
+CREATE TRIGGER article_citation_insert_before_submission
+BEFORE INSERT ON article_citations
+WHEN NOT EXISTS (
+    SELECT 1 FROM article_revisions r
+    WHERE r.tenant_id = NEW.tenant_id AND r.article_id = NEW.article_id
+      AND r.revision_no = NEW.revision_no AND r.status = 'DRAFT'
+)
+BEGIN SELECT RAISE(ABORT, 'citations are frozen after submission'); END;
+
+CREATE TRIGGER article_citation_no_update
+BEFORE UPDATE ON article_citations
+BEGIN SELECT RAISE(ABORT, 'citations are immutable'); END;
+
+CREATE TRIGGER article_citation_no_delete
+BEFORE DELETE ON article_citations
+BEGIN SELECT RAISE(ABORT, 'citations are immutable'); END;
+
+CREATE TRIGGER evidence_member_no_update
+BEFORE UPDATE ON evidence_members
+BEGIN SELECT RAISE(ABORT, 'evidence set is immutable'); END;
+
+CREATE TRIGGER evidence_member_no_delete
+BEFORE DELETE ON evidence_members
+BEGIN SELECT RAISE(ABORT, 'evidence set is immutable'); END;
 
 CREATE TRIGGER review_event_no_update
 BEFORE UPDATE ON review_events
@@ -396,16 +421,18 @@ BEGIN
     ) THEN RAISE(ABORT, 'publication requires evidence citations') END;
     SELECT CASE WHEN EXISTS (
         SELECT 1 FROM article_citations c
-        JOIN knowledge_chunks k
+        LEFT JOIN knowledge_chunks k
           ON k.tenant_id = c.tenant_id AND k.chunk_id = c.chunk_id
-        JOIN knowledge_heads h
+        LEFT JOIN knowledge_heads h
           ON h.tenant_id = k.tenant_id AND h.knowledge_id = k.knowledge_id
-        JOIN access_policy_versions p
+        LEFT JOIN access_policy_versions p
           ON p.tenant_id = h.tenant_id AND p.knowledge_id = h.knowledge_id
          AND p.policy_version = h.current_policy_version
         WHERE c.tenant_id = NEW.tenant_id AND c.article_id = NEW.article_id
           AND c.revision_no = NEW.revision_no
-          AND (h.lifecycle_status != 'ACTIVE'
+          AND (h.knowledge_id IS NULL
+               OR p.policy_version IS NULL
+               OR h.lifecycle_status != 'ACTIVE'
                OR p.scope = 'unresolved'
                OR k.content_fingerprint != h.current_content_fingerprint
                OR k.normalization_strategy_version !=
@@ -460,3 +487,29 @@ BEGIN
     SET state = 'REVOKED', revoked_at = NEW.created_at
     WHERE tenant_id = NEW.tenant_id AND publication_id = NEW.publication_id;
 END;
+
+
+-- Read-side freshness projection. Consumers must STILL enforce caller-specific
+-- tenant/group authorization against every cited source before displaying text.
+-- A subsequent source deletion or governance change must hide stale publications
+-- without relying solely on background invalidation jobs.
+CREATE VIEW currently_eligible_publications AS
+SELECT p.* FROM publications p
+WHERE p.state = 'PUBLISHED'
+AND NOT EXISTS (
+    SELECT 1 FROM article_citations c
+    LEFT JOIN knowledge_chunks k
+      ON k.tenant_id = c.tenant_id AND k.chunk_id = c.chunk_id
+    LEFT JOIN knowledge_heads h
+      ON h.tenant_id = k.tenant_id AND h.knowledge_id = k.knowledge_id
+    LEFT JOIN access_policy_versions policy
+      ON policy.tenant_id = h.tenant_id AND policy.knowledge_id = h.knowledge_id
+     AND policy.policy_version = h.current_policy_version
+    WHERE c.tenant_id = p.tenant_id AND c.article_id = p.article_id
+      AND c.revision_no = p.revision_no
+      AND (h.knowledge_id IS NULL OR policy.policy_version IS NULL
+           OR h.lifecycle_status != 'ACTIVE' OR policy.scope = 'unresolved'
+           OR h.current_content_fingerprint != k.content_fingerprint
+           OR h.current_normalization_strategy_version !=
+              k.normalization_strategy_version)
+);
