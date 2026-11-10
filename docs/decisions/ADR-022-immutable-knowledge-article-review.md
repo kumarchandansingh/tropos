@@ -10,6 +10,13 @@ preventing its content from changing between review and downstream use.
 Implementing a web approval button without those invariants would produce a
 misleading workflow and invite later rework.
 
+## Decision drivers and constraints
+
+- Approved content must not be silently replaced.
+- Review status changes must be atomic and recoverable after process restart.
+- Scope must remain locally testable without identity infrastructure or an LLM.
+- Never equate approval with publication.
+
 ## Decision
 
 - Save the full canonical JSON of each submitted `KnowledgeArticleDraft`,
@@ -25,7 +32,7 @@ misleading workflow and invite later rework.
 - Keep the existing generated `KnowledgeArticleDraft` contract unchanged and
   avoid introducing LangGraph or an LLM into deterministic review decisions.
 
-## Alternatives
+## Options considered
 
 1. **Add a UI action only.** Rejected: no protected identity of reviewed content
    and no durable decision trail.
@@ -45,7 +52,13 @@ publication, push notifications or a browser review interface. The SQLite
 record and its hash are integrity checks, not signatures or an adversarial
 tamper-proof ledger: an actor with database write access could alter both.
 
-## Revisit trigger
+## Evidence
+
+- `apps/api/src/tropos/core/domain/article_review.py` canonical article snapshot and status contracts.
+- `apps/api/src/tropos/core/adapters/persistence/sqlite_article_review.py` SQLite transactional store.
+- `apps/api/tests/unit/core/adapters/persistence/test_sqlite_article_review.py` synthetic, deterministic regression tests.
+
+## Revisit when
 
 Introduce verified identities, tenant-aware access controls and a revision
 aggregate before exposing this to remote users. Evaluate a workflow engine
