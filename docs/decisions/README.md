@@ -27,6 +27,7 @@ Architecture Decision Records (ADRs) preserve the context, alternatives, and con
 | [ADR-019](ADR-019-unified-retrieval-evaluation-runtime.md) | Accepted | Converge retrieval evaluation on the generic EvalRun runtime |
 | [ADR-020](ADR-020-calibrated-retrieval-abstention.md) | Accepted | Calibrate retrieval abstention outside the retrieval strategy |
 | [ADR-021](ADR-021-human-approved-evidence-sufficiency-goldens.md) | Accepted | Require human approval before evidence-sufficiency candidates become goldens |
+| [ADR-022](ADR-022-immutable-knowledge-article-review.md) | Accepted for local foundation | Bind human review to an immutable draft and atomic decision history; authenticated API deferred |
 
 ## Scope
 
