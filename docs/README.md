@@ -15,6 +15,7 @@ The [public documentation standard](standards/PUBLIC_DOCUMENTATION_STANDARD.md) 
 | What does Training do? | [Training](product/TRAINING.md) |
 | What has already been built? | [Build history](product/BUILD_HISTORY.md) |
 | What is the current technical architecture? | [Architecture overview](architecture/ARCHITECTURE_OVERVIEW.md) |
+| What is the proposed end-to-end data model (not yet deployed)? | [Target data model](architecture/TROPOS_END_TO_END_DATA_MODEL.md) |
 | Why were durable design choices made? | [Architecture decisions](decisions/README.md) |
 | How do product quality and the evaluation runtime fit together? | [Evaluation product model](architecture/EVALUATION_MODEL.md) |
 | How is quality evaluated? | [Evaluation strategy](quality/EVAL_STRATEGY.md) |
@@ -57,6 +58,7 @@ Architecture documents describe the system as it exists now. They do not present
 - [Connector reliability](architecture/CONNECTOR_RELIABILITY.md)
 - [Ingestion and normalization](architecture/INGESTION_NORMALIZATION.md)
 - [Knowledge model](architecture/KNOWLEDGE_MODEL.md)
+- [End-to-end target data model and executable reference schema](architecture/TROPOS_END_TO_END_DATA_MODEL.md) — **design/reference only; not current implementation**
 - [RAG architecture](architecture/RAG_ARCHITECTURE.md)
 - [Knowledge Article architecture](architecture/KNOWLEDGE_ARTICLE.md)
 - [Evaluation product model](architecture/EVALUATION_MODEL.md)
