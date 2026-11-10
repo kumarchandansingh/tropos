@@ -163,11 +163,14 @@ class SQLiteArticleReviewStore:
         clean_note = note.strip() or None
         with self._connect() as connection:
             row = connection.execute(
-                "SELECT version, status, submitted_by FROM article_reviews WHERE article_id = ?",
+                "SELECT version, status, submitted_by, article_json, article_sha256 "
+                "FROM article_reviews WHERE article_id = ?",
                 (article_id,),
             ).fetchone()
             if row is None:
                 raise KeyError(f"Unknown article ID: {article_id}")
+            if article_sha256(str(row["article_json"])) != row["article_sha256"]:
+                raise ValueError("Stored Knowledge Article payload failed integrity verification")
             if row["submitted_by"] == reviewer_id:
                 raise PermissionError("Submitter cannot review their own draft")
             if (
