@@ -105,7 +105,7 @@ Tropos can compare baseline and candidate configurations case-by-case with expli
 |---|---|---|---:|---|
 | PLAT-101 | P1 | Add Postgres repository adapters while retaining SQLite for local/test | 8 | repository ports |
 | PLAT-102 | P1 | Provision Supabase staging and run shared repository contract tests | 5 | PLAT-101 |
-| GOV-101 | P1 | Add Knowledge Article draft → review → approved/published lifecycle | 8 | RES-103 |
+| GOV-101 | P1 | Add Knowledge Article draft → review → approved/published lifecycle | 8 | RES-103; **GOV-101A local review state, immutable snapshots, SQLite decision history implemented; authenticated UI, revision loop, publication outstanding** |
 | GOV-102 | P1 | Capture generation provenance separately from content evidence | 5 | RES-103, QE-101 |
 | QE-107 | P1 | Define release gates and CI/nightly/release eval cadence | 5 | QE-103, QE-106 |
 
