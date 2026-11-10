@@ -20,9 +20,11 @@ KnowledgeArticleDraft
         ├── HowToArticle
         └── FAQArticle
         ↓
-future review / approval
+local immutable review submission (GOV-101A)
         ↓
-approved operational knowledge
+human approval / changes requested, with audit events
+        ↓
+future publication of approved operational knowledge
         ├── Resolve / NBA
         └── Training transformation
 ```
@@ -191,6 +193,32 @@ This proves citation identity and provenance, not semantic entailment. Whether a
 
 See [ADR-013](../decisions/ADR-013-fixed-grounded-knowledge-article-contracts.md), [ADR-016](../decisions/ADR-016-stable-evidence-references-with-model-local-aliases.md), and [ADR-017](../decisions/ADR-017-bounded-business-generation-controls.md).
 
+## Review lifecycle: GOV-101A local foundation
+
+A typed `KnowledgeArticleDraft` can now be submitted to
+`SQLiteArticleReviewStore` with a stable article ID and a caller-provided
+submitter ID. Canonical JSON preserves the complete structured draft and
+`EvidenceRef` values. Its SHA-256 digest binds a human decision to the
+submitted draft revision; a duplicate article ID cannot silently overwrite it.
+
+A distinct reviewer may approve or request changes. Requesting changes requires
+a nonblank reason. The revision is terminal after either decision; retrying a
+stale version or deciding twice is rejected. Each successful transition is
+written with the snapshot in one SQLite transaction and recorded in an
+append-only audit-events table. The original draft remains retrievable so a
+future review UI can show the exact evidence-backed content being reviewed.
+
+This is **a local persistence and decision-contract slice**, not an end-to-end
+review product. The reviewer and submitter IDs are caller-asserted, so it has
+no production identity verification, authorization or role separation.
+A future authenticated API must derive actors from verified principals and
+apply tenant-scoped access controls before exposing drafts and audit history.
+Publishing, revision resubmission, reviewer queue UI and notification delivery
+remain separate future builds. `APPROVED` does **not** imply `PUBLISHED`.
+
+Regression tests cover durable re-open, version conflicts, duplicate submissions,
+self-approval denial, mandatory rejection rationale and payload integrity.
+
 ## Deliberate exclusions
 
 The current slices do not yet define:
@@ -198,7 +226,7 @@ The current slices do not yet define:
 - semantic grounding evaluation for Knowledge Articles;
 - article rendering or visual layout;
 - persistence;
-- draft/review/approval lifecycle;
+- authenticated review API, resubmission/revision cycle or reviewer UI;
 - publication;
 - case classification or Next Best Action.
 
