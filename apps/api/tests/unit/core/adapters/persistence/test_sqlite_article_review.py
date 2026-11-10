@@ -1,5 +1,6 @@
 """Durable, deterministic Knowledge Article review tests (no LLM or network)."""
 
+import sqlite3
 from dataclasses import replace
 from pathlib import Path
 
@@ -57,14 +58,14 @@ def test_submit_persists_exact_draft_and_history_across_reopen(tmp_path: Path) -
     assert submitted.status is ArticleReviewStatus.IN_REVIEW
     assert submitted.version == 1
     assert submitted.article_sha256 == article_sha256(canonical_article_json(draft))
-    assert store.article_payload("article-a") == {
-        "title": draft.title,
-        "article_type": "how_to",
-        "product": "Example Service",
-        "module": None,
-        "tags": [],
-        "content": store.article_payload("article-a")["content"],
-    }
+    payload = store.article_payload("article-a")
+    assert payload is not None
+    assert payload["title"] == draft.title
+    assert payload["article_type"] == "how_to"
+    assert payload["product"] == "Example Service"
+    content = payload["content"]
+    assert isinstance(content, dict)
+    assert len(content["steps"]) == 1
 
     reopened = SQLiteArticleReviewStore(path)
     assert reopened.get("article-a") == submitted
@@ -147,7 +148,9 @@ def test_submitter_cannot_approve_their_own_draft(tmp_path: Path) -> None:
             decision=ArticleReviewDecision.APPROVE,
             expected_version=1,
         )
-    assert store.get("article-a").status is ArticleReviewStatus.IN_REVIEW  # type: ignore[union-attr]
+    unchanged = store.get("article-a")
+    assert unchanged is not None
+    assert unchanged.status is ArticleReviewStatus.IN_REVIEW
 
 
 def test_duplicate_submission_cannot_silently_replace_approved_evidence(tmp_path: Path) -> None:
@@ -160,15 +163,15 @@ def test_duplicate_submission_cannot_silently_replace_approved_evidence(tmp_path
         store.submit(article_id="article-a", draft=changed, submitted_by="author-a")
 
     assert store.get("article-a") == original
-    assert store.article_payload("article-a")["title"] == draft.title  # type: ignore[index]
+    payload = store.article_payload("article-a")
+    assert payload is not None
+    assert payload["title"] == draft.title
     assert article_sha256(canonical_article_json(draft)) != article_sha256(
         canonical_article_json(changed)
     )
 
 
 def test_fails_closed_if_stored_draft_was_modified(tmp_path: Path) -> None:
-    import sqlite3
-
     path = tmp_path / "reviews.db"
     store = SQLiteArticleReviewStore(path)
     store.submit(article_id="article-a", draft=_article(), submitted_by="author-a")
