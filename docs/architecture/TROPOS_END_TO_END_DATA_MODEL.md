@@ -1,7 +1,7 @@
 # Tropos end-to-end data model — conceptual, logical and physical V1
 
 **Status:** Target/reference design; not a deployed database migration.
-**Checked against:** `main` at `cdb9df42` (2026-10-25) and draft [GOV-101A PR #117](https://github.com/kumarchandansingh/tropos/pull/117) (2026-11-10).
+**Checked against:** `main` at `cdb9df42` (2026-10-25) and [GOV-101A PR #117](https://github.com/kumarchandansingh/tropos/pull/117), reconciled and ready for review (2026-11-11).
 **Target scope:** source intake → canonicalization → retrieval/evidence → generated Knowledge Article → revision/review → governed publication → audit/evaluation.
 **Runnable contract:** [target_schema.sql](data-model/target_schema.sql), exercised by `apps/api/tests/unit/core/test_target_data_model_contract.py`.
 
@@ -43,7 +43,7 @@ This is a *modeling deliverable*, not a claim that every component already runs.
 | `knowledge_embeddings` | `core/adapters/embeddings/sqlite.py` | Implemented | Keyed by `(chunk_id, embedding_strategy_version)`; derived vector data |
 | `EvidenceSet`, `EvidenceItem`, `ResolveResult` | `capabilities/resolve/domain` | Typed runtime objects | No canonical durable relational evidence-set store |
 | `KnowledgeArticleDraft` | `core/domain/knowledge_article.py` | Typed generation artifact | No merged persistent revision/publication model |
-| `article_reviews`, `article_review_events` | Draft PR #117 | **Proposed in unmerged PR**, not main | Local immutable draft snapshot and one terminal human decision; no tenant/revision/publish contract yet |
+| `knowledge_articles`, `article_revisions`, `article_citations`, `review_events` | Ready-for-review PR #117 | **Implemented on unmerged PR branch**, not main | Local tenant-keyed revisions, immutable citation index and append-only review events; verified identities, source FKs and publication are still missing |
 | `eval_datasets`, `eval_cases`, `eval_runs`, `eval_executions`, `eval_hits`, `eval_assertions`, `eval_metrics` | `evals/run_store.py` | Implemented evaluation store | Keep separate from business database |
 | `experiment_runs`, `experiment_observations`, `experiment_scores` | `evals/experiment_store.py` | Implemented experiment store | Keep separate; version/dataset linkage is logical |
 | `RuntimeTrace` / JSONL / OTel spans | Resolve runtime + observability adapters | Implemented local/runtime | Operational events; OTel export opt-in, not a business entity |
@@ -52,9 +52,9 @@ The existing `KnowledgeDocument`, `KnowledgeChunk`, `EvidenceRef` and article ty
 
 ### Material gaps uncovered
 
-- The review PR currently uses one `article_id` for one terminal review; to support revisions and resubmission, split logical article identity from immutable revision identity.
-- The review PR currently has caller-asserted actor names; a hosted product requires tenant-aware verified principals, role checks and separation of duties.
-- Its SHA-256 identifies the submitted JSON, but there is not yet a relational citation/provenance index or source-currentness check before publish/serve.
+- **Resolved in PR #117:** logical `article_id` and immutable `revision_no` now have separate identities and resubmission is implemented behind expected-revision checks. No hosted migration or auth boundary is implied.
+- **Still open:** PR #117 accepts caller-asserted tenant/reviewer IDs; a hosted product requires tenant-aware verified principals, role checks and authenticated separation of duties.
+- **Partly resolved:** PR #117 indexes claim-path-to-chunk citations and verifies its immutable JSON snapshot; source-currentness/authorization checks before publish/serve are still pending.
 - Existing canonical tables denormalize access into version/chunk rows; target policy history and current policy pointer must preserve governance changes without manufacturing content versions.
 - Actual evaluation baselines, online metrics and incident labels should never be mistaken for canonical product knowledge.
 
@@ -325,14 +325,14 @@ The contract test executes the reference SQL against an in-memory SQLite databas
 | Stage | Deliverable | Exit criterion | Status |
 | --- | --- | --- | --- |
 | M0 | Current-state mapping, business requirements, ERD, relational target, data dictionary, SQL reference and invariant tests | Schema compiles; design controls are explicit | **This modeling PR** |
-| M1 | Reconcile GOV-101A with logical `article_id` + `revision_no`; preserve hashes/events and create migrations | Existing approved snapshots safely backfilled; no silent overwrites | Not implemented |
+| M1 | Reconcile GOV-101A article/revision/citation/event identities and define verified legacy migrations | Keys and resubmission implemented in PR #117; existing legacy approved snapshots must be safely backfilled before hosted cutover | **Local identities implemented in unmerged PR #117; migration not implemented** |
 | M2 | Tenant and verified-principal identity; authorization and ACL joins | Cross-tenant and role-negative tests, no caller-asserted actor | Not implemented |
 | M3 | Citation extraction/index, evidence-set persistence and revision resubmission | Immutable revision-level evidence walk and replay | Not implemented |
 | M4 | Reviewer queue/API and UI; approve/reject version checks | End-to-end review E2E tests and audit playback | Not implemented |
 | M5 | Publication and read-time revalidation | Withdrawal on stale/denied sources, no disclosure | Not implemented |
 | M6 | Operational/eval joins, retention and production migration rehearsal | Contract comparison, migration rollback, QA and observability | Not implemented |
 
-**Backfill design:** build shadow tables, map existing `knowledge_state` → current head and `knowledge_versions` → content history without renumbering existing `chunk_id` values; copy and verify exact bytes/hashes/counts; capture existing access as policy version 1; compute tenant-scoped joins from trusted existing access policy; keep old tables readable during a dual-read verification window. PR #117's `article_reviews` records, if any, need explicit tenant assignment from a verified operator context, become article revision 1 and have their original immutable JSON/hash validated. Never infer tenant from an untrusted article ID. Gate cutover on reconciliation and rollback rehearsal; do not run the reference SQL against live `.tropos`.
+**Backfill design:** build shadow tables, map existing `knowledge_state` → current head and `knowledge_versions` → content history without renumbering existing `chunk_id` values; copy and verify exact bytes/hashes/counts; capture existing access as policy version 1; compute tenant-scoped joins from trusted existing access policy; keep old tables readable during a dual-read verification window. PR #117 now refuses to open old unscoped `article_reviews` tables; any legacy records need explicit tenant assignment from a verified operator context before conversion to revision 1 with their original immutable JSON/hash validated. Never infer tenant from an untrusted article ID. Gate cutover on reconciliation and rollback rehearsal; do not run the reference SQL against live `.tropos`.
 
 ## 12. Decision summary for implementation
 
@@ -359,4 +359,4 @@ The contract test executes the reference SQL against an in-memory SQLite databas
 - `apps/api/src/tropos/core/adapters/embeddings/sqlite.py`, `apps/api/src/tropos/core/adapters/retrieval/sqlite_fts.py` — derived representations
 - `apps/api/src/tropos/core/domain/knowledge_article.py`, `apps/api/src/tropos/capabilities/resolve/domain/evidence_sufficiency.py` — typed content and evidence runtime
 - `apps/api/src/tropos/evals/run_store.py`, `apps/api/src/tropos/evals/experiment_store.py` — versioned quality stores
-- Draft [GOV-101A PR #117](https://github.com/kumarchandansingh/tropos/pull/117) — local review persistence, *not merged* at time of modeling
+- [GOV-101A PR #117](https://github.com/kumarchandansingh/tropos/pull/117) — reconciled local tenant/revision/citation/event implementation, *not yet merged into main*
