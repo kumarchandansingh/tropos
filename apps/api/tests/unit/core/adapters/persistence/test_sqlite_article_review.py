@@ -290,7 +290,10 @@ def test_sql_rejects_direct_mutation_of_revisions_citations_and_events(tmp_path:
         with pytest.raises(sqlite3.IntegrityError, match="immutable"):
             db.execute("DELETE FROM article_citations WHERE article_id = ?", (_ARTICLE,))
         with pytest.raises(sqlite3.IntegrityError, match="immutable"):
-            db.execute("UPDATE review_events SET note = 'altered' WHERE article_id = ?", (_ARTICLE,))
+            db.execute(
+                "UPDATE review_events SET note = 'altered' WHERE article_id = ?",
+                (_ARTICLE,),
+            )
         with pytest.raises(sqlite3.IntegrityError, match="status requires review event"):
             db.execute(
                 "UPDATE article_revisions SET status = 'APPROVED' WHERE article_id = ?",
