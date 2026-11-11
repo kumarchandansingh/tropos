@@ -20,9 +20,11 @@ KnowledgeArticleDraft
         ├── HowToArticle
         └── FAQArticle
         ↓
-future review / approval
+local immutable review submission (GOV-101A)
         ↓
-approved operational knowledge
+human approval / changes requested, with audit events
+        ↓
+future publication of approved operational knowledge
         ├── Resolve / NBA
         └── Training transformation
 ```
@@ -191,14 +193,56 @@ This proves citation identity and provenance, not semantic entailment. Whether a
 
 See [ADR-013](../decisions/ADR-013-fixed-grounded-knowledge-article-contracts.md), [ADR-016](../decisions/ADR-016-stable-evidence-references-with-model-local-aliases.md), and [ADR-017](../decisions/ADR-017-bounded-business-generation-controls.md).
 
+## Review lifecycle: GOV-101A revisioned local foundation
+
+This implementation is aligned to the entity/key strategy proposed in
+[DATA-101 (PR #118)](https://github.com/kumarchandansingh/tropos/pull/118):
+`knowledge_articles` identifies an article within a tenant;
+`article_revisions` stores its immutable numbered snapshots; `article_citations`
+indexes every evidence reference by claim path; and `review_events` stores
+ordered submission/approval/change-request decisions.
+
+Submitting an initial `KnowledgeArticleDraft` requires `tenant_id`,
+`article_id`, `submitted_by`, and `expected_previous_revision=0`.
+A new version requires the exact previous revision number and its review to
+have reached `APPROVED` or `CHANGES_REQUESTED`. Each revision preserves
+its canonical JSON and SHA-256, and its citations are frozen on submission.
+Approval of revision 1 never approves revision 2. Reviews use
+`expected_event_seq`, independent of `revision_no`, to reject stale decisions
+and duplicate reviews. SQLite transactions serialize new revisions and decisions;
+database triggers enforce event order, separation of duties and immutability.
+
+Local reads are scoped by `(tenant_id,article_id,revision_no)`; the original
+revision and all review events remain available after later submissions.
+Payload/citation consistency is checked on read and before approval.
+
+**This is not a production authorization boundary.** Tenant IDs, submitter IDs
+and reviewer IDs are caller-asserted. It has no verified principals, role
+assignment or authenticated tenant membership, and its citation index is not
+yet foreign-keyed to a source chunk table. The `source_evidence_set_id` is a
+nullable lineage field until governed evidence-set persistence exists.
+A previously created unscoped `article_reviews` table is rejected explicitly:
+assigning a tenant to historical approvals requires a deliberate migration,
+not an invented or silent mapping.
+
+This slice covers local approval and resubmission contracts, not a browser
+review queue or publication. `APPROVED` is not `PUBLISHED`.
+Before a hosted API ships, introduce verified tenant/principal and citation
+authorization, plus publication/read-time source freshness validation.
+The DATA-101 greenfield schema is a reference design, **not an in-place migration**.
+
+Regression tests cover multi-revision resubmission, tenant-key isolation,
+duplicate/stale attempts, self-review, mandatory rejection notes, full
+payload/citation integrity and SQLite guardrails.
+
 ## Deliberate exclusions
 
 The current slices do not yet define:
 - live provider/model configuration or credentials;
 - semantic grounding evaluation for Knowledge Articles;
 - article rendering or visual layout;
-- persistence;
-- draft/review/approval lifecycle;
+- hosted article persistence and production access control;
+- authenticated review API and reviewer UI;
 - publication;
 - case classification or Next Best Action.
 

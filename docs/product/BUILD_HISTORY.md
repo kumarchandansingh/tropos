@@ -118,6 +118,16 @@ The evaluation foundation now has an automated PR regression gate, a realistic c
 
 This phase corrects a process gap identified during repository review: documentation impact had been visible in the pull-request template but was not enforced, allowing current-state and author-facing material to drift from the executable system.
 
+## Phase 10 — Knowledge Article human-review foundation
+
+| Build | Outcome | Key decision / trade-off | Evidence |
+| --- | --- | --- | --- |
+| GOV-101A | Tenant-scoped immutable article revisions, claim/citation index, resubmission after review, and append-only reviewer decisions | Align article_id/revision_no, citation keys and event sequences with DATA-101 (PR #118), while keeping local actors unverified and publishing deferred | `sqlite_article_review.py`, `test_sqlite_article_review.py`, ADR-022 |
+
+This is a bounded first increment. Only the review contract and local persistence
+are delivered; resubmission creates a new immutable revision, but no authenticated
+approval UI or article publication exists yet.
+
 ## Current architecture maturity
 
 ```mermaid
@@ -137,7 +147,7 @@ flowchart LR
     style Future fill:#f8f9f9
 ```
 
-Implemented does not mean production-complete. The platform still lacks a hosted API/UI, production persistence, full source sync, production observability, and human approval workflow.
+Implemented does not mean production-complete. The platform still lacks an authenticated review UI, publication workflow, production persistence, full source sync, and production observability. The GOV-101A review decision store is local and unauthenticated.
 
 ## Decision-evidence rule for future builds
 
