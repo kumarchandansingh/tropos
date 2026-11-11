@@ -111,9 +111,7 @@ def citations_from_payload(payload: dict[str, Any]) -> tuple[ArticleCitation, ..
                         or not fingerprint.strip()
                     ):
                         raise ValueError("Invalid article evidence reference identity")
-                    result.append(
-                        ArticleCitation(path, ordinal, chunk_id, fingerprint)
-                    )
+                    result.append(ArticleCitation(path, ordinal, chunk_id, fingerprint))
             for key, value in node.items():
                 if key != "evidence_refs":
                     collect(value, f"{path}.{key}" if path else key)
