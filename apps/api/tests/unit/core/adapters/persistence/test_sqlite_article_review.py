@@ -123,11 +123,14 @@ def test_submission_persists_immutable_revision_citations_and_history(tmp_path: 
         "content.expected_result",
     }
     assert all(c.chunk_id == "chunk-a" for c in citations)
-    assert all(c.chunk_content_fingerprint == sha256(b"Restart the service.").hexdigest()
-               for c in citations)
-    assert [event.event_type for event in reopened.events(
-        tenant_id=_TENANT, article_id=_ARTICLE, revision_no=1
-    )] == [ArticleReviewEventType.SUBMIT]
+    assert all(
+        c.chunk_content_fingerprint == sha256(b"Restart the service.").hexdigest()
+        for c in citations
+    )
+    assert [
+        event.event_type
+        for event in reopened.events(tenant_id=_TENANT, article_id=_ARTICLE, revision_no=1)
+    ] == [ArticleReviewEventType.SUBMIT]
 
 
 def test_decision_is_atomic_terminal_and_auditable(tmp_path: Path) -> None:
@@ -141,9 +144,9 @@ def test_decision_is_atomic_terminal_and_auditable(tmp_path: Path) -> None:
     assert approved.event_seq == 2
     assert approved.reviewer_id == "reviewer-b"
     assert approved.review_note == "Citations checked"
-    assert [e.event_type for e in store.events(
-        tenant_id=_TENANT, article_id=_ARTICLE, revision_no=1
-    )] == [ArticleReviewEventType.SUBMIT, ArticleReviewEventType.APPROVE]
+    assert [
+        e.event_type for e in store.events(tenant_id=_TENANT, article_id=_ARTICLE, revision_no=1)
+    ] == [ArticleReviewEventType.SUBMIT, ArticleReviewEventType.APPROVE]
 
     with pytest.raises(ConcurrentArticleReviewError):
         _decide(store, decision=ArticleReviewDecision.REQUEST_CHANGES, note="Too late")
@@ -183,14 +186,12 @@ def test_request_changes_then_new_revision_preserves_prior_review(
     assert new_revision.article_sha256 != rejected.article_sha256
     assert store.get(tenant_id=_TENANT, article_id=_ARTICLE, revision_no=1) == rejected
     assert store.get(tenant_id=_TENANT, article_id=_ARTICLE) == new_revision
-    original_payload = store.article_payload(
-        tenant_id=_TENANT, article_id=_ARTICLE, revision_no=1
-    )
+    original_payload = store.article_payload(tenant_id=_TENANT, article_id=_ARTICLE, revision_no=1)
     assert original_payload is not None
     assert original_payload["title"] == "Recover after certificate rotation"
-    assert [r.revision_no for r in store.list_revisions(
-        tenant_id=_TENANT, article_id=_ARTICLE
-    )] == [1, 2]
+    assert [
+        r.revision_no for r in store.list_revisions(tenant_id=_TENANT, article_id=_ARTICLE)
+    ] == [1, 2]
 
     with pytest.raises(ConcurrentArticleReviewError, match="under review"):
         store.submit(
@@ -238,9 +239,7 @@ def test_tenant_keys_are_isolated_even_with_same_article_id(tmp_path: Path) -> N
     assert store.get(tenant_id="tenant-c", article_id=_ARTICLE) is None
     assert store.article_payload(
         tenant_id="tenant-a", article_id=_ARTICLE, revision_no=1
-    ) != store.article_payload(
-        tenant_id="tenant-b", article_id=_ARTICLE, revision_no=1
-    )
+    ) != store.article_payload(tenant_id="tenant-b", article_id=_ARTICLE, revision_no=1)
     _decide(store, tenant_id="tenant-b")
     tenant_a = store.get(tenant_id="tenant-a", article_id=_ARTICLE)
     tenant_b = store.get(tenant_id="tenant-b", article_id=_ARTICLE)

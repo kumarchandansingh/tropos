@@ -387,8 +387,15 @@ class SQLiteArticleReviewStore:
                 VALUES (?, ?, ?, ?, ?, 'DRAFT', ?, ?, ?, ?)
                 """,
                 (
-                    tenant_id, article_id, revision_no, article_json, sha,
-                    submitted_by, source_evidence_set_id, now, now,
+                    tenant_id,
+                    article_id,
+                    revision_no,
+                    article_json,
+                    sha,
+                    submitted_by,
+                    source_evidence_set_id,
+                    now,
+                    now,
                 ),
             )
             db.executemany(
@@ -400,8 +407,13 @@ class SQLiteArticleReviewStore:
                 """,
                 [
                     (
-                        tenant_id, article_id, revision_no, item.claim_path, item.ordinal,
-                        item.chunk_id, item.chunk_content_fingerprint,
+                        tenant_id,
+                        article_id,
+                        revision_no,
+                        item.claim_path,
+                        item.ordinal,
+                        item.chunk_id,
+                        item.chunk_content_fingerprint,
                     )
                     for item in citations
                 ],
@@ -471,8 +483,14 @@ class SQLiteArticleReviewStore:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    tenant_id, article_id, revision_no, current_seq + 1,
-                    decision.value, reviewer_id, note.strip() or None, now,
+                    tenant_id,
+                    article_id,
+                    revision_no,
+                    current_seq + 1,
+                    decision.value,
+                    reviewer_id,
+                    note.strip() or None,
+                    now,
                 ),
             )
         result = self.get(tenant_id=tenant_id, article_id=article_id, revision_no=revision_no)
@@ -533,9 +551,7 @@ class SQLiteArticleReviewStore:
             for row in rows
         )
 
-    def list_revisions(
-        self, *, tenant_id: str, article_id: str
-    ) -> tuple[ArticleReviewRecord, ...]:
+    def list_revisions(self, *, tenant_id: str, article_id: str) -> tuple[ArticleReviewRecord, ...]:
         with self._connect() as db:
             rows = db.execute(
                 """
