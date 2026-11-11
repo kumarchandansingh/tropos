@@ -51,6 +51,14 @@ class SQLiteArticleReviewStore:
 
     def _initialize(self) -> None:
         with self._connect() as db:
+            legacy = db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'article_reviews'"
+            ).fetchone()
+            if legacy is not None:
+                raise RuntimeError(
+                    "Legacy article_reviews data requires explicit tenant and revision migration; "
+                    "refusing to reinterpret unscoped historical approvals"
+                )
             db.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS tenants (
