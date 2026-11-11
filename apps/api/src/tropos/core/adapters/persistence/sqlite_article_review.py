@@ -372,7 +372,10 @@ class SQLiteArticleReviewStore:
                 ).fetchone()
                 if parent is None:
                     raise ValueError("Article identity record is missing")
-                if parent["article_type"] != draft.article_type.value or parent["product"] != draft.product:
+                if (
+                    parent["article_type"] != draft.article_type.value
+                    or parent["product"] != draft.product
+                ):
                     raise ValueError("Article type and product must match its logical identity")
 
             revision_no = current + 1
