@@ -57,6 +57,10 @@ flowchart TB
     Hybrid --> RetEval
 ```
 
+## Target end-to-end data model (not implemented)
+
+The [end-to-end data model](TROPOS_END_TO_END_DATA_MODEL.md) documents a **proposed** tenant-aware relational model spanning source capture, canonical evidence, AI execution, article revisions, review, publication, and audit. It includes a runnable SQLite reference schema and executable invariant tests. This material must not be read as the current application database schema or as an approved migration plan. The live system remains described by the implementation matrix below and the existing ingestion/retrieval adapters.
+
 ## Dependency direction
 
 ```mermaid
