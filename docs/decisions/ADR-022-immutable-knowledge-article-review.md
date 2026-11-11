@@ -21,12 +21,16 @@ misleading workflow and invite later rework.
 
 - Save the full canonical JSON of each submitted `KnowledgeArticleDraft`,
   including every stable `EvidenceRef`, in a separate SQLite review store.
-- Bind the review to SHA-256 of that immutable JSON; never silently overwrite
-  an article ID. A future revision needs its own revision identity.
-- Maintain explicit `IN_REVIEW`, `APPROVED`, `CHANGES_REQUESTED` states.
+- Bind the review to SHA-256 of immutable JSON and identify a reviewed revision
+  by the compound key `(tenant_id, article_id, revision_no)`. Every content edit
+  creates a new numbered revision without overwriting prior approvals.
+- Maintain explicit `DRAFT` (transactional submission), `IN_REVIEW`,
+  `APPROVED`, `CHANGES_REQUESTED` states.
   Approval is **not** publication.
-- Make reviewer decisions atomic with append-only decision events and a
-  compare-and-swap version check.
+- Make reviewer decisions atomic with append-only decision events and an
+  expected last-event-sequence check on an exact revision.
+- Align logical IDs and event/claim citation tables with proposed DATA-101
+  (PR #118); preserve full `EvidenceRef` values within frozen article JSON.
 - Reject self-review at this local boundary, but treat caller-supplied actor IDs
   as unverified until an authenticated, tenant-aware API exists.
 - Keep the existing generated `KnowledgeArticleDraft` contract unchanged and
@@ -45,12 +49,26 @@ misleading workflow and invite later rework.
 
 ## Consequences and limitations
 
-The first slice supports one immutable submission and one terminal review
-decision per article ID. It does not offer authenticated reviewer identity,
-tenant scoping, permissioned review queues, resubmission of revised drafts,
-publication, push notifications or a browser review interface. The SQLite
-record and its hash are integrity checks, not signatures or an adversarial
-tamper-proof ledger: an actor with database write access could alter both.
+Each article can contain numbered immutable revisions. Review events and
+claim-indexed evidence references are scoped to the tenant, article and exact
+revision; after a terminal review, a caller may submit a *new* revision using
+the expected prior revision number. The earlier approval does not carry over.
+This resolves the identity conflict with DATA-101's target conceptual model.
+
+The tables implement a **local subset** of the proposed production model:
+`tenants`, `knowledge_articles`, `article_revisions`, `article_citations`
+and `review_events`. Full principal foreign keys, governed evidence-set/chunk
+references, user roles and publication tables are not implemented here.
+Caller-provided tenant and actor IDs are unverified. There is no hosted
+authorization, review UI, publication or notification workflow. The review
+hash detects ordinary content alteration but is not a cryptographic signature
+against privileged database attackers.
+
+A prior unscoped `article_reviews` database is deliberately rejected rather
+than silently reinterpreting historical approvals under a fabricated tenant.
+A verified tenant assignment and explicit backfill are needed if such data
+must be migrated. DATA-101 is not a production migration or a dependency
+on merging PR #118.
 
 ## Evidence
 
@@ -60,8 +78,8 @@ tamper-proof ledger: an actor with database write access could alter both.
 
 ## Revisit when
 
-Introduce verified identities, tenant-aware access controls and a revision
-aggregate before exposing this to remote users. Evaluate a workflow engine
+Introduce verified identities, tenant-aware access controls, evidence/source
+foreign keys and publication eligibility before exposing this to remote users. Evaluate a workflow engine
 only when retries, waiting approvals, timeouts, escalations or multiple
 nonterminal transitions create complexity that the current deterministic
 state model cannot manage.
