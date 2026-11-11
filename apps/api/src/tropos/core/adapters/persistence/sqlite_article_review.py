@@ -243,7 +243,7 @@ class SQLiteArticleReviewStore:
         revision_no: int | None,
     ) -> sqlite3.Row | None:
         if revision_no is None:
-            return db.execute(
+            row = db.execute(
                 """
                 SELECT * FROM article_revisions
                 WHERE tenant_id = ? AND article_id = ?
@@ -251,13 +251,15 @@ class SQLiteArticleReviewStore:
                 """,
                 (tenant_id, article_id),
             ).fetchone()
-        return db.execute(
-            """
-            SELECT * FROM article_revisions
-            WHERE tenant_id = ? AND article_id = ? AND revision_no = ?
-            """,
-            (tenant_id, article_id, revision_no),
-        ).fetchone()
+        else:
+            row = db.execute(
+                """
+                SELECT * FROM article_revisions
+                WHERE tenant_id = ? AND article_id = ? AND revision_no = ?
+                """,
+                (tenant_id, article_id, revision_no),
+            ).fetchone()
+        return cast(sqlite3.Row | None, row)
 
     @staticmethod
     def _verified_payload(
