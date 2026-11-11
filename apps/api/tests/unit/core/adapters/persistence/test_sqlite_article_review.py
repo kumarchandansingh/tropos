@@ -350,3 +350,16 @@ def test_logical_identity_cannot_change_article_type_or_product(tmp_path: Path) 
             expected_previous_revision=1,
         )
     assert len(store.list_revisions(tenant_id=_TENANT, article_id=_ARTICLE)) == 1
+
+
+def test_legacy_unscoped_reviews_require_explicit_migration(tmp_path: Path) -> None:
+    path = tmp_path / "legacy.db"
+    with sqlite3.connect(path) as db:
+        db.execute("CREATE TABLE article_reviews (article_id TEXT PRIMARY KEY)")
+        db.execute("INSERT INTO article_reviews VALUES ('old-article')")
+
+    with pytest.raises(RuntimeError, match="explicit tenant and revision migration"):
+        SQLiteArticleReviewStore(path)
+
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT COUNT(*) FROM article_reviews").fetchone() == (1,)
