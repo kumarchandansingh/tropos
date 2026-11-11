@@ -122,11 +122,11 @@ This phase corrects a process gap identified during repository review: documenta
 
 | Build | Outcome | Key decision / trade-off | Evidence |
 | --- | --- | --- | --- |
-| GOV-101A | Immutable submitted Knowledge Article drafts, local SQLite review decisions, append-only audit history | Freeze canonical evidence-backed content, enforce version checks and prevent self-review at the local contract boundary; authenticated UI/publication deferred | `sqlite_article_review.py`, `test_sqlite_article_review.py`, ADR-022 |
+| GOV-101A | Tenant-scoped immutable article revisions, claim/citation index, resubmission after review, and append-only reviewer decisions | Align article_id/revision_no, citation keys and event sequences with DATA-101 (PR #118), while keeping local actors unverified and publishing deferred | `sqlite_article_review.py`, `test_sqlite_article_review.py`, ADR-022 |
 
 This is a bounded first increment. Only the review contract and local persistence
-are delivered; no authenticated approval UI, revision resubmission, or article
-publication exists yet.
+are delivered; resubmission creates a new immutable revision, but no authenticated
+approval UI or article publication exists yet.
 
 ## Current architecture maturity
 
