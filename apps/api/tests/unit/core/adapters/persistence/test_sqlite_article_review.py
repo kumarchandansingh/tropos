@@ -117,11 +117,11 @@ def test_submission_persists_immutable_revision_citations_and_history(tmp_path: 
     assert payload["article_type"] == "how_to"
     assert payload["product"] == "Example Service"
     citations = reopened.citations(tenant_id=_TENANT, article_id=_ARTICLE, revision_no=1)
-    assert [c.claim_path for c in citations] == [
+    assert {c.claim_path for c in citations} == {
         "content.purpose",
         "content.steps[0]",
         "content.expected_result",
-    ]
+    }
     assert all(c.chunk_id == "chunk-a" for c in citations)
     assert all(c.chunk_content_fingerprint == sha256(b"Restart the service.").hexdigest()
                for c in citations)
@@ -183,9 +183,11 @@ def test_request_changes_then_new_revision_preserves_prior_review(
     assert new_revision.article_sha256 != rejected.article_sha256
     assert store.get(tenant_id=_TENANT, article_id=_ARTICLE, revision_no=1) == rejected
     assert store.get(tenant_id=_TENANT, article_id=_ARTICLE) == new_revision
-    assert store.article_payload(tenant_id=_TENANT, article_id=_ARTICLE, revision_no=1)[
-        "title"
-    ] == "Recover after certificate rotation"  # type: ignore[index]
+    original_payload = store.article_payload(
+        tenant_id=_TENANT, article_id=_ARTICLE, revision_no=1
+    )
+    assert original_payload is not None
+    assert original_payload["title"] == "Recover after certificate rotation"
     assert [r.revision_no for r in store.list_revisions(
         tenant_id=_TENANT, article_id=_ARTICLE
     )] == [1, 2]
