@@ -1,7 +1,7 @@
 # Tropos Delivery & DORA Metrics
 
 > Generated automatically from GitHub repository data. Do not edit manually.
-> Last generated: 2026-10-12 09:22 UTC
+> Last generated: 2026-11-28 10:36 UTC
 
 ## Sprint delivery
 
